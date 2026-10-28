@@ -201,17 +201,9 @@ export default function HomePage() {
     }
   }, [selectedGender]);
 
-  // 주간 예보 특정 일자 클릭 핸들러 (최저/최고 기온 추천 갱신)
+  // 주간 예보 미래 일자(D+1 ~ D+6) 클릭 핸들러 (최저/최고 기온 추천 갱신)
   const handleSelectForecastDate = useCallback(
     (date: string, day: DailyForecastItem) => {
-      // 7일 중 오늘(첫 번째 날짜)을 클릭한 경우 실시간 오늘 모드로 복귀
-      if (weather?.dailyForecast[0]?.date === date) {
-        setRecommendationMode('LIVE_MODE');
-        setSelectedForecastItem(null);
-        setSelectedSlot('current');
-        return;
-      }
-
       setRecommendationMode('DAILY_FORECAST_MODE');
       setSelectedForecastItem(day);
       if (selectedSlot === 'current') {
@@ -254,7 +246,7 @@ export default function HomePage() {
         '19:00': eveningRec.defaults,
       });
     },
-    [weather, outfitLogs, activeUser, isAuthenticated, selectedGender, selectedSlot]
+    [outfitLogs, activeUser, isAuthenticated, selectedGender, selectedSlot]
   );
 
   // 실시간 오늘 날씨 모드로 복귀 핸들러
@@ -575,12 +567,13 @@ export default function HomePage() {
         {/* 2. 상단 2분할 날씨 카드 (좌측: 실시간 현재 날씨 / 우측: 수동 복장 점검) */}
         {weather && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* 좌측: 실시간 현재 날씨 카드 */}
+            {/* 좌측: 실시간 현재 날씨 카드 (미래 날짜 또는 수동 모드 시 클릭하면 오늘 날씨로 복귀) */}
             <WeatherOverview
               weather={weather}
               isLoading={isLoading}
               selectedSlot={selectedSlot}
               isActive={recommendationMode === 'LIVE_MODE' && selectedSlot === 'current'}
+              isReturnMode={recommendationMode !== 'LIVE_MODE' || selectedSlot !== 'current'}
               onSelectCurrent={() => handleSwitchLive('current')}
             />
 
@@ -595,7 +588,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 3. 주간 예보 (타이틀 없이 현재 날씨 바로 아래 일체화 가로 스크롤 카드) */}
+        {/* 3. 주간 예보 (내일부터 6일간 D+1 ~ D+6, 타이틀 없이 현재 날씨 바로 아래 일체화 가로 스크롤 카드) */}
         {weather && (
           <DailyForecast
             forecasts={weather.dailyForecast}
@@ -607,27 +600,20 @@ export default function HomePage() {
         {/* 4. 시간대별 탭 (실시간/예보 모드) 또는 수동 모드 안내 바 */}
         {weather && (
           recommendationMode === 'MANUAL_MODE' ? (
-            <div className="p-3.5 bg-gradient-to-r from-indigo-50/90 to-purple-50/70 border border-indigo-200/90 rounded-2xl flex items-center justify-between text-xs text-indigo-950 flex-wrap gap-2 shadow-2xs">
+            <div className="p-3 bg-gradient-to-r from-indigo-50/90 to-purple-50/70 border border-indigo-200/90 rounded-2xl flex items-center justify-between text-xs text-indigo-950 flex-wrap gap-2 shadow-2xs">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 bg-indigo-600 text-white rounded-lg shrink-0">
                   <Sliders className="w-4 h-4" />
                 </div>
                 <div>
                   <span className="font-bold text-indigo-900">
-                    수동 기온 점검 모드 활성화 ({manualTemp}°C)
+                    수동 기온 점검 모드 ({manualTemp}°C)
                   </span>
                   <p className="text-[11px] text-indigo-700 mt-0.5">
-                    설정한 온도에 맞춰 대표 추천 복장 및 보온 지수(Insulation Score)가 실시간으로 분석됩니다.
+                    설정한 온도에 맞춰 대표 추천 복장 및 보온 지수(Insulation Score)가 분석됩니다. (상단 좌측 '현재 기온' 클릭 시 오늘 복귀)
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => handleSwitchLive('current')}
-                className="text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-white hover:bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-200 shadow-2xs transition-all active:scale-95 cursor-pointer shrink-0"
-              >
-                실시간 오늘 날씨로 복귀
-              </button>
             </div>
           ) : recommendationMode === 'DAILY_FORECAST_MODE' && selectedForecastItem ? (
             <TimeSlotTabs
@@ -669,16 +655,6 @@ export default function HomePage() {
               onSelectSlot={(slot) => setSelectedSlot(slot)}
               title={`${selectedForecastItem.dayName} 예보 시간대별 복장 기준`}
               visibleSlots={['08:00', '13:00', '19:00']}
-              badge={
-                <button
-                  type="button"
-                  onClick={() => handleSwitchLive('current')}
-                  className="text-xs font-semibold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-200 transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  <span>실시간 오늘 날씨로 복귀</span>
-                </button>
-              }
             />
           ) : (
             <TimeSlotTabs
@@ -716,31 +692,33 @@ export default function HomePage() {
           gender={selectedGender}
         />
 
-        {/* 7. 오늘의 복장 체감 평가 & 피드백 폼 */}
-        <FeedbackForm
-          userName={isAuthenticated && authProfile ? authProfile.name : '게스트'}
-          currentTemp={effectiveData.temperature}
-          apparentTemp={effectiveData.apparentTemperature}
-          timeSlot={effectiveData.slotKey}
-          locationName={location.name}
-          currentOutfit={effectiveData.selection}
-          onLogSaved={() => {
-            loadLogs();
-            if (weather) {
-              loadAggregatedData(weather);
-            }
-          }}
-          userCondition={userCondition}
-          onChangeUserCondition={setUserCondition}
-          onKakaoLogin={() => signInWithKakao()}
-          gender={selectedGender}
-        />
+        {/* 7. 오늘의 복장 체감 평가 & 피드백 폼 (미래 날짜 D+1 ~ D+6 예보 조회 시 숨김) */}
+        {recommendationMode !== 'DAILY_FORECAST_MODE' && (
+          <FeedbackForm
+            userName={isAuthenticated && authProfile ? authProfile.name : '게스트'}
+            currentTemp={effectiveData.temperature}
+            apparentTemp={effectiveData.apparentTemperature}
+            timeSlot={effectiveData.slotKey}
+            locationName={location.name}
+            currentOutfit={effectiveData.selection}
+            onLogSaved={() => {
+              loadLogs();
+              if (weather) {
+                loadAggregatedData(weather);
+              }
+            }}
+            userCondition={userCondition}
+            onChangeUserCondition={setUserCondition}
+            onKakaoLogin={() => signInWithKakao()}
+            gender={selectedGender}
+          />
+        )}
       </main>
 
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.15.1</strong></p>
+        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.16.0</strong></p>
       </footer>
     </div>
   );

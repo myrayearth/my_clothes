@@ -16,13 +16,17 @@ export const DailyForecast: React.FC<DailyForecastProps> = ({
   selectedDate,
   onSelectDate,
 }) => {
+  // 내일부터 6일간(D+1 ~ D+6, 총 6개 카드) 렌더링
+  const displayForecasts = forecasts.slice(0, 6);
+
   return (
     <div className="w-full bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs">
-      {/* 7일간 예보 가로 스크롤 카드 행 (섹션 타이틀 없이 일체화) */}
+      {/* 내일부터 6일간 예보 가로 스크롤 카드 행 (섹션 타이틀 없이 일체화) */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-slate-200">
-        {forecasts.map((day, idx) => {
-          const isToday = idx === 0;
+        {displayForecasts.map((day) => {
           const isSelected = selectedDate === day.date;
+          // dateStr 'YYYY-MM-DD'에서 'DD일' 추출
+          const dayNumber = day.date ? parseInt(day.date.split('-')[2], 10) : null;
 
           return (
             <button
@@ -32,23 +36,27 @@ export const DailyForecast: React.FC<DailyForecastProps> = ({
               className={`flex flex-col items-center justify-between min-w-[76px] sm:min-w-[82px] py-2.5 px-2 rounded-xl border text-center transition-all duration-150 touch-manipulation select-none active:scale-95 cursor-pointer relative shrink-0 ${
                 isSelected
                   ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-500/25'
-                  : isToday
-                  ? 'bg-blue-50/70 border-blue-200 hover:bg-blue-100/70 text-slate-800'
                   : 'bg-slate-50/80 border-slate-200/80 hover:bg-slate-100/80 text-slate-700 hover:border-slate-300'
               }`}
               title={`${day.dayName} 날씨 기준 복장 추천 보기`}
             >
-              {/* 요일 및 오늘 표기 */}
-              <div className="flex items-center gap-1">
+              {/* 요일 및 일자(DD일) */}
+              <div className="flex flex-col items-center">
                 <span
                   className={`text-[11px] font-bold ${
-                    isSelected ? 'text-white' : isToday ? 'text-blue-700' : 'text-slate-700'
+                    isSelected ? 'text-white' : 'text-slate-700'
                   }`}
                 >
                   {day.dayName}
                 </span>
-                {isToday && !isSelected && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" title="오늘" />
+                {dayNumber && (
+                  <span
+                    className={`text-[9px] ${
+                      isSelected ? 'text-blue-200' : 'text-slate-400'
+                    }`}
+                  >
+                    {dayNumber}일
+                  </span>
                 )}
               </div>
 

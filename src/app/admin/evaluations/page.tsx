@@ -40,15 +40,24 @@ import {
 } from 'lucide-react';
 
 const TEMP_TIERS = [
-  { min: 28, max: 50, label: '28°C 이상', desc: '한여름 (민소매, 반팔)' },
-  { min: 23, max: 27.9, label: '23°C ~ 27°C', desc: '초여름/초가을 (반팔, 얇은 셔츠)' },
-  { min: 20, max: 22.9, label: '20°C ~ 22°C', desc: '완연한 봄/가을 (긴팔, 가디건)' },
-  { min: 17, max: 19.9, label: '17°C ~ 19°C', desc: '선선한 날씨 (니트, 맨투맨)' },
-  { min: 12, max: 16.9, label: '12°C ~ 16°C', desc: '쌀쌀한 날씨 (자켓, 야상)' },
-  { min: 9, max: 11.9, label: '9°C ~ 11°C', desc: '초겨울 (트렌치코트, 도톰한 니트)' },
-  { min: 5, max: 8.9, label: '5°C ~ 8°C', desc: '겨울 (울코트, 가죽자켓)' },
-  { min: -30, max: 4.9, label: '4°C 이하', desc: '한겨울 (패딩, 목도리)' },
+  { min: 30, max: 99, label: '30°C 이상 (폭염)', desc: '한여름 (민소매, 반팔, 린넨쇼츠)' },
+  { min: 25, max: 29.9, label: '25°C ~ 29°C (초여름)', desc: '초여름 (반팔, 얇은 셔츠, 얇은 바지)' },
+  { min: 20, max: 24.9, label: '20°C ~ 24°C (포근한 봄/가을)', desc: '봄/가을 (긴팔, 가디건, 데님)' },
+  { min: 15, max: 19.9, label: '15°C ~ 19°C (선선한 환절기)', desc: '환절기 (바람막이, 맨투맨, 슬랙스)' },
+  { min: 10, max: 14.9, label: '10°C ~ 14°C (쌀쌀한 환절기)', desc: '쌀쌀함 (트렌치코트, 니트, 머플러)' },
+  { min: 5, max: 9.9, label: '5°C ~ 9°C (초겨울)', desc: '초겨울 (경량 패딩, 울코트, 기모)' },
+  { min: 0, max: 4.9, label: '0°C ~ 4°C (겨울 추위)', desc: '겨울 추위 (숏패딩, 발열내의, 조거팬츠)' },
+  { min: -5, max: -0.1, label: '-5°C ~ -1°C (한파 시작)', desc: '한파 시작 (롱패딩, 방한바지, 핫팩)' },
+  { min: -10, max: -5.1, label: '-10°C ~ -6°C (혹한기)', desc: '혹한기 (헤비다운, 방풍마스크, 털장갑)' },
+  { min: -15, max: -10.1, label: '-15°C ~ -11°C (극심한 한파)', desc: '극심한 한파 (대장급 롱패딩, 바라클라바)' },
+  { min: -99, max: -15.1, label: '-15°C 이하 (외출 위험)', desc: '외출 위험 (익스트림 패딩, 전신 방한)' },
 ];
+
+function getTempTierInfo(temp: number) {
+  const rounded = Math.round(temp);
+  const tier = TEMP_TIERS.find((t) => rounded >= Math.floor(t.min) && rounded <= Math.floor(t.max));
+  return tier || { label: `${temp}°C`, desc: '' };
+}
 
 export default function TemperatureEvaluationsAdminPage() {
   return (
@@ -139,11 +148,12 @@ function EvaluationsDashboardContent() {
         return false;
       }
 
-      // 5. 기온 구간 필터
+      // 5. 기온 구간 필터 (11단계 룰셋)
       if (filterTempTier !== 'all') {
         const tier = TEMP_TIERS.find((t) => t.label === filterTempTier);
         if (tier) {
-          if (item.target_temp < tier.min || item.target_temp > tier.max) {
+          const rounded = Math.round(item.target_temp);
+          if (rounded < Math.floor(tier.min) || rounded > Math.floor(tier.max)) {
             return false;
           }
         }
@@ -189,12 +199,13 @@ function EvaluationsDashboardContent() {
     };
   }, [evaluations]);
 
-  // 기온 구간별 분포 통계
+  // 기온 구간별 분포 통계 (11단계 룰셋)
   const tierDistribution = useMemo(() => {
     return TEMP_TIERS.map((tier) => {
-      const itemsInTier = evaluations.filter(
-        (e) => e.target_temp >= tier.min && e.target_temp <= tier.max
-      );
+      const itemsInTier = evaluations.filter((e) => {
+        const rounded = Math.round(e.target_temp);
+        return rounded >= Math.floor(tier.min) && rounded <= Math.floor(tier.max);
+      });
       const count = itemsInTier.length;
       const avgOffset =
         count > 0
@@ -436,22 +447,22 @@ function EvaluationsDashboardContent() {
           </div>
         </section>
 
-        {/* 3. 기온 구간별 체감 평가 차트 & 분포 분석 */}
+        {/* 3. 기온 구간별 체감 평가 차트 & 분포 분석 (11단계 룰셋) */}
         <section className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
             <div>
               <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                 <BarChart3 className="w-4 h-4 text-blue-600" />
-                <span>8단계 기온 구간별 체감 평가 분포 차트</span>
+                <span>11단계 기온 구간별 체감 평가 분포 차트</span>
               </h2>
               <p className="text-xs text-slate-500">
-                각 기온 구간별 누적 평가 건수와 평균 체감 오차(°C)를 시각화합니다.
+                5°C 단위 11단계 기온 구간별 누적 평가 건수와 평균 체감 오차(°C)를 실시간 분석합니다.
               </p>
             </div>
             <span className="text-xs text-slate-400">총 {stats.total}개 평가 기반</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pt-1">
             {tierDistribution.map((tier) => (
               <div
                 key={tier.label}
@@ -496,7 +507,7 @@ function EvaluationsDashboardContent() {
 
         {/* 4. 검색 & 다중 필터 컨트롤 바 */}
         <section className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5">
             {/* 검색창 */}
             <div className="relative lg:col-span-2">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -524,9 +535,24 @@ function EvaluationsDashboardContent() {
               className="py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-slate-700"
             >
               <option value="all">시간대: 전체</option>
+              <option value="current">현재 (실시간)</option>
               <option value="08:00">08:00 (아침)</option>
               <option value="13:00">13:00 (낮)</option>
               <option value="19:00">19:00 (저녁)</option>
+            </select>
+
+            {/* 11단계 기온 구간 필터 */}
+            <select
+              value={filterTempTier}
+              onChange={(e) => setFilterTempTier(e.target.value)}
+              className="py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-slate-700"
+            >
+              <option value="all">기온 구간: 전체 (11단계)</option>
+              {TEMP_TIERS.map((tier) => (
+                <option key={tier.label} value={tier.label}>
+                  {tier.label}
+                </option>
+              ))}
             </select>
 
             {/* 체감 점수 필터 */}
@@ -559,7 +585,7 @@ function EvaluationsDashboardContent() {
             <span>
               필터 결과: <strong>{filteredEvaluations.length}</strong>건 (전체 {evaluations.length}건)
             </span>
-            {(searchQuery || filterSlot !== 'all' || filterScore !== 'all' || filterCondition !== 'all') && (
+            {(searchQuery || filterSlot !== 'all' || filterScore !== 'all' || filterCondition !== 'all' || filterTempTier !== 'all') && (
               <button
                 onClick={() => {
                   setSearchQuery('');
@@ -644,10 +670,15 @@ function EvaluationsDashboardContent() {
                         </span>
                       </td>
 
-                      {/* 기온 / 체감 */}
+                      {/* 기온 / 체감 및 11단계 구간 라벨 */}
                       <td className="py-3 px-4 whitespace-nowrap">
-                        <span className="font-bold text-slate-800">{item.target_temp}°C</span>
-                        <span className="text-[10px] text-slate-400 block">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-slate-800">{item.target_temp}°C</span>
+                          <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded font-medium border border-blue-100">
+                            {getTempTierInfo(item.target_temp).label}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">
                           체감 {item.apparent_temp}°C
                         </span>
                       </td>

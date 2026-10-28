@@ -5,6 +5,7 @@ import {
   TimeSlotWeatherItem,
   DailyForecastItem,
 } from '@/types/weather';
+import { getEffectiveDateString } from './dateUtils';
 
 /**
  * WMO Weather Code 한국어 명칭 및 아이콘 타입 매핑
@@ -56,12 +57,13 @@ export function getWeatherInterpretation(code: number): {
 
 /**
  * Open-Meteo Forecast API 호출 및 데이터 가공
+ * (새벽 02:00 롤오버 지원을 위해 past_days=1을 포함하여 전일 08/13/19시 데이터 확보)
  */
 export async function fetchWeatherData(
   latitude: number,
   longitude: number
 ): Promise<ProcessedWeatherData> {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m,apparent_temperature,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=7`;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m,apparent_temperature,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&past_days=1&forecast_days=8`;
 
   const res = await fetch(url, {
     headers: { Accept: 'application/json' },
@@ -78,13 +80,14 @@ export async function fetchWeatherData(
 }
 
 /**
- * Open-Meteo Raw 응답에서 오늘 08시, 13시, 19시 및 7일 일별 예보를 추출/가공
+ * Open-Meteo Raw 응답에서 새벽 02:00 롤오버 기준 D-day의 08시, 13시, 19시 및 미래(D+1 ~ D+6) 일별 예보 추출
  */
 export function processWeatherData(raw: ForecastApiResponse): ProcessedWeatherData {
   const { hourly, daily } = raw;
+  const now = new Date();
 
-  // 당일 기준 날짜 문자열 (YYYY-MM-DD)
-  const todayStr = daily.time[0] || new Date().toISOString().split('T')[0];
+  // [새벽 02:00 롤오버 기준] 당일 유효 D-day 날짜 문자열 (YYYY-MM-DD)
+  const todayStr = getEffectiveDateString(now);
 
   // 08:00, 13:00, 19:00 추출
   const targetSlots: TargetTimeSlot[] = ['08:00', '13:00', '19:00'];
@@ -114,13 +117,13 @@ export function processWeatherData(raw: ForecastApiResponse): ProcessedWeatherDa
     };
   });
 
-  // 현재 시간과 가장 가까운 기온 계산
-  const now = new Date();
-  const currentHour = now.getHours();
-  const currentHourlyIndex = Math.min(
-    Math.max(0, currentHour),
-    hourly.time.length - 1
-  );
+  // 현재 시간(실시간)과 가장 일치하는 기온 계산
+  const currentISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:00`;
+  let currentHourlyIndex = hourly.time.findIndex((t) => t.startsWith(currentISO));
+  if (currentHourlyIndex === -1) {
+    const currentHour = now.getHours();
+    currentHourlyIndex = Math.min(Math.max(0, currentHour), hourly.time.length - 1);
+  }
 
   const currentTemp = Math.round(hourly.temperature_2m[currentHourlyIndex] ?? 16);
   const currentApparentTemp = Math.round(
@@ -138,11 +141,30 @@ export function processWeatherData(raw: ForecastApiResponse): ProcessedWeatherDa
     weatherLabel: getWeatherInterpretation(currentWeatherCode).label,
   };
 
-  // 7일 일간 예보 생성
+  // D-day의 최고/최저 기온 계산
+  const todayDailyIndex = daily.time.indexOf(todayStr);
+  const todayMax = Math.round(
+    todayDailyIndex !== -1 ? daily.temperature_2m_max[todayDailyIndex] ?? currentTemp : currentTemp
+  );
+  const todayMin = Math.round(
+    todayDailyIndex !== -1 ? daily.temperature_2m_min[todayDailyIndex] ?? currentTemp : currentTemp
+  );
+
+  // 미래 6일간(D+1 ~ D+6) 일간 예보 생성 ('오늘' D-day는 주간 예보 카드에서 제외)
   const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-  const dailyForecast: DailyForecastItem[] = daily.time.map((dateStr, idx) => {
+  const futureIndices: number[] = [];
+  
+  daily.time.forEach((dateStr, idx) => {
+    // D-day보다 미래인 날짜만 D+1 ~ D+6에 포함
+    if (dateStr > todayStr && futureIndices.length < 6) {
+      futureIndices.push(idx);
+    }
+  });
+
+  const dailyForecast: DailyForecastItem[] = futureIndices.map((idx) => {
+    const dateStr = daily.time[idx];
     const d = new Date(dateStr);
-    const dayName = idx === 0 ? '오늘' : `${dayNames[d.getDay()]}요일`;
+    const dayName = `${dayNames[d.getDay()]}요일`;
     const code = daily.weather_code[idx] ?? 0;
     return {
       date: dateStr,
@@ -159,8 +181,8 @@ export function processWeatherData(raw: ForecastApiResponse): ProcessedWeatherDa
     currentApparentTemp,
     currentWeatherCode,
     currentWeatherLabel: getWeatherInterpretation(currentWeatherCode).label,
-    todayMax: Math.round(daily.temperature_2m_max[0] ?? currentTemp),
-    todayMin: Math.round(daily.temperature_2m_min[0] ?? currentTemp),
+    todayMax,
+    todayMin,
     timeSlots: timeSlotsResult as Record<TargetTimeSlot, TimeSlotWeatherItem>,
     dailyForecast,
   };

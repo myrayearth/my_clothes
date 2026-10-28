@@ -1,7 +1,7 @@
 import React from 'react';
 import { ProcessedWeatherData, TargetTimeSlot } from '@/types/weather';
 import { WeatherIcon } from '@/components/common/WeatherIcon';
-import { ArrowUp, ArrowDown, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ArrowUp, ArrowDown, Sparkles, CheckCircle2, RotateCcw } from 'lucide-react';
 
 interface WeatherOverviewProps {
   weather: ProcessedWeatherData;
@@ -9,6 +9,7 @@ interface WeatherOverviewProps {
   selectedSlot?: TargetTimeSlot;
   onSelectCurrent?: () => void;
   isActive?: boolean;
+  isReturnMode?: boolean;
 }
 
 export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
@@ -17,6 +18,7 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
   selectedSlot,
   onSelectCurrent,
   isActive,
+  isReturnMode = false,
 }) => {
   if (isLoading) {
     return (
@@ -34,6 +36,7 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
   }
 
   const isCurrentActive = isActive !== undefined ? isActive : selectedSlot === 'current';
+  const shouldShowReturnGuide = isReturnMode || (!isCurrentActive && !!onSelectCurrent);
 
   return (
     <div
@@ -46,14 +49,22 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
           onSelectCurrent();
         }
       }}
-      className={`w-full rounded-2xl p-4 sm:p-5 border transition-all duration-200 select-none flex flex-col justify-between ${
-        onSelectCurrent ? 'cursor-pointer hover:border-blue-300 hover:shadow-xs' : ''
+      className={`w-full rounded-2xl p-4 sm:p-5 border transition-all duration-200 select-none flex flex-col justify-between relative group ${
+        onSelectCurrent ? 'cursor-pointer' : ''
       } ${
         isCurrentActive
           ? 'bg-gradient-to-br from-blue-50/80 via-white to-sky-50/60 border-blue-400 ring-2 ring-blue-500/20 shadow-md'
+          : shouldShowReturnGuide
+          ? 'bg-gradient-to-br from-white to-blue-50/30 border-slate-200/90 hover:border-blue-400 hover:ring-2 hover:ring-blue-400/25 hover:shadow-md'
           : 'bg-gradient-to-br from-white to-slate-50/80 border-slate-200/80 shadow-2xs'
       }`}
-      title={onSelectCurrent ? '클릭하여 현재 기온 기준 복장 추천 보기' : undefined}
+      title={
+        shouldShowReturnGuide
+          ? '클릭 시 오늘 실시간 날씨로 복귀'
+          : onSelectCurrent
+          ? '클릭하여 현재 기온 기준 복장 추천 보기'
+          : undefined
+      }
     >
       <div>
         <div className="flex items-start justify-between">
@@ -66,6 +77,11 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
                 <span className="text-[11px] font-bold text-white bg-blue-600 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs animate-in fade-in">
                   <CheckCircle2 className="w-3 h-3" />
                   <span>실시간 추천 활성</span>
+                </span>
+              ) : shouldShowReturnGuide ? (
+                <span className="text-[11px] font-bold text-blue-700 bg-blue-100/80 group-hover:bg-blue-600 group-hover:text-white px-2 py-0.5 rounded-full border border-blue-200 transition-colors flex items-center gap-1 shadow-2xs">
+                  <RotateCcw className="w-3 h-3" />
+                  <span>클릭 시 오늘 날씨로 복귀</span>
                 </span>
               ) : onSelectCurrent ? (
                 <span className="text-[11px] font-medium text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 px-2 py-0.5 rounded-md border border-slate-200 hover:border-blue-200 transition-colors flex items-center gap-1">

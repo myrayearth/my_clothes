@@ -6,6 +6,7 @@ import { UserCondition, UserGender } from '@/types/database';
 import { createOutfitLog } from '@/lib/storage';
 import { formatScoreTemp } from '@/lib/matcher';
 import { calculateTotalInsulation } from '@/lib/insulation';
+import { getEffectiveDayNumber } from '@/lib/dateUtils';
 import {
   MessageSquare,
   Send,
@@ -154,7 +155,9 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
     return '현재';
   };
   const slotLabel = getSlotName(timeSlot);
-  const titleText = `오늘의 ${slotLabel}(${currentTemp}°C) 복장 체감 평가`;
+  // [새벽 02:00 롤오버 기준 D-day 일자 반영]
+  const effectiveDay = getEffectiveDayNumber();
+  const titleText = `오늘(${effectiveDay}일) ${slotLabel}(${currentTemp}°C) 복장 체감 평가`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
