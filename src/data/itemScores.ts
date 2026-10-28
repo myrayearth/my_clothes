@@ -67,11 +67,12 @@ export const STANDARD_ITEMS: StandardItem[] = [
   { name: '헤비 방한바지', category: 'bottom', season: 'winter', score: 45 },
 
   // =========================================================================
-  // 4. 소품 (Item - 10종, 합산 -10~+30점 캡 적용)
+  // 4. 소품 (Item - 11종, 합산 -10~+30점 캡 적용)
   // =========================================================================
-  { name: '냉각 소품', category: 'items', season: 'summer', score: -3 },
+  { name: '손풍기', category: 'items', season: 'summer', score: -3 },
+  { name: '모자/썬캡', category: 'items', season: 'summer', score: -3 },
+  { name: '양산', category: 'items', season: 'summer', score: -3 },
   { name: '자외선 차단', category: 'items', season: 'summer', score: -2 },
-  { name: '위생/날씨', category: 'items', season: 'summer', score: 0 },
   { name: '가벼운 스카프/숄', category: 'items', season: 'spring_autumn', score: 4 },
   { name: '기본 양말/스타킹', category: 'items', season: 'spring_autumn', score: 5 },
   { name: '비니/가벼운 장갑', category: 'items', season: 'winter', score: 7 },
@@ -256,14 +257,23 @@ export const ITEM_SCORES: Record<string, number> = {
   '아웃도어 방한 바지': 45,
 
   // Items
+  '손풍기': -3,
+  '모자/썬캡': -3,
+  '양산': -3,
   '휴대용 손풍기': -3,
+  '냉각 소품': -3,
+  '위생/날씨': -3,
   부채: -3,
   '쿨링 스프레이': -3,
-  양산: -2,
+  '자외선 차단': -2,
   쿨토시: -2,
-  '캡모자 / 볼캡': -2,
+  '캡모자 / 볼캡': -3,
+  '모자': -3,
+  '썬캡': -3,
+  '캡모자': -3,
+  '볼캡': -3,
   '땀 흡수 손수건': 0,
-  선글라스: 0,
+  선글라스: -2,
   우산: 0,
   '얇은 스카프': 4,
   '가벼운 숄': 4,

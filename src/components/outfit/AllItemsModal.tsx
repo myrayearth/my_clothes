@@ -66,7 +66,7 @@ export function getItemSeason(category: OutfitCategory, item: string): SeasonTab
 
   // 4. 소품 (Item)
   if (category === 'items') {
-    const summerItemKeywords = ['손풍기', '양산', '쿨링', '쿨토시', '부채', '선글라스', '손수건', '캡모자', '우산'];
+    const summerItemKeywords = ['손풍기', '양산', '모자', '썬캡', '쿨링', '쿨토시', '부채', '선글라스', '손수건', '캡모자', '우산'];
     const winterItemKeywords = [
       '장갑', '목도리', '핫팩', '머플러', '비니', '귀마개', '워머', '어그', '방풍', '바라클라바', '스노우', '마스크', '방한', '양말'
     ];
