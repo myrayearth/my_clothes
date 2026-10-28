@@ -1,19 +1,20 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { OutfitLog, TemperatureEvaluation, UserCondition, UserGender } from '@/types/database';
-import { STANDARD_ITEMS, StandardItem } from '@/data/itemScores';
+import { STANDARD_ITEMS } from '@/data/itemScores';
 import { filterItemsByGender } from '@/lib/gender';
 import {
   calculateTotalInsulation,
   scoreToCoverTemperature,
   getInsulationTargetRange,
   getRelativeCoverStatus,
-  getItemInsulationScore,
+  getItemChipWarmthClasses,
 } from '@/lib/insulation';
 import { getOutfitRuleByTemperature } from '@/lib/outfit';
 import { formatScoreTemp } from '@/lib/matcher';
-import { updateOutfitLog, updateTemperatureEvaluation } from '@/lib/storage';
+import { updateOutfitLog } from '@/lib/storage';
+import { isDiscontinuedItem } from '@/lib/dataMigration';
 import { X, Check, Shirt, Sparkles, AlertCircle, Save, Loader2 } from 'lucide-react';
 
 interface EvaluationEditModalProps {
@@ -69,17 +70,17 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
   // 초기 폼 상태 초기화
   const initialTop = Array.isArray(record.selected_top)
     ? record.selected_top
-    : [record.selected_top].filter(Boolean);
+    : [record.selected_top].filter(Boolean) as string[];
   const initialBottom = Array.isArray(record.selected_bottom)
     ? record.selected_bottom
-    : [record.selected_bottom].filter(Boolean);
+    : [record.selected_bottom].filter(Boolean) as string[];
   const initialItems = Array.isArray(record.selected_items)
     ? record.selected_items
     : [];
 
   const [outer, setOuter] = useState<string>(record.selected_outer || '없음');
-  const [top, setTop] = useState<string[]>(initialTop.length > 0 ? initialTop : ['반팔 티셔츠']);
-  const [bottom, setBottom] = useState<string[]>(initialBottom.length > 0 ? initialBottom : ['기본 데님']);
+  const [top, setTop] = useState<string[]>(initialTop.length > 0 ? initialTop : ['기본 반팔']);
+  const [bottom, setBottom] = useState<string[]>(initialBottom.length > 0 ? initialBottom : ['기본 긴바지']);
   const [items, setItems] = useState<string[]>(initialItems);
   const [score, setScore] = useState<number>(record.score ?? 0);
   const [condition, setCondition] = useState<UserCondition>(record.condition || '정상');
@@ -87,26 +88,61 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // 성별 필터링이 적용된 표준 옵션 목록
+  // record 변경 시 내부 폼 상태 재동기화
+  useEffect(() => {
+    if (!record) return;
+    const rTop = Array.isArray(record.selected_top)
+      ? record.selected_top
+      : [record.selected_top].filter(Boolean) as string[];
+    const rBottom = Array.isArray(record.selected_bottom)
+      ? record.selected_bottom
+      : [record.selected_bottom].filter(Boolean) as string[];
+    const rItems = Array.isArray(record.selected_items)
+      ? record.selected_items
+      : [];
+
+    setOuter(record.selected_outer || '없음');
+    setTop(rTop.length > 0 ? rTop : ['기본 반팔']);
+    setBottom(rBottom.length > 0 ? rBottom : ['기본 긴바지']);
+    setItems(rItems);
+    setScore(record.score ?? 0);
+    setCondition(record.condition || '정상');
+    setMemo(record.memo || '');
+    setErrorMessage(null);
+  }, [record]);
+
+  const effectiveGender: UserGender = (record as any)?.gender || gender || 'male';
+
+  // 성별 필터링이 적용된 표준 옵션 목록 + 현재 선택된 과거/단종 아이템 보존
   const outerOptions = useMemo(() => {
     const list = STANDARD_ITEMS.filter((i) => i.category === 'outer').map((i) => i.name);
-    return ['없음', ...filterItemsByGender(list, gender)];
-  }, [gender]);
+    const standard = ['없음', ...filterItemsByGender(list, effectiveGender)];
+    if (outer && outer !== '없음' && !standard.includes(outer)) {
+      return [...standard, outer];
+    }
+    return standard;
+  }, [effectiveGender, outer]);
 
   const topOptions = useMemo(() => {
     const list = STANDARD_ITEMS.filter((i) => i.category === 'top').map((i) => i.name);
-    return filterItemsByGender(list, gender);
-  }, [gender]);
+    const standard = filterItemsByGender(list, effectiveGender);
+    const legacy = top.filter((t) => !standard.includes(t));
+    return [...standard, ...legacy];
+  }, [effectiveGender, top]);
 
   const bottomOptions = useMemo(() => {
     const list = STANDARD_ITEMS.filter((i) => i.category === 'bottom').map((i) => i.name);
-    return filterItemsByGender(list, gender);
-  }, [gender]);
+    const standard = filterItemsByGender(list, effectiveGender);
+    const legacy = bottom.filter((b) => !standard.includes(b));
+    return [...standard, ...legacy];
+  }, [effectiveGender, bottom]);
 
   const itemOptions = useMemo(() => {
     const list = STANDARD_ITEMS.filter((i) => i.category === 'items').map((i) => i.name);
-    return filterItemsByGender(list, gender);
-  }, [gender]);
+    const standard = filterItemsByGender(list, effectiveGender);
+    const legacy = items.filter((it) => !standard.includes(it));
+    return [...standard, ...legacy];
+  }, [effectiveGender, items]);
 
   // 실시간 보온 수치 및 커버 기온 재계산
   const totalScore = useMemo(() => {
@@ -137,32 +173,57 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
     [coverTemp, record.target_temp]
   );
 
-  // 상의 다중 선택 토글 (최소 1개 유지)
+  // 단종/과거 아이템 여부와 무관하게 문자열 값(Value) 자체를 기준으로 안전하게 단일 항목 제거
+  const handleRemoveItem = (category: 'top' | 'bottom' | 'items', itemName: string) => {
+    if (category === 'top') {
+      if (top.length <= 1) return; // 상의 최소 1개 유지
+      setTop((prev) => prev.filter((name) => name !== itemName));
+    } else if (category === 'bottom') {
+      if (bottom.length <= 1) return; // 하의 최소 1개 유지
+      setBottom((prev) => prev.filter((name) => name !== itemName));
+    } else if (category === 'items') {
+      setItems((prev) => prev.filter((name) => name !== itemName));
+    }
+  };
+
+  const handleClearOuter = () => {
+    setOuter('없음');
+  };
+
+  const handleOuterSelect = (opt: string) => {
+    if (outer === opt) {
+      setOuter('없음');
+    } else {
+      setOuter(opt);
+    }
+  };
+
+  // 상의 다중 선택 토글 (문자열 값 기준 필터링, 최소 1개 유지)
   const handleToggleTop = (item: string) => {
     if (top.includes(item)) {
       if (top.length <= 1) return;
-      setTop(top.filter((t) => t !== item));
+      setTop((prev) => prev.filter((t) => t !== item));
     } else {
-      setTop([...top, item]);
+      setTop((prev) => [...prev, item]);
     }
   };
 
-  // 하의 다중 선택 토글 (최소 1개 유지)
+  // 하의 다중 선택 토글 (문자열 값 기준 필터링, 최소 1개 유지)
   const handleToggleBottom = (item: string) => {
     if (bottom.includes(item)) {
       if (bottom.length <= 1) return;
-      setBottom(bottom.filter((b) => b !== item));
+      setBottom((prev) => prev.filter((b) => b !== item));
     } else {
-      setBottom([...bottom, item]);
+      setBottom((prev) => [...prev, item]);
     }
   };
 
-  // 소품 다중 선택 토글
+  // 소품 다중 선택 토글 (문자열 값 기준 필터링)
   const handleToggleItem = (item: string) => {
     if (items.includes(item)) {
-      setItems(items.filter((i) => i !== item));
+      setItems((prev) => prev.filter((i) => i !== item));
     } else {
-      setItems([...items, item]);
+      setItems((prev) => [...prev, item]);
     }
   };
 
@@ -289,41 +350,71 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
 
           {/* 1. 외투 (단일 선택) */}
           <div>
-            <label className="block text-slate-700 font-bold mb-1.5 flex items-center justify-between">
-              <span>외투 (단일 선택)</span>
-              <span className="text-blue-600 font-semibold">{outer}</span>
-            </label>
+            <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+              <span className="text-slate-700 font-bold">외투 (단일 선택)</span>
+              <div className="flex items-center gap-1.5">
+                {outer && outer !== '없음' ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold">
+                    <span>{outer}</span>
+                    {isDiscontinuedItem(outer) && (
+                      <span className="text-[9px] bg-rose-100 text-rose-700 px-1 rounded font-bold">단종</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleClearOuter}
+                      className="p-0.5 hover:bg-blue-200/60 rounded text-blue-600 hover:text-blue-900 transition-colors"
+                      title="외투 선택 해제"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ) : (
+                  <span className="text-slate-400 text-xs">없음</span>
+                )}
+              </div>
+            </div>
             <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50/50 scrollbar-thin">
               {outerOptions.map((opt) => {
                 const isSelected = outer === opt;
-                const isRecommended = rule.recommend.outer === opt || rule.outer.includes(opt);
-                const score = getItemInsulationScore(opt);
-                const itemCover = scoreToCoverTemperature(score);
-                const diff = Math.round(itemCover - record.target_temp);
-                const diffStr = opt === '없음' ? '' : `(${diff > 0 ? `+${diff}` : diff}도)`;
+                const isRecommended = opt !== '없음' && (rule.recommend.outer === opt || rule.outer.includes(opt));
+                const isDiscontinued = isDiscontinuedItem(opt);
 
                 return (
                   <button
                     key={opt}
                     type="button"
-                    onClick={() => setOuter(opt)}
-                    className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
-                      isSelected
-                        ? 'bg-brand-600 text-[#fdfbf7] border-brand-600 shadow-xs ring-2 ring-brand-400 font-bold'
-                        : isRecommended
-                        ? 'bg-amber-50/50 text-[#0b192c] border-amber-300 hover:bg-amber-100/50'
-                        : 'bg-white text-[#0b192c] border-slate-200 hover:bg-slate-100'
-                    }`}
+                    onClick={() => handleOuterSelect(opt)}
+                    className={`px-2.5 py-1 rounded-lg border text-xs font-medium transition-all flex items-center gap-1 active:scale-95 ${getItemChipWarmthClasses(
+                      opt,
+                      'outer',
+                      isSelected,
+                      isRecommended
+                    )}`}
                   >
-                    <span>{opt}</span>
-                    {diffStr && (
-                      <span className={`text-[10px] ${isSelected ? 'text-slate-300' : 'text-slate-400'}`}>
-                        {diffStr}
+                    {isSelected && (
+                      <Check className="w-3.5 h-3.5 text-[#fdfbf7] stroke-[2.5] shrink-0" />
+                    )}
+                    <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] font-semibold'}>
+                      {opt}
+                    </span>
+                    {isRecommended && (
+                      <span
+                        className={`text-[9px] font-bold px-1 rounded ${
+                          isSelected ? 'bg-amber-900/60 text-amber-200' : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        추천
                       </span>
                     )}
-                    {isRecommended && (
-                      <span className={`text-[9px] font-bold px-1 rounded ${isSelected ? 'bg-amber-900/60 text-amber-200' : 'bg-amber-100 text-amber-800'}`}>
-                        추천
+                    {isDiscontinued && (
+                      <span
+                        className={`text-[9px] font-bold px-1 rounded ${
+                          isSelected
+                            ? 'bg-rose-900/60 text-rose-200 border border-rose-400/40'
+                            : 'bg-rose-100 text-rose-700 border border-rose-200'
+                        }`}
+                      >
+                        단종
                       </span>
                     )}
                   </button>
@@ -334,40 +425,74 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
 
           {/* 2. 상의 (다중 선택, 최소 1개) */}
           <div>
-            <label className="block text-slate-700 font-bold mb-1.5 flex items-center justify-between">
-              <span>상의 (다중 선택, 최소 1개)</span>
-              <span className="text-blue-600 font-semibold">{top.join(' + ')}</span>
-            </label>
+            <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+              <span className="text-slate-700 font-bold">상의 (다중 선택, 최소 1개)</span>
+              <div className="flex items-center flex-wrap gap-1 justify-end">
+                {top.map((item) => (
+                  <span
+                    key={item}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold"
+                  >
+                    <span>{item}</span>
+                    {isDiscontinuedItem(item) && (
+                      <span className="text-[9px] bg-rose-100 text-rose-700 px-1 rounded font-bold">단종</span>
+                    )}
+                    {top.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem('top', item)}
+                        className="p-0.5 hover:bg-blue-200/60 rounded text-blue-600 hover:text-blue-900 transition-colors"
+                        title={`${item} 삭제`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </span>
+                ))}
+              </div>
+            </div>
             <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50/50 scrollbar-thin">
               {topOptions.map((opt) => {
                 const isSelected = top.includes(opt);
                 const isRecommended = rule.recommend.top.includes(opt) || rule.top.includes(opt);
-                const score = getItemInsulationScore(opt);
-                const itemCover = scoreToCoverTemperature(score);
-                const diff = Math.round(itemCover - record.target_temp);
-                const diffStr = `(${diff > 0 ? `+${diff}` : diff}도)`;
+                const isDiscontinued = isDiscontinuedItem(opt);
 
                 return (
                   <button
                     key={opt}
                     type="button"
                     onClick={() => handleToggleTop(opt)}
-                    className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
-                      isSelected
-                        ? 'bg-brand-600 text-[#fdfbf7] border-brand-600 shadow-xs ring-2 ring-brand-400 font-bold'
-                        : isRecommended
-                        ? 'bg-amber-50/50 text-[#0b192c] border-amber-300 hover:bg-amber-100/50'
-                        : 'bg-white text-[#0b192c] border-slate-200 hover:bg-slate-100'
-                    }`}
+                    className={`px-2.5 py-1 rounded-lg border text-xs font-medium transition-all flex items-center gap-1 active:scale-95 ${getItemChipWarmthClasses(
+                      opt,
+                      'top',
+                      isSelected,
+                      isRecommended
+                    )}`}
                   >
-                    {isSelected && <Check className="w-3 h-3" />}
-                    <span>{opt}</span>
-                    <span className={`text-[10px] ${isSelected ? 'text-blue-200' : 'text-slate-400'}`}>
-                      {diffStr}
+                    {isSelected && (
+                      <Check className="w-3.5 h-3.5 text-[#fdfbf7] stroke-[2.5] shrink-0" />
+                    )}
+                    <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] font-semibold'}>
+                      {opt}
                     </span>
                     {isRecommended && (
-                      <span className={`text-[9px] font-bold px-1 rounded ${isSelected ? 'bg-blue-800/80 text-amber-200' : 'bg-amber-100 text-amber-800'}`}>
+                      <span
+                        className={`text-[9px] font-bold px-1 rounded ${
+                          isSelected ? 'bg-amber-900/60 text-amber-200' : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
                         추천
+                      </span>
+                    )}
+                    {isDiscontinued && (
+                      <span
+                        className={`text-[9px] font-bold px-1 rounded ${
+                          isSelected
+                            ? 'bg-rose-900/60 text-rose-200 border border-rose-400/40'
+                            : 'bg-rose-100 text-rose-700 border border-rose-200'
+                        }`}
+                      >
+                        단종
                       </span>
                     )}
                   </button>
@@ -378,40 +503,74 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
 
           {/* 3. 하의 (다중 선택, 최소 1개) */}
           <div>
-            <label className="block text-slate-700 font-bold mb-1.5 flex items-center justify-between">
-              <span>하의 (다중 선택, 최소 1개)</span>
-              <span className="text-blue-600 font-semibold">{bottom.join(' + ')}</span>
-            </label>
+            <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+              <span className="text-slate-700 font-bold">하의 (다중 선택, 최소 1개)</span>
+              <div className="flex items-center flex-wrap gap-1 justify-end">
+                {bottom.map((item) => (
+                  <span
+                    key={item}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold"
+                  >
+                    <span>{item}</span>
+                    {isDiscontinuedItem(item) && (
+                      <span className="text-[9px] bg-rose-100 text-rose-700 px-1 rounded font-bold">단종</span>
+                    )}
+                    {bottom.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem('bottom', item)}
+                        className="p-0.5 hover:bg-blue-200/60 rounded text-blue-600 hover:text-blue-900 transition-colors"
+                        title={`${item} 삭제`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </span>
+                ))}
+              </div>
+            </div>
             <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50/50 scrollbar-thin">
               {bottomOptions.map((opt) => {
                 const isSelected = bottom.includes(opt);
                 const isRecommended = rule.recommend.bottom.includes(opt) || rule.bottom.includes(opt);
-                const score = getItemInsulationScore(opt);
-                const itemCover = scoreToCoverTemperature(score);
-                const diff = Math.round(itemCover - record.target_temp);
-                const diffStr = `(${diff > 0 ? `+${diff}` : diff}도)`;
+                const isDiscontinued = isDiscontinuedItem(opt);
 
                 return (
                   <button
                     key={opt}
                     type="button"
                     onClick={() => handleToggleBottom(opt)}
-                    className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
-                      isSelected
-                        ? 'bg-brand-600 text-[#fdfbf7] border-brand-600 shadow-xs ring-2 ring-brand-400 font-bold'
-                        : isRecommended
-                        ? 'bg-amber-50/50 text-[#0b192c] border-amber-300 hover:bg-amber-100/50'
-                        : 'bg-white text-[#0b192c] border-slate-200 hover:bg-slate-100'
-                    }`}
+                    className={`px-2.5 py-1 rounded-lg border text-xs font-medium transition-all flex items-center gap-1 active:scale-95 ${getItemChipWarmthClasses(
+                      opt,
+                      'bottom',
+                      isSelected,
+                      isRecommended
+                    )}`}
                   >
-                    {isSelected && <Check className="w-3 h-3" />}
-                    <span>{opt}</span>
-                    <span className={`text-[10px] ${isSelected ? 'text-blue-200' : 'text-slate-400'}`}>
-                      {diffStr}
+                    {isSelected && (
+                      <Check className="w-3.5 h-3.5 text-[#fdfbf7] stroke-[2.5] shrink-0" />
+                    )}
+                    <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] font-semibold'}>
+                      {opt}
                     </span>
                     {isRecommended && (
-                      <span className={`text-[9px] font-bold px-1 rounded ${isSelected ? 'bg-blue-800/80 text-amber-200' : 'bg-amber-100 text-amber-800'}`}>
+                      <span
+                        className={`text-[9px] font-bold px-1 rounded ${
+                          isSelected ? 'bg-amber-900/60 text-amber-200' : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
                         추천
+                      </span>
+                    )}
+                    {isDiscontinued && (
+                      <span
+                        className={`text-[9px] font-bold px-1 rounded ${
+                          isSelected
+                            ? 'bg-rose-900/60 text-rose-200 border border-rose-400/40'
+                            : 'bg-rose-100 text-rose-700 border border-rose-200'
+                        }`}
+                      >
+                        단종
                       </span>
                     )}
                   </button>
@@ -422,40 +581,76 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
 
           {/* 4. 소품 (다중 선택) */}
           <div>
-            <label className="block text-slate-700 font-bold mb-1.5 flex items-center justify-between">
-              <span>소품 (ITEM)</span>
-              <span className="text-blue-600 font-semibold">{items.length > 0 ? items.join(', ') : '없음'}</span>
-            </label>
+            <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+              <span className="text-slate-700 font-bold">소품 (ITEM)</span>
+              <div className="flex items-center flex-wrap gap-1 justify-end">
+                {items.length > 0 ? (
+                  items.map((item) => (
+                    <span
+                      key={item}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold"
+                    >
+                      <span>{item}</span>
+                      {isDiscontinuedItem(item) && (
+                        <span className="text-[9px] bg-rose-100 text-rose-700 px-1 rounded font-bold">단종</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem('items', item)}
+                        className="p-0.5 hover:bg-blue-200/60 rounded text-blue-600 hover:text-blue-900 transition-colors"
+                        title={`${item} 삭제`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-slate-400 text-xs">없음</span>
+                )}
+              </div>
+            </div>
             <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50/50 scrollbar-thin">
               {itemOptions.map((opt) => {
                 const isSelected = items.includes(opt);
                 const isRecommended = rule.recommend.item.includes(opt) || rule.item.includes(opt);
-                const score = getItemInsulationScore(opt);
-                const itemCover = scoreToCoverTemperature(score);
-                const diff = Math.round(itemCover - record.target_temp);
-                const diffStr = `(${diff > 0 ? `+${diff}` : diff}도)`;
+                const isDiscontinued = isDiscontinuedItem(opt);
 
                 return (
                   <button
                     key={opt}
                     type="button"
                     onClick={() => handleToggleItem(opt)}
-                    className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
-                      isSelected
-                        ? 'bg-brand-600 text-[#fdfbf7] border-brand-600 shadow-xs ring-2 ring-brand-400 font-bold'
-                        : isRecommended
-                        ? 'bg-amber-50/50 text-[#0b192c] border-amber-300 hover:bg-amber-100/50'
-                        : 'bg-white text-[#0b192c] border-slate-200 hover:bg-slate-100'
-                    }`}
+                    className={`px-2.5 py-1 rounded-lg border text-xs font-medium transition-all flex items-center gap-1 active:scale-95 ${getItemChipWarmthClasses(
+                      opt,
+                      'items',
+                      isSelected,
+                      isRecommended
+                    )}`}
                   >
-                    {isSelected && <Check className="w-3 h-3" />}
-                    <span>{opt}</span>
-                    <span className={`text-[10px] ${isSelected ? 'text-brand-200' : 'text-slate-400'}`}>
-                      {diffStr}
+                    {isSelected && (
+                      <Check className="w-3.5 h-3.5 text-[#fdfbf7] stroke-[2.5] shrink-0" />
+                    )}
+                    <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] font-semibold'}>
+                      {opt}
                     </span>
                     {isRecommended && (
-                      <span className={`text-[9px] font-bold px-1 rounded ${isSelected ? 'bg-brand-800/80 text-amber-200' : 'bg-amber-100 text-amber-800'}`}>
+                      <span
+                        className={`text-[9px] font-bold px-1 rounded ${
+                          isSelected ? 'bg-amber-900/60 text-amber-200' : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
                         추천
+                      </span>
+                    )}
+                    {isDiscontinued && (
+                      <span
+                        className={`text-[9px] font-bold px-1 rounded ${
+                          isSelected
+                            ? 'bg-rose-900/60 text-rose-200 border border-rose-400/40'
+                            : 'bg-rose-100 text-rose-700 border border-rose-200'
+                        }`}
+                      >
+                        단종
                       </span>
                     )}
                   </button>
