@@ -39,24 +39,38 @@ import {
   Loader2,
 } from 'lucide-react';
 
-const TEMP_TIERS = [
-  { min: 30, max: 99, label: '30°C 이상 (폭염)', desc: '한여름 (민소매, 반팔, 린넨쇼츠)' },
-  { min: 25, max: 29.9, label: '25°C ~ 29°C (초여름)', desc: '초여름 (반팔, 얇은 셔츠, 얇은 바지)' },
-  { min: 20, max: 24.9, label: '20°C ~ 24°C (포근한 봄/가을)', desc: '봄/가을 (긴팔, 가디건, 데님)' },
-  { min: 15, max: 19.9, label: '15°C ~ 19°C (선선한 환절기)', desc: '환절기 (바람막이, 맨투맨, 슬랙스)' },
-  { min: 10, max: 14.9, label: '10°C ~ 14°C (쌀쌀한 환절기)', desc: '쌀쌀함 (트렌치코트, 니트, 머플러)' },
-  { min: 5, max: 9.9, label: '5°C ~ 9°C (초겨울)', desc: '초겨울 (경량 패딩, 울코트, 기모)' },
-  { min: 0, max: 4.9, label: '0°C ~ 4°C (겨울 추위)', desc: '겨울 추위 (숏패딩, 발열내의, 조거팬츠)' },
-  { min: -5, max: -0.1, label: '-5°C ~ -1°C (한파 시작)', desc: '한파 시작 (롱패딩, 방한바지, 핫팩)' },
-  { min: -10, max: -5.1, label: '-10°C ~ -6°C (혹한기)', desc: '혹한기 (헤비다운, 방풍마스크, 털장갑)' },
-  { min: -15, max: -10.1, label: '-15°C ~ -11°C (극심한 한파)', desc: '극심한 한파 (대장급 롱패딩, 바라클라바)' },
-  { min: -99, max: -15.1, label: '-15°C 이하 (외출 위험)', desc: '외출 위험 (익스트림 패딩, 전신 방한)' },
-];
+import outfitRulesData from '@/data/outfitRules.json';
+import { OutfitRuleStep } from '@/types/outfit';
+
+// outfitRules.json 11단계 룰셋 데이터로부터 동적 매핑 생성 (하드코딩 제거 및 일원화)
+const outfitRules = outfitRulesData as OutfitRuleStep[];
+
+const TEMP_TIERS = outfitRules.map((rule) => {
+  const recSummary = [
+    rule.recommend.outer !== '없음' ? rule.recommend.outer : null,
+    rule.recommend.top?.[0],
+    rule.recommend.bottom?.[0],
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  return {
+    min: rule.min_temp,
+    max: rule.max_temp,
+    label: rule.label,
+    desc: recSummary ? `대표: ${recSummary}` : rule.label,
+  };
+});
 
 function getTempTierInfo(temp: number) {
-  const rounded = Math.round(temp);
-  const tier = TEMP_TIERS.find((t) => rounded >= Math.floor(t.min) && rounded <= Math.floor(t.max));
-  return tier || { label: `${temp}°C`, desc: '' };
+  // 1차: 실수 범위 직접 매핑 (target_temp >= min && target_temp <= max)
+  let matched = TEMP_TIERS.find((t) => temp >= t.min && temp <= t.max);
+  // 2차: 반올림 정수 매핑 (누락 방지)
+  if (!matched) {
+    const rounded = Math.round(temp);
+    matched = TEMP_TIERS.find((t) => rounded >= Math.floor(t.min) && rounded <= Math.ceil(t.max));
+  }
+  return matched || { min: temp, max: temp, label: `${temp}°C`, desc: '' };
 }
 
 export default function TemperatureEvaluationsAdminPage() {
@@ -148,12 +162,15 @@ function EvaluationsDashboardContent() {
         return false;
       }
 
-      // 5. 기온 구간 필터 (11단계 룰셋)
+      // 5. 기온 구간 필터 (outfitRules.json 직접 연동 11단계 룰셋)
       if (filterTempTier !== 'all') {
         const tier = TEMP_TIERS.find((t) => t.label === filterTempTier);
         if (tier) {
-          const rounded = Math.round(item.target_temp);
-          if (rounded < Math.floor(tier.min) || rounded > Math.floor(tier.max)) {
+          const isMatched =
+            (item.target_temp >= tier.min && item.target_temp <= tier.max) ||
+            (Math.round(item.target_temp) >= Math.floor(tier.min) &&
+              Math.round(item.target_temp) <= Math.ceil(tier.max));
+          if (!isMatched) {
             return false;
           }
         }
@@ -199,12 +216,15 @@ function EvaluationsDashboardContent() {
     };
   }, [evaluations]);
 
-  // 기온 구간별 분포 통계 (11단계 룰셋)
+  // 기온 구간별 분포 통계 (outfitRules.json 연동 11단계 룰셋)
   const tierDistribution = useMemo(() => {
     return TEMP_TIERS.map((tier) => {
       const itemsInTier = evaluations.filter((e) => {
-        const rounded = Math.round(e.target_temp);
-        return rounded >= Math.floor(tier.min) && rounded <= Math.floor(tier.max);
+        return (
+          (e.target_temp >= tier.min && e.target_temp <= tier.max) ||
+          (Math.round(e.target_temp) >= Math.floor(tier.min) &&
+            Math.round(e.target_temp) <= Math.ceil(tier.max))
+        );
       });
       const count = itemsInTier.length;
       const avgOffset =

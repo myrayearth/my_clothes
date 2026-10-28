@@ -926,6 +926,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           }}
           isSingleSelect={modalCategory === 'outer'}
           gender={gender}
+          currentTemp={temperature}
         />
       )}
     </div>
