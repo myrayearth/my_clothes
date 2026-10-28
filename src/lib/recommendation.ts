@@ -85,8 +85,8 @@ export function calculateWeightedRecommendations(
   isLoggedIn: boolean,
   gender: UserGender = 'male'
 ): CalculatedOutfitOptions {
-  // 1. 스펙트럼 기반 기본 후보 목록 (각 카테고리별 8~10개 스펙트럼 배치 및 10°C 미만 히트텍 핀 고정)
-  const spectrumOptions = getSpectrumOutfitOptions(targetTemp, gender, 9);
+  // 1. 스펙트럼 기반 기본 후보 목록 (각 카테고리별 10~14개 스펙트럼 배치 및 10°C 미만 이너 핀 고정)
+  const spectrumOptions = getSpectrumOutfitOptions(targetTemp, gender, 14);
   const rawOuter = spectrumOptions.outer;
   const rawTop = spectrumOptions.top;
   const rawBottom = spectrumOptions.bottom;

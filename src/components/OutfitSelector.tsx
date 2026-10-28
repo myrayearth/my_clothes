@@ -148,7 +148,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
       nonInnerTops[0] ||
       selection.top[0] ||
       currentRule.recommend.top[0] ||
-      '긴팔 티셔츠';
+      '기본 긴팔';
     const topScore = getItemInsulationScore(baseTopItem);
 
     // 3. 하의 (일반 하의 기준, 없으면 첫 번째 하의 또는 대표 추천 하의)
@@ -157,7 +157,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
       nonInnerBottoms[0] ||
       selection.bottom[0] ||
       currentRule.recommend.bottom[0] ||
-      '기본 데님';
+      '기본 긴바지';
     const bottomScore = getItemInsulationScore(baseBottomItem);
 
     return {

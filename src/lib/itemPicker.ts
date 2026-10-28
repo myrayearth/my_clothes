@@ -29,20 +29,20 @@ export function getOutfitRuleIndexByTemperature(temp: number): number {
 }
 
 /**
- * 10°C 미만 시 고정(Pinning)할 발열내의/방한내의 아이템 반환
- * - T < -5°C (혹한기): 상의 '특수 방한내의', 하의 '하의 특수 방한내의'
- * - T < 10°C (추운 날씨): 상의 '기본 발열내의 (히트텍)', 하의 '하의 기본 발열내의'
+ * 10°C 미만 시 고정(Pinning)할 이너/발열내의 아이템 반환
+ * - T <= -5°C (혹한기): 상의 '기모 이너', 하의 '하의 기모 이너'
+ * - T < 10°C (추운 날씨): 상의 '얇은 이너', 하의 '하의 얇은 이너'
  */
 export function getPinnedInnerItem(
   category: 'outer' | 'top' | 'bottom' | 'items',
   temperature: number
 ): string | null {
-  if (temperature < -5) {
-    if (category === 'top') return '특수 방한내의';
-    if (category === 'bottom') return '하의 특수 방한내의';
+  if (temperature <= -5) {
+    if (category === 'top') return '기모 이너';
+    if (category === 'bottom') return '하의 기모 이너';
   } else if (temperature < 10) {
-    if (category === 'top') return '기본 발열내의 (히트텍)';
-    if (category === 'bottom') return '하의 기본 발열내의';
+    if (category === 'top') return '얇은 이너';
+    if (category === 'bottom') return '하의 얇은 이너';
   }
   return null;
 }
@@ -62,13 +62,20 @@ export function isPinnedInnerItem(
 
   if (category === 'top') {
     return (
+      item === '얇은 이너' ||
+      item === '기모 이너' ||
       item === '기본 발열내의 (히트텍)' ||
       item === '특수 방한내의' ||
       item === '최고등급 발열내의'
     );
   }
   if (category === 'bottom') {
-    return item === '하의 기본 발열내의' || item === '하의 특수 방한내의';
+    return (
+      item === '하의 얇은 이너' ||
+      item === '하의 기모 이너' ||
+      item === '하의 기본 발열내의' ||
+      item === '하의 특수 방한내의'
+    );
   }
 
   return false;
@@ -80,6 +87,11 @@ export function isPinnedInnerItem(
 export function isInnerClothingItem(item: string): boolean {
   if (!item) return false;
   return (
+    item === '얇은 이너' ||
+    item === '기모 이너' ||
+    item === '하의 얇은 이너' ||
+    item === '하의 기모 이너' ||
+    item.includes('이너') ||
     item.includes('히트텍') ||
     item.includes('발열내의') ||
     item.includes('방한내의') ||
@@ -89,23 +101,14 @@ export function isInnerClothingItem(item: string): boolean {
 }
 
 /**
- * 단일 카테고리에 대한 8~10개 스펙트럼 기반 선택지 추출
- *
- * [슬롯 구성 룰 - 총 9개 기본 배치]:
- * 1. [유사 보온 3개]: 현재 구간(i) 대표 추천 1개 + 현재 구간 후보군 2개
- * 2. [1단계 더 따뜻함 2개]: i+1 구간 후보군 2개
- * 3. [2단계 이상 더 따뜻함 1개]: i+2 구간 후보군 1개
- * 4. [1단계 더 시원함 2개]: i-1 구간 후보군 2개
- * 5. [2단계 이상 더 시원함 1개]: i-2 구간 후보군 1개
- * 6. [경계 구간 처리]: 경계선(0, 10번 등)으로 슬롯이 남을 경우 인접 유효 구간으로 8~10개 유지 보충
- * 7. [정렬 및 10°C 미만 히트텍 핀 고정]: 보온 점수 오름차순(얇은 옷 -> 두꺼운 옷) 정렬 후 히트텍은 맨 앞(index 0)에 고정
+ * 단일 카테고리에 대한 스펙트럼 기반 선택지 추출 (카테고리당 10~14종 전체 스펙트럼 배치)
  */
 export function getCategorySpectrumItems(
   category: 'outer' | 'top' | 'bottom' | 'items',
   tierIndex: number,
   temperature: number,
   gender: UserGender = 'male',
-  targetCount: number = 9
+  targetCount: number = 14
 ): string[] {
   const pinnedItem = getPinnedInnerItem(category, temperature);
   const result: string[] = [];
@@ -217,24 +220,24 @@ export function getCategorySpectrumItems(
   // 보온 점수 오름차순 (얇은 옷 -> 두꺼운 옷) 자연스러운 정렬
   others.sort((a, b) => getItemInsulationScore(a) - getItemInsulationScore(b));
 
-  // 10°C 미만 시 히트텍/방한내의는 레이어드 편의를 위해 맨 앞(index 0)에 고정
+  // 10°C 미만 시 얇은 이너 / 기모 이너는 레이어드 편의를 위해 맨 앞(index 0)에 고정
   let finalItems = pinnedItem ? [pinnedItem, ...others] : others;
 
-  // 최대 10개로 캡 (모바일 2줄 레이아웃 최적화)
-  if (finalItems.length > 10) {
-    finalItems = finalItems.slice(0, 10);
+  // 최대 14개로 캡 (신규 압축 카탈로그 전체 포함 및 2줄 레이아웃 최적화)
+  if (finalItems.length > 14) {
+    finalItems = finalItems.slice(0, 14);
   }
 
   return finalItems;
 }
 
 /**
- * 현재 기온과 성별에 맞춘 4개 카테고리 전체 스펙트럼 선택지 맵 반환 (카테고리별 8~10개)
+ * 현재 기온과 성별에 맞춘 4개 카테고리 전체 스펙트럼 선택지 맵 반환 (카테고리별 10~14개)
  */
 export function getSpectrumOutfitOptions(
   temperature: number,
   gender: UserGender = 'male',
-  targetCount: number = 9
+  targetCount: number = 14
 ): SpectrumOutfitOptions {
   const tierIndex = getOutfitRuleIndexByTemperature(temperature);
 

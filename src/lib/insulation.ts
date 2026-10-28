@@ -27,8 +27,10 @@ export function getItemInsulationScore(item: string): number {
   if (trimmed.includes('패딩조끼') || trimmed.includes('패딩 조끼')) return 32;
   if (trimmed.includes('패딩') || trimmed.includes('다운')) return 50;
   if (trimmed.includes('코트') || trimmed.includes('자켓')) return 35;
+  if (trimmed.includes('기모 이너')) return 20;
+  if (trimmed.includes('얇은 이너')) return 12;
   if (trimmed.includes('기모')) return 30;
-  if (trimmed.includes('발열내의') || trimmed.includes('히트텍') || trimmed.includes('타이즈')) return 14;
+  if (trimmed.includes('발열내의') || trimmed.includes('히트텍') || trimmed.includes('타이즈') || trimmed.includes('이너')) return 14;
   if (
     trimmed.includes('니트') ||
     trimmed.includes('맨투맨') ||
