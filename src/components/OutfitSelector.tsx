@@ -17,6 +17,7 @@ import {
   clampUserOffset,
   scoreToCoverTemperature,
   getRelativeCoverStatus,
+  getItemChipWarmthClasses,
 } from '@/lib/insulation';
 import { AllItemsModal } from '@/components/outfit/AllItemsModal';
 import { isPinnedInnerItem, isInnerClothingItem } from '@/lib/itemPicker';
@@ -130,89 +131,6 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
   const statusMeta = useMemo(() => {
     return getInsulationStatusMeta(insulationStatus);
   }, [insulationStatus]);
-
-  // 각 카테고리별 기준 아이템의 보온 점수 (선택된 아이템 기준, 없으면 추천 아이템 기준)
-  const baseScores = useMemo(() => {
-    // 1. 외투
-    const baseOuterItem =
-      selection.outer && selection.outer !== '없음'
-        ? selection.outer
-        : currentRule.recommend.outer !== '없음'
-        ? currentRule.recommend.outer
-        : null;
-    const outerScore = baseOuterItem ? getItemInsulationScore(baseOuterItem) : 0;
-
-    // 2. 상의 (일반 상의 기준, 없으면 첫 번째 상의 또는 대표 추천 상의)
-    const nonInnerTops = selection.top.filter((x) => !isInnerClothingItem(x));
-    const baseTopItem =
-      nonInnerTops[0] ||
-      selection.top[0] ||
-      currentRule.recommend.top[0] ||
-      '기본 긴팔';
-    const topScore = getItemInsulationScore(baseTopItem);
-
-    // 3. 하의 (일반 하의 기준, 없으면 첫 번째 하의 또는 대표 추천 하의)
-    const nonInnerBottoms = selection.bottom.filter((x) => !isInnerClothingItem(x));
-    const baseBottomItem =
-      nonInnerBottoms[0] ||
-      selection.bottom[0] ||
-      currentRule.recommend.bottom[0] ||
-      '기본 긴바지';
-    const bottomScore = getItemInsulationScore(baseBottomItem);
-
-    return {
-      outer: outerScore,
-      top: topScore,
-      bottom: bottomScore,
-    };
-  }, [selection, currentRule]);
-
-  /**
-   * 선택된 아이템 대비 상대 보온력(diff)에 따른 배경 틴트 및 테두리 스타일 산출
-   * - 선택된 아이템: 브랜드 하이라이트 (짙은 톤온톤 배경 + 링)
-   * - 더 따뜻한 아이템: 붉은색 계열 점진적 틴트 (bg-rose-500/5 ~ bg-rose-500/20)
-   * - 더 얇은 아이템: 푸른색 계열 점진적 틴트 (bg-blue-500/5 ~ bg-blue-500/20)
-   */
-  const getWarmthGradientClasses = (
-    diff: number,
-    category: 'outer' | 'top' | 'bottom',
-    isSelected: boolean,
-    isRecommended: boolean
-  ) => {
-    if (isSelected) {
-      return 'bg-slate-900 text-white border-slate-900 shadow-xs ring-1 ring-brand-400/50 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100';
-    }
-
-    if (diff > 0) {
-      const t1 = category === 'outer' ? 12 : 5;
-      const t2 = category === 'outer' ? 26 : 10;
-      if (diff <= t1) {
-        return 'bg-rose-500/5 hover:bg-rose-500/10 text-slate-800 border-rose-200/60 dark:bg-rose-500/10 dark:text-slate-200 dark:border-rose-900/40';
-      } else if (diff <= t2) {
-        return 'bg-rose-500/10 hover:bg-rose-500/15 text-rose-950 border-rose-300/80 dark:bg-rose-500/20 dark:text-rose-100 dark:border-rose-800/60';
-      } else {
-        return 'bg-rose-500/20 hover:bg-rose-500/25 text-rose-950 border-rose-400/80 font-medium dark:bg-rose-500/30 dark:text-rose-50 dark:border-rose-700/80';
-      }
-    }
-
-    if (diff < 0) {
-      const absDiff = Math.abs(diff);
-      const t1 = category === 'outer' ? 12 : 5;
-      const t2 = category === 'outer' ? 26 : 10;
-      if (absDiff <= t1) {
-        return 'bg-blue-500/5 hover:bg-blue-500/10 text-slate-800 border-blue-200/60 dark:bg-blue-500/10 dark:text-slate-200 dark:border-blue-900/40';
-      } else if (absDiff <= t2) {
-        return 'bg-blue-500/10 hover:bg-blue-500/15 text-blue-950 border-blue-300/80 dark:bg-blue-500/20 dark:text-blue-100 dark:border-blue-800/60';
-      } else {
-        return 'bg-blue-500/20 hover:bg-blue-500/25 text-blue-950 border-blue-400/80 font-medium dark:bg-blue-500/30 dark:text-blue-50 dark:border-blue-700/80';
-      }
-    }
-
-    if (isRecommended) {
-      return 'bg-brand-50/70 hover:bg-brand-100/70 text-brand-950 border-brand-300/80 dark:bg-brand-950/40 dark:text-brand-100 dark:border-brand-800/60';
-    }
-    return 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300 dark:bg-slate-800/60 dark:border-slate-700';
-  };
 
   // OUTER 단일 선택 변경 (클릭 시 선택, 이미 선택된 외투 클릭 시 '없음'으로 선택 해제 토글)
   const handleOuterSelect = (outerItem: string) => {
@@ -671,8 +589,6 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
               const isSelected = selection.outer === opt;
               const isCustom = !dynamicOptions.outer.includes(opt);
               const isRecommended = opt === currentRule.recommend.outer;
-              const itemScore = getItemInsulationScore(opt);
-              const diff = itemScore - baseScores.outer;
 
               return (
                 <button
@@ -680,23 +596,23 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   type="button"
                   onClick={() => handleOuterSelect(opt)}
                   title={isSelected ? '클릭하여 외투 선택 해제' : `${opt} 선택`}
-                  className={`min-h-[38px] px-3.5 py-1.5 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${getWarmthGradientClasses(
-                    diff,
+                  className={`min-h-[38px] px-3.5 py-1.5 text-xs rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none cursor-pointer ${getItemChipWarmthClasses(
+                    opt,
                     'outer',
                     isSelected,
                     isRecommended
                   )}`}
                 >
                   {isSelected && (
-                    <Check className="w-3.5 h-3.5 text-brand-300 shrink-0" />
+                    <Check className="w-4 h-4 text-white stroke-[2.5] shrink-0" />
                   )}
                   <span>{opt}</span>
                   {isRecommended && (
                     <span
                       className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                         isSelected
-                          ? 'text-amber-300 bg-amber-950/60 border-amber-400/40'
-                          : 'text-amber-700 bg-amber-50 border-amber-300'
+                          ? 'text-amber-100 bg-amber-900/60 border-amber-300/40'
+                          : 'text-amber-700 bg-amber-100/80 border-amber-300'
                       }`}
                     >
                       <Sparkles className="w-2.5 h-2.5 text-amber-500 shrink-0" />
@@ -704,7 +620,13 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     </span>
                   )}
                   {isCustom && (
-                    <span className="text-[9px] font-semibold text-brand-700 bg-brand-50 px-1 py-0.2 rounded border border-brand-200 shrink-0">
+                    <span
+                      className={`text-[9px] font-semibold px-1 py-0.2 rounded border shrink-0 ${
+                        isSelected
+                          ? 'text-brand-100 bg-brand-700/60 border-brand-400/40'
+                          : 'text-brand-700 bg-brand-50 border-brand-200'
+                      }`}
+                    >
                       직접선택
                     </span>
                   )}
@@ -749,14 +671,12 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
               const isCustom = !dynamicOptions.top.includes(opt);
               const isInner = isPinnedInnerItem(opt, 'top', temperature) || isInnerClothingItem(opt);
               const isRecommended = currentRule.recommend.top.includes(opt);
-              const itemScore = getItemInsulationScore(opt);
-              const diff = itemScore - baseScores.top;
 
               return (
                 <div
                   key={opt}
-                  className={`inline-flex items-center rounded-xl border text-xs font-medium transition-all duration-150 select-none overflow-hidden ${getWarmthGradientClasses(
-                    diff,
+                  className={`inline-flex items-center rounded-xl border text-xs transition-all duration-150 select-none overflow-hidden ${getItemChipWarmthClasses(
+                    opt,
                     'top',
                     isSelected,
                     isRecommended
@@ -776,15 +696,15 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }
                   >
                     {isSelected && (
-                      <Check className="w-3.5 h-3.5 text-brand-300 shrink-0" />
+                      <Check className="w-4 h-4 text-white stroke-[2.5] shrink-0" />
                     )}
                     <span>{opt}</span>
                     {isInner && (
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                           isSelected
-                            ? 'text-sky-200 bg-sky-950/70 border-sky-400/40'
-                            : 'text-sky-700 bg-sky-50 border-sky-300'
+                            ? 'text-sky-100 bg-sky-900/60 border-sky-300/40'
+                            : 'text-sky-700 bg-sky-100/80 border-sky-300'
                         }`}
                       >
                         <Zap className="w-2.5 h-2.5 text-sky-500 shrink-0 fill-sky-500" />
@@ -795,8 +715,8 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                           isSelected
-                            ? 'text-amber-300 bg-amber-950/60 border-amber-400/40'
-                            : 'text-amber-700 bg-amber-50 border-amber-300'
+                            ? 'text-amber-100 bg-amber-900/60 border-amber-300/40'
+                            : 'text-amber-700 bg-amber-100/80 border-amber-300'
                         }`}
                       >
                         <Sparkles className="w-2.5 h-2.5 text-amber-500 shrink-0" />
@@ -804,7 +724,13 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                       </span>
                     )}
                     {isCustom && (
-                      <span className="text-[9px] font-semibold text-brand-700 bg-brand-50 px-1 py-0.2 rounded border border-brand-200 shrink-0">
+                      <span
+                        className={`text-[9px] font-semibold px-1 py-0.2 rounded border shrink-0 ${
+                          isSelected
+                            ? 'text-brand-100 bg-brand-700/60 border-brand-400/40'
+                            : 'text-brand-700 bg-brand-50 border-brand-200'
+                        }`}
+                      >
                         직접선택
                       </span>
                     )}
@@ -819,8 +745,8 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }}
                     className={`min-h-[38px] px-2.5 py-1.5 flex items-center justify-center border-l transition-colors active:scale-90 touch-manipulation cursor-pointer ${
                       isSelected
-                        ? 'border-slate-700/80 hover:bg-slate-800 text-brand-300'
-                        : 'border-inherit hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                        ? 'border-brand-500/80 bg-brand-700/80 hover:bg-brand-700 text-white'
+                        : 'border-inherit hover:bg-black/5 dark:hover:bg-white/10 text-slate-500 hover:text-slate-900 dark:hover:text-white'
                     }`}
                     title={
                       isSelected
@@ -873,14 +799,12 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
               const isCustom = !dynamicOptions.bottom.includes(opt);
               const isInner = isPinnedInnerItem(opt, 'bottom', temperature) || isInnerClothingItem(opt);
               const isRecommended = currentRule.recommend.bottom.includes(opt);
-              const itemScore = getItemInsulationScore(opt);
-              const diff = itemScore - baseScores.bottom;
 
               return (
                 <div
                   key={opt}
-                  className={`inline-flex items-center rounded-xl border text-xs font-medium transition-all duration-150 select-none overflow-hidden ${getWarmthGradientClasses(
-                    diff,
+                  className={`inline-flex items-center rounded-xl border text-xs transition-all duration-150 select-none overflow-hidden ${getItemChipWarmthClasses(
+                    opt,
                     'bottom',
                     isSelected,
                     isRecommended
@@ -900,15 +824,15 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }
                   >
                     {isSelected && (
-                      <Check className="w-3.5 h-3.5 text-brand-300 shrink-0" />
+                      <Check className="w-4 h-4 text-white stroke-[2.5] shrink-0" />
                     )}
                     <span>{opt}</span>
                     {isInner && (
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                           isSelected
-                            ? 'text-sky-200 bg-sky-950/70 border-sky-400/40'
-                            : 'text-sky-700 bg-sky-50 border-sky-300'
+                            ? 'text-sky-100 bg-sky-900/60 border-sky-300/40'
+                            : 'text-sky-700 bg-sky-100/80 border-sky-300'
                         }`}
                       >
                         <Zap className="w-2.5 h-2.5 text-sky-500 shrink-0 fill-sky-500" />
@@ -919,8 +843,8 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                           isSelected
-                            ? 'text-amber-300 bg-amber-950/60 border-amber-400/40'
-                            : 'text-amber-700 bg-amber-50 border-amber-300'
+                            ? 'text-amber-100 bg-amber-900/60 border-amber-300/40'
+                            : 'text-amber-700 bg-amber-100/80 border-amber-300'
                         }`}
                       >
                         <Sparkles className="w-2.5 h-2.5 text-amber-500 shrink-0" />
@@ -928,7 +852,13 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                       </span>
                     )}
                     {isCustom && (
-                      <span className="text-[9px] font-semibold text-brand-700 bg-brand-50 px-1 py-0.2 rounded border border-brand-200 shrink-0">
+                      <span
+                        className={`text-[9px] font-semibold px-1 py-0.2 rounded border shrink-0 ${
+                          isSelected
+                            ? 'text-brand-100 bg-brand-700/60 border-brand-400/40'
+                            : 'text-brand-700 bg-brand-50 border-brand-200'
+                        }`}
+                      >
                         직접선택
                       </span>
                     )}
@@ -943,8 +873,8 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }}
                     className={`min-h-[38px] px-2.5 py-1.5 flex items-center justify-center border-l transition-colors active:scale-90 touch-manipulation cursor-pointer ${
                       isSelected
-                        ? 'border-slate-700/80 hover:bg-slate-800 text-brand-300'
-                        : 'border-inherit hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                        ? 'border-brand-500/80 bg-brand-700/80 hover:bg-brand-700 text-white'
+                        : 'border-inherit hover:bg-black/5 dark:hover:bg-white/10 text-slate-500 hover:text-slate-900 dark:hover:text-white'
                     }`}
                     title={
                       isSelected
@@ -1000,24 +930,23 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   key={opt}
                   type="button"
                   onClick={() => handleItemToggle(opt)}
-                  className={`min-h-[38px] px-3.5 py-1.5 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${
-                    isSelected
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs ring-1 ring-brand-400/50 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100'
-                      : isRecommended
-                      ? 'bg-brand-50/70 text-brand-950 border-brand-300/80 hover:bg-brand-100/70'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300 dark:bg-slate-800/60 dark:border-slate-700'
-                  }`}
+                  className={`min-h-[38px] px-3.5 py-1.5 text-xs rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none cursor-pointer ${getItemChipWarmthClasses(
+                    opt,
+                    'items',
+                    isSelected,
+                    isRecommended
+                  )}`}
                 >
                   {isSelected && (
-                    <Check className="w-3.5 h-3.5 text-brand-300 shrink-0" />
+                    <Check className="w-4 h-4 text-white stroke-[2.5] shrink-0" />
                   )}
                   <span>{opt}</span>
                   {isRecommended && (
                     <span
-                      className={`text-[9px] font-bold px-1 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
+                      className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                         isSelected
-                          ? 'text-amber-300 bg-amber-950/60 border-amber-400/40'
-                          : 'text-amber-700 bg-amber-50 border-amber-300'
+                          ? 'text-amber-100 bg-amber-900/60 border-amber-300/40'
+                          : 'text-amber-700 bg-amber-100/80 border-amber-300'
                       }`}
                     >
                       <Sparkles className="w-2.5 h-2.5 text-amber-500 shrink-0" />
@@ -1025,7 +954,13 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     </span>
                   )}
                   {isCustom && (
-                    <span className="text-[9px] font-semibold text-brand-700 bg-brand-50 px-1 py-0.2 rounded border border-brand-200 shrink-0">
+                    <span
+                      className={`text-[9px] font-semibold px-1 py-0.2 rounded border shrink-0 ${
+                        isSelected
+                          ? 'text-brand-100 bg-brand-700/60 border-brand-400/40'
+                          : 'text-brand-700 bg-brand-50 border-brand-200'
+                      }`}
+                    >
                       직접선택
                     </span>
                   )}

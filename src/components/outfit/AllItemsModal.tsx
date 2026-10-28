@@ -5,7 +5,7 @@ import { OutfitCategory } from '@/types/outfit';
 import { UserGender } from '@/types/database';
 import { getAllUniqueCategoryItems } from '@/lib/outfit';
 import { filterItemsByGender } from '@/lib/gender';
-import { getItemInsulationScore, scoreToCoverTemperature } from '@/lib/insulation';
+import { getItemInsulationScore, scoreToCoverTemperature, getItemChipWarmthClasses } from '@/lib/insulation';
 import { ITEM_SEASONS } from '@/data/itemScores';
 import { X, Check, Shirt, Sun, CloudSun, Snowflake } from 'lucide-react';
 
@@ -306,13 +306,14 @@ export const AllItemsModal: React.FC<AllItemsModalProps> = ({
                         ? '클릭하여 선택 해제'
                         : '선택 추가'
                     }
-                    className={`min-h-[38px] px-3.5 py-1.5 text-xs font-semibold rounded-xl border transition-all active:scale-95 touch-manipulation select-none flex items-center gap-1.5 cursor-pointer ${
-                      isSelected
-                        ? 'bg-brand-600 text-white border-brand-600 shadow-xs ring-1 ring-brand-400/50'
-                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
-                    }`}
+                    className={`min-h-[38px] px-3.5 py-1.5 text-xs rounded-xl border transition-all active:scale-95 touch-manipulation select-none flex items-center gap-1.5 cursor-pointer ${getItemChipWarmthClasses(
+                      item,
+                      category,
+                      isSelected,
+                      false
+                    )}`}
                   >
-                    {isSelected && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
+                    {isSelected && <Check className="w-4 h-4 text-white stroke-[2.5] shrink-0" />}
                     <span>{item}</span>
                   </button>
                 );

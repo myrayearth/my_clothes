@@ -309,7 +309,7 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                     onClick={() => setOuter(opt)}
                     className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
                       isSelected
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                        ? 'bg-brand-600 text-white border-brand-600 shadow-xs ring-2 ring-brand-400 font-bold'
                         : isRecommended
                         ? 'bg-amber-50/50 text-slate-800 border-amber-300 hover:bg-amber-100/50'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -354,7 +354,7 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                     onClick={() => handleToggleTop(opt)}
                     className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
                       isSelected
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                        ? 'bg-brand-600 text-white border-brand-600 shadow-xs ring-2 ring-brand-400 font-bold'
                         : isRecommended
                         ? 'bg-amber-50/50 text-slate-800 border-amber-300 hover:bg-amber-100/50'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -398,7 +398,7 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                     onClick={() => handleToggleBottom(opt)}
                     className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
                       isSelected
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                        ? 'bg-brand-600 text-white border-brand-600 shadow-xs ring-2 ring-brand-400 font-bold'
                         : isRecommended
                         ? 'bg-amber-50/50 text-slate-800 border-amber-300 hover:bg-amber-100/50'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -442,7 +442,7 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                     onClick={() => handleToggleItem(opt)}
                     className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
                       isSelected
-                        ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
+                        ? 'bg-brand-600 text-white border-brand-600 shadow-xs ring-2 ring-brand-400 font-bold'
                         : isRecommended
                         ? 'bg-amber-50/50 text-slate-800 border-amber-300 hover:bg-amber-100/50'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
