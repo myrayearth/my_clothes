@@ -43,7 +43,7 @@ export const AllItemsModal: React.FC<AllItemsModalProps> = ({
                 {categoryTitle} 전체 의류 카탈로그
               </h3>
               <p className="text-[11px] text-slate-500">
-                사계절 전체 룰셋에서 원하는 옷을 직접 선택하세요 ({isSingleSelect ? '단일 선택' : '다중 선택 가능'})
+                사계절 전체 룰셋에서 원하는 옷을 직접 선택하세요 ({isSingleSelect ? '단일 선택 (선택 해제 가능)' : '다중 선택 가능'})
               </p>
             </div>
           </div>
@@ -73,6 +73,7 @@ export const AllItemsModal: React.FC<AllItemsModalProps> = ({
                   key={item}
                   type="button"
                   onClick={() => onToggleItem(item)}
+                  title={isSingleSelect && isSelected && item !== '없음' ? '클릭하여 선택 해제' : undefined}
                   className={`min-h-[38px] px-3.5 py-1.5 text-xs font-semibold rounded-xl border transition-all active:scale-95 touch-manipulation select-none flex items-center gap-1.5 ${
                     isSelected
                       ? 'bg-blue-600 text-white border-blue-600 shadow-xs'

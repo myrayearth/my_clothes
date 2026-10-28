@@ -28,11 +28,12 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     onChangeSelection(getDefaultOutfitSelection(currentRule));
   };
 
-  // OUTER 단일 선택 변경
+  // OUTER 단일 선택 변경 (클릭 시 선택, 이미 선택된 외투 클릭 시 '없음'으로 선택 해제 토글)
   const handleOuterSelect = (outerItem: string) => {
+    const nextOuter = selection.outer === outerItem && outerItem !== '없음' ? '없음' : outerItem;
     onChangeSelection({
       ...selection,
-      outer: outerItem,
+      outer: nextOuter,
     });
   };
 
@@ -216,13 +217,13 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
       {/* 복장 선택 섹션 목록 */}
       <div className="space-y-4">
-        {/* 1. OUTER (외투 - 단일 선택) */}
+        {/* 1. OUTER (외투 - 단일 선택 / 선택 해제 가능) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <span>OUTER (외투)</span>
-                <span className="text-[10px] text-slate-400 font-normal">단일 선택</span>
+                <span className="text-[10px] text-slate-400 font-normal">단일 선택 (선택 해제 가능)</span>
               </label>
               <button
                 type="button"
@@ -246,6 +247,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   key={opt}
                   type="button"
                   onClick={() => handleOuterSelect(opt)}
+                  title={isSelected && opt !== '없음' ? '클릭하여 외투 선택 해제' : `${opt} 선택`}
                   className={`min-h-[38px] px-3 py-1.5 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${
                     isSelected
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
