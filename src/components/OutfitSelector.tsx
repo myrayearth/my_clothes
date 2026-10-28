@@ -391,8 +391,10 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
   }, [selection.items, dynamicOptions.items, gender]);
 
   return (
-    <div className="relative outfit-flow-wrapper bg-white rounded-2xl shadow-xs border border-slate-200/90 p-4 sm:p-5 space-y-4">
-      {/* 컴포넌트 헤더 */}
+    <div className="space-y-4">
+      {/* 1. 복장 선택 및 게이지 플로우 래퍼: ITEM(소품)의 마지막 줄까지 게이지가 sticky로 유지됨 */}
+      <div className="relative outfit-flow-wrapper bg-white rounded-2xl shadow-xs border border-slate-200/90 p-4 sm:p-5 space-y-4">
+        {/* 컴포넌트 헤더 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -1036,9 +1038,10 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
         </div>
       </div>
+      </div>
 
-      {/* 실시간 선택 조합 요약 카드 */}
-      <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200/90 text-xs text-slate-700 space-y-2">
+      {/* 실시간 선택 조합 요약 카드 ('현재 코디' 요약: ITEM 소품 항목 통과 시 게이지 고정이 해제되며 노출) */}
+      <div className="p-4 bg-white rounded-2xl shadow-xs border border-slate-200/90 text-xs text-slate-700 space-y-2">
         {/* 첫 번째 줄: 현재 코디: 복장 커버 기온 약 XX.X°C (상태 라벨) */}
         <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-slate-200/60">
           <div className="flex items-center gap-1.5 font-bold text-slate-800">
