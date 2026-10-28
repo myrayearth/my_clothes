@@ -481,11 +481,11 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
               {/* 3색 상태 뱃지: [적정] 초록 / [과보온] 빨강 / [보온 필요] 파랑 */}
               <span
-                className={`text-xs font-bold px-2.5 py-0.5 rounded-full border shadow-2xs flex items-center gap-1 transition-all duration-300 ${relativeStatus.badgeStyle}`}
+                className={`transition-all duration-300 flex items-center gap-1 shrink-0 ${relativeStatus.badgeStyle}`}
               >
                 <span>{relativeStatus.badgeText}</span>
                 {relativeStatus.diff !== 0 && (
-                  <span className="text-[10px] font-normal opacity-90">
+                  <span className="text-[11px] font-semibold opacity-90">
                     ({relativeStatus.diff > 0 ? `+${relativeStatus.diff}` : relativeStatus.diff}°C)
                   </span>
                 )}
@@ -501,38 +501,46 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
         {/* 현재 기준 기온(T_target) 기준 ±5°C 상대 동적 게이지 그래프 */}
         <div className="pt-2 pb-1">
-          <div className="relative h-6 w-full bg-slate-200 dark:bg-slate-700/80 dark:ring-1 dark:ring-slate-600 rounded-full overflow-hidden shadow-inner border border-slate-300/60 dark:border-slate-600">
-            {/* 1. 좌측 과보온 구역 (0% ~ 25%) */}
+          <div className="relative h-8 sm:h-9 w-full select-none">
+            {/* 1. 과보온 구간 (좌측 / 두꺼움 측 트랙: 0% ~ 25%) */}
             <div
-              className="absolute top-0 bottom-0 left-0 w-1/4 bg-rose-100/60 dark:bg-rose-500/15"
+              className="absolute top-0 bottom-0 left-0 w-1/4 h-8 sm:h-9 flex items-center justify-center font-bold text-xs sm:text-sm tracking-tight transition-all duration-300 bg-rose-100/90 border-y-2 border-l-2 border-rose-500/80 rounded-l-full dark:bg-rose-500/25 dark:border-y-2 dark:border-l-2 dark:border-rose-400/80"
               title={`과보온 구역 (${gaugeMinTemp}°C ~ ${temperature - 2.5}°C)`}
-            />
+            >
+              <span className="text-rose-950 font-bold drop-shadow-sm dark:text-rose-200 dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] select-none truncate px-1 text-[11px] sm:text-xs">
+                과보온
+              </span>
+            </div>
 
-            {/* 2. 중앙 적정 보온 구간 하이라이트 (25% ~ 75%, ±2.5°C 폭) */}
+            {/* 2. 적정 구간 (중앙 / ±2.5°C 적정 범위 트랙: 25% ~ 75%) */}
             <div
-              className="absolute top-0 bottom-0 left-1/4 w-1/2 bg-emerald-100/80 border-x border-emerald-300 dark:bg-emerald-500/20 dark:border-x dark:border-emerald-400/60 shadow-xs flex items-center justify-center"
+              className="absolute top-0 bottom-0 left-1/4 w-1/2 h-8 sm:h-9 flex items-center justify-center font-bold text-xs sm:text-sm tracking-tight transition-all duration-300 bg-emerald-100/90 border-2 border-emerald-500/80 dark:bg-emerald-500/25 dark:border-2 dark:border-emerald-400/80"
               title={`적정 보온 권장 범위 (${temperature - 2.5}°C ~ ${temperature + 2.5}°C)`}
             >
-              <span className="text-[9px] font-semibold text-emerald-700 dark:text-emerald-300 drop-shadow-sm tracking-wider uppercase select-none">
+              <span className="text-emerald-950 font-bold drop-shadow-sm dark:text-emerald-200 dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] select-none truncate px-1 text-[11px] sm:text-xs">
                 적정 범위 (±2.5°C)
               </span>
             </div>
 
-            {/* 3. 우측 보온 필요 구역 (75% ~ 100%) */}
+            {/* 3. 보온 필요 구간 (우측 / 얇음 측 트랙: 75% ~ 100%) */}
             <div
-              className="absolute top-0 bottom-0 right-0 w-1/4 bg-sky-100/60 dark:bg-sky-500/15"
+              className="absolute top-0 bottom-0 right-0 w-1/4 h-8 sm:h-9 flex items-center justify-center font-bold text-xs sm:text-sm tracking-tight transition-all duration-300 bg-sky-100/90 border-y-2 border-r-2 border-sky-500/80 rounded-r-full dark:bg-sky-500/25 dark:border-y-2 dark:border-r-2 dark:border-sky-400/80"
               title={`보온 필요 구역 (${temperature + 2.5}°C ~ ${gaugeMaxTemp}°C)`}
-            />
+            >
+              <span className="text-sky-950 font-bold drop-shadow-sm dark:text-sky-200 dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] select-none truncate px-1 text-[11px] sm:text-xs">
+                보온 필요
+              </span>
+            </div>
 
-            {/* 중앙 50% 기준 기온(T_target) 점선 핀 */}
+            {/* 중앙 50% 기준 기온(T_target) 타겟 세로선 */}
             <div
-              className="absolute top-0 bottom-0 left-1/2 w-0.5 border-l-2 border-dashed border-slate-400/80 dark:border-slate-500/70"
+              className="absolute left-1/2 -translate-x-1/2 w-0.5 h-full bg-slate-900/70 dark:bg-white/80 z-10 pointer-events-none"
               title={`기준 기온: ${temperature}°C`}
             />
 
             {/* 현재 복장 커버 기온 마커 핀 */}
             <div
-              className="absolute top-0 bottom-0 transition-all duration-300 ease-out z-10"
+              className="absolute top-0 bottom-0 transition-all duration-300 ease-out z-20 pointer-events-none"
               style={{ left: `${markerPct}%` }}
             >
               {/* 마커 세로선 */}
@@ -541,10 +549,10 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
               />
               {/* 마커 헤드 뱃지 */}
               <div
-                className={`absolute -top-1 left-0 -translate-x-1/2 w-4 h-4 rounded-full ${
+                className={`absolute -top-1.5 left-0 -translate-x-1/2 w-4 h-4 rounded-full ${
                   relativeStatus.markerPinClass
                 } ${
-                  isLeftOverflow || isRightOverflow ? 'animate-bounce ring-4 ring-offset-1' : ''
+                  isLeftOverflow || isRightOverflow ? 'animate-bounce ring-4 ring-offset-1 ring-offset-white dark:ring-offset-slate-900' : ''
                 }`}
                 title={`현재 복장 커버 기온: 약 ${coverTemp}°C`}
               />
@@ -552,14 +560,15 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
 
           {/* 게이지 하단 상대 기온 눈금 표시 */}
-          <div className="relative mt-2 h-4 text-[10px] text-slate-500 dark:text-slate-400 font-medium select-none flex items-center justify-between">
-            <span className={`transition-colors ${isLeftOverflow ? 'text-rose-600 dark:text-rose-400 font-bold' : ''}`}>
+          <div className="relative mt-2.5 h-5 select-none flex items-center justify-between gap-1 text-xs sm:text-sm">
+            <span className={`transition-colors font-bold ${isLeftOverflow ? 'text-rose-600 dark:text-rose-400' : 'text-rose-950 dark:text-rose-200'}`}>
               ◀ {gaugeMinTemp}°C (두꺼움)
             </span>
-            <span className="text-emerald-800 dark:text-emerald-300 font-bold hidden sm:inline">
-              🎯 기준 기온 {temperature}°C
-            </span>
-            <span className={`transition-colors ${isRightOverflow ? 'text-sky-600 dark:text-sky-400 font-bold' : ''}`}>
+            <div className="flex items-center gap-1.5 text-slate-900 dark:text-white font-bold text-xs sm:text-sm drop-shadow-sm dark:drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] select-none">
+              <span className="inline-block animate-pulse text-base sm:text-lg">🎯</span>
+              <span>기준 기온 {temperature}°C</span>
+            </div>
+            <span className={`transition-colors font-bold ${isRightOverflow ? 'text-sky-600 dark:text-sky-400' : 'text-sky-950 dark:text-sky-200'}`}>
               {gaugeMaxTemp}°C (얇음) ▶
             </span>
           </div>
@@ -997,7 +1006,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           <div className="flex items-center gap-1.5 font-bold text-slate-800">
             <Shirt className="w-4 h-4 text-brand-600 shrink-0" />
             <span>현재 코디: 복장 커버 기온 약 {coverTemp}°C ({relativeStatus.diff > 0 ? `+${relativeStatus.diff}` : relativeStatus.diff}°C)</span>
-            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border shadow-2xs ${relativeStatus.badgeStyle}`}>
+            <span className={relativeStatus.badgeStyle}>
               {relativeStatus.badgeText}
             </span>
           </div>

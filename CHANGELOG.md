@@ -12,6 +12,26 @@
 
 ---
 
+## [v0.29.0] - 2026-10-28 (Minor Release)
+
+메인 화면의 '적정 체감 복장 분석' 상대 기온 동적 게이지 그래프에 세 구간(과보온, 적정, 보온 필요)의 공통 레이아웃 및 디자인 토큰 일원화 시스템을 적용하고, 중앙 기준 기온 타겟 마커 및 상태 뱃지/인디케이터 핀의 시인성을 극대화한 마이너 릴리즈입니다.
+
+### 📊 상대 기온 게이지 통일 디자인 시스템 구축 (`OutfitSelector.tsx`, `insulation.ts`)
+- **트랙 3개 구간의 공통 베이스 규격 및 디자인 토큰 통일**:
+  - `h-8 sm:h-9 flex items-center justify-center font-bold text-xs sm:text-sm tracking-tight transition-all duration-300` 베이스 규격으로 완전 일원화.
+  - **과보온 (좌측 25%)**: `bg-rose-100/90 border-y-2 border-l-2 border-rose-500/80 rounded-l-full` 및 고대비 텍스트 (`text-rose-950 dark:text-rose-200 font-bold`).
+  - **적정 (중앙 50%)**: `bg-emerald-100/90 border-2 border-emerald-500/80` 및 고대비 텍스트 (`text-emerald-950 dark:text-emerald-200 font-bold`).
+  - **보온 필요 (우측 25%)**: `bg-sky-100/90 border-y-2 border-r-2 border-sky-500/80 rounded-r-full` 및 고대비 텍스트 (`text-sky-950 dark:text-sky-200 font-bold`).
+  - 세 구간 모두 동일한 2px 테두리 굵기와 매칭되는 라운딩으로 자연스럽게 결합된 일체형 캡슐 트랙 완성.
+- **중앙 기준 기온 타겟 마커(Target Marker) 강조**:
+  - 게이지를 상하로 관통하는 고대비 중심 세로선 (`w-0.5 h-full bg-slate-900/70 dark:bg-white/80 z-10 pointer-events-none`) 배치.
+  - 하단 기준 기온 표시에 펄스 애니메이션이 적용된 과녁 아이콘(`🎯 animate-pulse`)과 고대비 볼드 폰트 적용.
+- **상태 뱃지 및 인디케이터 핀 규격 통일**:
+  - 우측 상단 뱃지 3종 모두 `px-3 py-1 rounded-full text-xs sm:text-sm font-bold border-2 shadow-sm` 단일 규격 적용.
+  - 게이지 인디케이터 핀 헤드(`w-4 h-4 rounded-full -top-1.5 ring-2 ring-white dark:ring-slate-950`)와 상태별 선명한 글로우 섀도우 효과 매칭.
+
+---
+
 ## [v0.28.0] - 2026-10-28 (Minor Release)
 
 상의/하의 기본 선택 및 리셋 시 '이너' 항목을 자동 선택에서 제외하고 대표 겉옷 아이템만 기본 선택되도록 개편하였으며, 추천값 리셋 버튼을 '기본 추천 100% 리셋'과 '평가 반영 리셋'의 2가지 직관적인 기능으로 분리/신설한 마이너 릴리즈입니다.

@@ -326,7 +326,7 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                   </span>
                 </span>
               </div>
-              <span className={`text-[11px] px-2 py-0.5 rounded-full border shadow-2xs ${relativeStatus.badgeStyle}`}>
+              <span className={relativeStatus.badgeStyle}>
                 {relativeStatus.badgeText}
               </span>
             </div>

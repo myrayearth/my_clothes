@@ -266,12 +266,12 @@ export function getRelativeCoverStatus(
       status: 'OPTIMAL',
       badgeText: '적정',
       badgeStyle:
-        'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
+        'bg-emerald-50 text-emerald-800 border-emerald-500 dark:bg-emerald-950/80 dark:text-emerald-200 dark:border-emerald-400 px-3 py-1 rounded-full text-xs sm:text-sm font-bold border-2 shadow-sm',
       description: `현재 기온(약 ${targetTemp}°C)에 적합한 보온 수준입니다.`,
       textColor: 'text-emerald-700 dark:text-emerald-300',
       markerColor: 'bg-emerald-500',
       markerPinClass:
-        'bg-emerald-500 ring-2 ring-white dark:ring-slate-900 shadow-[0_0_10px_rgba(16,185,129,0.7)]',
+        'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.9)] ring-2 ring-white dark:ring-slate-950',
       diff,
     };
   }
@@ -282,12 +282,12 @@ export function getRelativeCoverStatus(
       status: 'OVERHEATED',
       badgeText: '과보온',
       badgeStyle:
-        'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-500/40 font-bold',
+        'bg-rose-50 text-rose-800 border-rose-500 dark:bg-rose-950/80 dark:text-rose-200 dark:border-rose-400 px-3 py-1 rounded-full text-xs sm:text-sm font-bold border-2 shadow-sm',
       description: '현재 기온보다 두껍습니다. 땀이 나거나 더울 수 있어요. (외투나 이너를 가볍게 조절하세요)',
       textColor: 'text-rose-700 dark:text-rose-300',
       markerColor: 'bg-rose-500',
       markerPinClass:
-        'bg-rose-500 ring-2 ring-white dark:ring-slate-900 shadow-[0_0_10px_rgba(244,63,94,0.7)]',
+        'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.9)] ring-2 ring-white dark:ring-slate-950',
       diff,
     };
   }
@@ -297,12 +297,12 @@ export function getRelativeCoverStatus(
     status: 'COLD_NEED_WARMTH',
     badgeText: '보온 필요',
     badgeStyle:
-      'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-500/40 font-bold',
+      'bg-sky-50 text-sky-800 border-sky-500 dark:bg-sky-950/80 dark:text-sky-200 dark:border-sky-400 px-3 py-1 rounded-full text-xs sm:text-sm font-bold border-2 shadow-sm',
     description: '현재 기온보다 얇습니다. 쌀쌀할 수 있으니 겉옷이나 내의를 챙기세요.',
     textColor: 'text-sky-700 dark:text-sky-300',
     markerColor: 'bg-sky-500',
     markerPinClass:
-      'bg-sky-500 ring-2 ring-white dark:ring-slate-900 shadow-[0_0_10px_rgba(14,165,233,0.7)]',
+      'bg-sky-500 shadow-[0_0_12px_rgba(14,165,233,0.9)] ring-2 ring-white dark:ring-slate-950',
     diff,
   };
 }
