@@ -494,10 +494,12 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
         </div>
 
-        {/* 상태별 동적 안내 문구 */}
-        <p className="text-xs font-medium px-3 py-1.5 rounded-xl border transition-all duration-300 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200">
-          {relativeStatus.description}
-        </p>
+        {/* 상태별 동적 안내 문구 (최소 높이 예약 및 정렬 고정으로 CLS 제거) */}
+        <div className="min-h-[44px] sm:min-h-[48px] flex items-center justify-center text-center px-3 py-1.5 rounded-xl border transition-all duration-300 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
+          <p className="text-xs sm:text-sm font-medium leading-snug tracking-tight text-slate-700 dark:text-slate-200">
+            {relativeStatus.description}
+          </p>
+        </div>
 
         {/* 현재 기준 기온(T_target) 기준 ±5°C 상대 동적 게이지 그래프 */}
         <div className="pt-2 pb-1">
@@ -628,16 +630,22 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   type="button"
                   onClick={() => handleOuterSelect(opt)}
                   title={isSelected ? '클릭하여 외투 선택 해제' : `${opt} 선택`}
-                  className={`min-h-[38px] px-3.5 py-1.5 text-xs rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none cursor-pointer ${getItemChipWarmthClasses(
+                  className={`relative min-h-[38px] pl-7 pr-3 py-1.5 text-xs rounded-xl border transition-all duration-150 flex items-center justify-center gap-1.5 active:scale-95 touch-manipulation select-none cursor-pointer ${getItemChipWarmthClasses(
                     opt,
                     'outer',
                     isSelected,
                     isRecommended
                   )}`}
                 >
-                  {isSelected && (
-                    <Check className="w-4 h-4 text-[#fdfbf7] stroke-[2.5] shrink-0" />
-                  )}
+                  <span
+                    className={`absolute left-2 flex items-center justify-center transition-all duration-150 ${
+                      isSelected
+                        ? 'opacity-100 scale-100 text-[#fdfbf7]'
+                        : 'opacity-0 scale-75 pointer-events-none'
+                    }`}
+                  >
+                    <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </span>
                   <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] font-semibold'}>
                     {opt}
                   </span>
@@ -720,7 +728,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   <button
                     type="button"
                     onClick={() => handleMultiSelectCardClick('top', opt)}
-                    className="min-h-[38px] pl-3 pr-2 py-1.5 flex items-center gap-1.5 active:opacity-80 touch-manipulation cursor-pointer flex-1"
+                    className="relative min-h-[38px] pl-7 pr-2.5 py-1.5 flex items-center gap-1.5 active:opacity-80 touch-manipulation cursor-pointer flex-1"
                     title={
                       isSelected
                         ? selection.top.length === 1 && !isInnerClothingItem(opt)
@@ -729,9 +737,15 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                         : `${opt} 선택`
                     }
                   >
-                    {isSelected && (
-                      <Check className="w-4 h-4 text-[#fdfbf7] stroke-[2.5] shrink-0" />
-                    )}
+                    <span
+                      className={`absolute left-2 flex items-center justify-center transition-all duration-150 ${
+                        isSelected
+                          ? 'opacity-100 scale-100 text-[#fdfbf7]'
+                          : 'opacity-0 scale-75 pointer-events-none'
+                      }`}
+                    >
+                      <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </span>
                     <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] font-semibold'}>
                       {opt}
                     </span>
@@ -850,7 +864,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   <button
                     type="button"
                     onClick={() => handleMultiSelectCardClick('bottom', opt)}
-                    className="min-h-[38px] pl-3 pr-2 py-1.5 flex items-center gap-1.5 active:opacity-80 touch-manipulation cursor-pointer flex-1"
+                    className="relative min-h-[38px] pl-7 pr-2.5 py-1.5 flex items-center gap-1.5 active:opacity-80 touch-manipulation cursor-pointer flex-1"
                     title={
                       isSelected
                         ? selection.bottom.length === 1 && !isInnerClothingItem(opt)
@@ -859,9 +873,15 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                         : `${opt} 선택`
                     }
                   >
-                    {isSelected && (
-                      <Check className="w-4 h-4 text-[#fdfbf7] stroke-[2.5] shrink-0" />
-                    )}
+                    <span
+                      className={`absolute left-2 flex items-center justify-center transition-all duration-150 ${
+                        isSelected
+                          ? 'opacity-100 scale-100 text-[#fdfbf7]'
+                          : 'opacity-0 scale-75 pointer-events-none'
+                      }`}
+                    >
+                      <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </span>
                     <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] font-semibold'}>
                       {opt}
                     </span>
@@ -968,16 +988,22 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   key={opt}
                   type="button"
                   onClick={() => handleItemToggle(opt)}
-                  className={`min-h-[38px] px-3.5 py-1.5 text-xs rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none cursor-pointer ${getItemChipWarmthClasses(
+                  className={`relative min-h-[38px] pl-7 pr-3 py-1.5 text-xs rounded-xl border transition-all duration-150 flex items-center justify-center gap-1.5 active:scale-95 touch-manipulation select-none cursor-pointer ${getItemChipWarmthClasses(
                     opt,
                     'items',
                     isSelected,
                     isRecommended
                   )}`}
                 >
-                  {isSelected && (
-                    <Check className="w-4 h-4 text-[#fdfbf7] stroke-[2.5] shrink-0" />
-                  )}
+                  <span
+                    className={`absolute left-2 flex items-center justify-center transition-all duration-150 ${
+                      isSelected
+                        ? 'opacity-100 scale-100 text-[#fdfbf7]'
+                        : 'opacity-0 scale-75 pointer-events-none'
+                    }`}
+                  >
+                    <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </span>
                   <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] font-semibold'}>
                     {opt}
                   </span>

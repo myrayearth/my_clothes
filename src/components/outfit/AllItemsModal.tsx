@@ -306,14 +306,22 @@ export const AllItemsModal: React.FC<AllItemsModalProps> = ({
                         ? '클릭하여 선택 해제'
                         : '선택 추가'
                     }
-                    className={`min-h-[38px] px-3.5 py-1.5 text-xs rounded-xl border transition-all active:scale-95 touch-manipulation select-none flex items-center gap-1.5 cursor-pointer ${getItemChipWarmthClasses(
+                    className={`relative min-h-[38px] pl-7 pr-3 py-1.5 text-xs rounded-xl border transition-all active:scale-95 touch-manipulation select-none flex items-center justify-center gap-1.5 cursor-pointer ${getItemChipWarmthClasses(
                       item,
                       category,
                       isSelected,
                       false
                     )}`}
                   >
-                    {isSelected && <Check className="w-4 h-4 text-[#fdfbf7] stroke-[2.5] shrink-0" />}
+                    <span
+                      className={`absolute left-2 flex items-center justify-center transition-all duration-150 ${
+                        isSelected
+                          ? 'opacity-100 scale-100 text-[#fdfbf7]'
+                          : 'opacity-0 scale-75 pointer-events-none'
+                      }`}
+                    >
+                      <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </span>
                     <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] font-semibold'}>
                       {item}
                     </span>
