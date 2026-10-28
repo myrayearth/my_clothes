@@ -4,7 +4,14 @@ import React, { useState, useMemo } from 'react';
 import { OutfitLog, TemperatureEvaluation, UserCondition, UserGender } from '@/types/database';
 import { STANDARD_ITEMS, StandardItem } from '@/data/itemScores';
 import { filterItemsByGender } from '@/lib/gender';
-import { calculateTotalInsulation, scoreToCoverTemperature } from '@/lib/insulation';
+import {
+  calculateTotalInsulation,
+  scoreToCoverTemperature,
+  getInsulationTargetRange,
+  getRelativeCoverStatus,
+  getItemInsulationScore,
+} from '@/lib/insulation';
+import { getOutfitRuleByTemperature } from '@/lib/outfit';
 import { formatScoreTemp } from '@/lib/matcher';
 import { updateOutfitLog, updateTemperatureEvaluation } from '@/lib/storage';
 import { X, Check, Shirt, Sparkles, AlertCircle, Save, Loader2 } from 'lucide-react';
@@ -82,6 +89,21 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
     return Math.round(scoreToCoverTemperature(totalScore) * 10) / 10;
   }, [totalScore]);
 
+  const rule = useMemo(
+    () => getOutfitRuleByTemperature(record.target_temp),
+    [record.target_temp]
+  );
+
+  const targetRange = useMemo(
+    () => getInsulationTargetRange(record.target_temp),
+    [record.target_temp]
+  );
+
+  const relativeStatus = useMemo(
+    () => getRelativeCoverStatus(coverTemp, record.target_temp),
+    [coverTemp, record.target_temp]
+  );
+
   // 상의 다중 선택 토글 (최소 1개 유지)
   const handleToggleTop = (item: string) => {
     if (top.includes(item)) {
@@ -136,7 +158,6 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
       condition,
       memo: memo.trim() || undefined,
       total_insulation_score: totalScore,
-      calculated_cover_temp: coverTemp,
     };
 
     try {
@@ -199,14 +220,37 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
             </div>
           )}
 
-          {/* 실시간 계산 요약 배너 */}
-          <div className="p-3 bg-blue-50/70 border border-blue-200/70 rounded-xl flex items-center justify-between gap-2 flex-wrap text-blue-950 font-medium">
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-blue-600 shrink-0" />
-              <span>복장 커버 기온: <strong className="text-blue-700 font-bold">약 {coverTemp}°C</strong></span>
+          {/* 실시간 계산 요약 배너 및 룰셋 표준 정보 */}
+          <div className="p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-2xl space-y-2 text-blue-950 font-medium">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>
+                  복장 커버 기온: <strong className="text-blue-700 font-bold">약 {coverTemp}°C</strong>{' '}
+                  <span className="text-[11px] text-slate-500 font-semibold">
+                    ({relativeStatus.diff > 0 ? `+${relativeStatus.diff}` : relativeStatus.diff}°C)
+                  </span>
+                </span>
+              </div>
+              <span className={`text-[11px] px-2 py-0.5 rounded-full border shadow-2xs ${relativeStatus.badgeStyle}`}>
+                {relativeStatus.badgeText}
+              </span>
             </div>
-            <div className="text-[11px] text-blue-600">
-              기준 기온 {record.target_temp}°C 대비 {Math.abs(coverTemp - record.target_temp) <= 2.5 ? '적정 범위' : coverTemp < record.target_temp ? '과보온' : '보온 필요'}
+
+            <div className="text-[11px] text-slate-600 bg-white/80 p-2.5 rounded-xl border border-blue-100/80 space-y-1">
+              <div className="flex items-center justify-between flex-wrap gap-1">
+                <span className="font-semibold text-slate-800">
+                  기준 기온 ({record.target_temp}°C) 표준 구간: <strong className="text-blue-600">{rule.label}</strong>
+                </span>
+                <span className="text-slate-500 font-medium">
+                  권장 보온 지수: <strong className="text-slate-700">{targetRange.label}</strong> (현재: <strong className="text-blue-700">{totalScore}점</strong>)
+                </span>
+              </div>
+              <div className="text-slate-500 text-[10px] leading-relaxed">
+                <span className="font-semibold text-slate-700">표준 추천 복장:</span>{' '}
+                {rule.recommend.outer !== '없음' ? `[외투] ${rule.recommend.outer} • ` : ''}
+                [상의] {rule.recommend.top.join(', ')} • [하의] {rule.recommend.bottom.join(', ')}
+              </div>
             </div>
           </div>
 
@@ -219,18 +263,36 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
             <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50/50 scrollbar-thin">
               {outerOptions.map((opt) => {
                 const isSelected = outer === opt;
+                const isRecommended = rule.recommend.outer === opt || rule.outer.includes(opt);
+                const score = getItemInsulationScore(opt);
+                const itemCover = scoreToCoverTemperature(score);
+                const diff = Math.round(itemCover - record.target_temp);
+                const diffStr = opt === '없음' ? '' : `(${diff > 0 ? `+${diff}` : diff}도)`;
+
                 return (
                   <button
                     key={opt}
                     type="button"
                     onClick={() => setOuter(opt)}
-                    className={`px-2.5 py-1 rounded-lg border font-medium transition-all ${
+                    className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
                       isSelected
                         ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                        : isRecommended
+                        ? 'bg-amber-50/50 text-slate-800 border-amber-300 hover:bg-amber-100/50'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
-                    {opt}
+                    <span>{opt}</span>
+                    {diffStr && (
+                      <span className={`text-[10px] ${isSelected ? 'text-slate-300' : 'text-slate-400'}`}>
+                        {diffStr}
+                      </span>
+                    )}
+                    {isRecommended && (
+                      <span className={`text-[9px] font-bold px-1 rounded ${isSelected ? 'bg-amber-900/60 text-amber-200' : 'bg-amber-100 text-amber-800'}`}>
+                        추천
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -246,6 +308,12 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
             <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50/50 scrollbar-thin">
               {topOptions.map((opt) => {
                 const isSelected = top.includes(opt);
+                const isRecommended = rule.recommend.top.includes(opt) || rule.top.includes(opt);
+                const score = getItemInsulationScore(opt);
+                const itemCover = scoreToCoverTemperature(score);
+                const diff = Math.round(itemCover - record.target_temp);
+                const diffStr = `(${diff > 0 ? `+${diff}` : diff}도)`;
+
                 return (
                   <button
                     key={opt}
@@ -254,11 +322,21 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                     className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
                       isSelected
                         ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                        : isRecommended
+                        ? 'bg-amber-50/50 text-slate-800 border-amber-300 hover:bg-amber-100/50'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     {isSelected && <Check className="w-3 h-3" />}
                     <span>{opt}</span>
+                    <span className={`text-[10px] ${isSelected ? 'text-blue-200' : 'text-slate-400'}`}>
+                      {diffStr}
+                    </span>
+                    {isRecommended && (
+                      <span className={`text-[9px] font-bold px-1 rounded ${isSelected ? 'bg-blue-800/80 text-amber-200' : 'bg-amber-100 text-amber-800'}`}>
+                        추천
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -274,6 +352,12 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
             <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50/50 scrollbar-thin">
               {bottomOptions.map((opt) => {
                 const isSelected = bottom.includes(opt);
+                const isRecommended = rule.recommend.bottom.includes(opt) || rule.bottom.includes(opt);
+                const score = getItemInsulationScore(opt);
+                const itemCover = scoreToCoverTemperature(score);
+                const diff = Math.round(itemCover - record.target_temp);
+                const diffStr = `(${diff > 0 ? `+${diff}` : diff}도)`;
+
                 return (
                   <button
                     key={opt}
@@ -282,11 +366,21 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                     className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
                       isSelected
                         ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                        : isRecommended
+                        ? 'bg-amber-50/50 text-slate-800 border-amber-300 hover:bg-amber-100/50'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     {isSelected && <Check className="w-3 h-3" />}
                     <span>{opt}</span>
+                    <span className={`text-[10px] ${isSelected ? 'text-blue-200' : 'text-slate-400'}`}>
+                      {diffStr}
+                    </span>
+                    {isRecommended && (
+                      <span className={`text-[9px] font-bold px-1 rounded ${isSelected ? 'bg-blue-800/80 text-amber-200' : 'bg-amber-100 text-amber-800'}`}>
+                        추천
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -302,6 +396,12 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
             <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50/50 scrollbar-thin">
               {itemOptions.map((opt) => {
                 const isSelected = items.includes(opt);
+                const isRecommended = rule.recommend.item.includes(opt) || rule.item.includes(opt);
+                const score = getItemInsulationScore(opt);
+                const itemCover = scoreToCoverTemperature(score);
+                const diff = Math.round(itemCover - record.target_temp);
+                const diffStr = `(${diff > 0 ? `+${diff}` : diff}도)`;
+
                 return (
                   <button
                     key={opt}
@@ -310,11 +410,21 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                     className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
                       isSelected
                         ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                        : isRecommended
+                        ? 'bg-amber-50/50 text-slate-800 border-amber-300 hover:bg-amber-100/50'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     {isSelected && <Check className="w-3 h-3" />}
                     <span>{opt}</span>
+                    <span className={`text-[10px] ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}>
+                      {diffStr}
+                    </span>
+                    {isRecommended && (
+                      <span className={`text-[9px] font-bold px-1 rounded ${isSelected ? 'bg-indigo-800/80 text-amber-200' : 'bg-amber-100 text-amber-800'}`}>
+                        추천
+                      </span>
+                    )}
                   </button>
                 );
               })}

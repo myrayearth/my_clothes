@@ -533,21 +533,21 @@ export default function HomePage() {
         {/* 서비스 타이틀, 성별 선택, 카카오 인증 바 & 새로고침 */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-blue-600 text-white rounded-xl shadow-xs">
-              <Shirt className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl overflow-hidden shadow-xs border border-slate-200/80 bg-white flex items-center justify-center shrink-0">
+              <img src="/logo.png" alt="Ondo Fit" className="w-full h-full object-cover" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
                 <h1 className="text-lg font-bold text-slate-900 leading-tight">
-                  Weather Outfit
+                  Ondo Fit
                 </h1>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                  v0.23.2
+                  v0.23.3
                 </span>
               </div>
               {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
               <p className="text-xs text-slate-500">
-                온도 기반 복장 추천 및 피드백
+                온도 맞춤 복장 추천 및 피드백
               </p>
             </div>
           </div>
@@ -762,7 +762,7 @@ export default function HomePage() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.23.2</strong></p>
+        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.23.3</strong></p>
       </footer>
     </div>
   );

@@ -469,42 +469,59 @@ export function removeLocalLog(
  */
 export async function fetchAllOutfitLogs(userName?: string, userId?: string): Promise<OutfitLog[]> {
   const activeUserId = userId || getSavedActiveUserId();
-  const isGuest = !activeUserId || userName === '게스트' || userName === '기본 사용자';
+  const isGuest = !activeUserId || userName === '게스트' || userName === '기본 사용자' || !userName;
+  const localLogs = getLocalLogs();
+  let dbLogs: OutfitLog[] = [];
 
-  // 1. 게스트 모드: 100% 브라우저 LocalStorage 격리 조회 (네트워크 부하 및 타인 데이터 노출 원천 차단)
-  if (isGuest || !supabase) {
-    const local = getLocalLogs();
-    if (userName) {
-      return local.filter((l) => l.user_name === userName);
+  // 1. Supabase DB 조회 (게스트 및 로그인 사용자 모두 DB 데이터 확보)
+  if (supabase) {
+    try {
+      let query = supabase.from('outfit_logs').select('*');
+      if (isGuest) {
+        // 게스트 모드: DB에 저장된 '게스트' 및 '기본 사용자' 평가 데이터 통합 조회
+        query = query.in('user_name', ['게스트', '기본 사용자']);
+      } else if (userName) {
+        // 인증 사용자: 본인의 user_name 일치 기록 조회 (관리자 계정 레이 / Ray 호환)
+        const targetNames = userName === '레이' || userName === 'Ray' ? ['레이', 'Ray'] : [userName];
+        query = query.in('user_name', targetNames);
+      }
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (!error && data) {
+        dbLogs = (data as OutfitLog[]).map((l) => migrateOutfitLog(l));
+      } else if (error) {
+        console.warn('Supabase fetch logs failed, using local only:', error.message);
+      }
+    } catch (e) {
+      console.warn('Supabase query error, using local fallback:', e);
     }
-    return local;
   }
 
-  // 2. 인증된 사용자: Supabase DB 조회 (본인 user_id 기준 격리 조회)
-  try {
-    let query = supabase.from('outfit_logs').select('*');
-    if (activeUserId) {
-      query = query.eq('user_id', activeUserId);
-    } else if (userName) {
-      query = query.eq('user_name', userName);
-    }
-    const { data, error } = await query.order('created_at', { ascending: false });
+  // 2. 로컬스토리지 로그 필터링
+  const filteredLocal = isGuest
+    ? localLogs.filter((l) => l.user_name === '게스트' || l.user_name === '기본 사용자' || !l.user_name)
+    : localLogs.filter(
+        (l) =>
+          l.user_name === userName ||
+          (userName === '레이' && l.user_name === 'Ray') ||
+          (userName === 'Ray' && l.user_name === '레이')
+      );
 
-    if (!error && data) {
-      return (data as OutfitLog[]).map((l) => migrateOutfitLog(l));
+  // 3. DB 로그와 로컬 로그 통합 및 ID 기준 중복 제거
+  const combined = [...dbLogs, ...filteredLocal];
+  const seenIds = new Set<string>();
+  const uniqueLogs: OutfitLog[] = [];
+
+  for (const item of combined) {
+    if (!item.id || !seenIds.has(item.id)) {
+      if (item.id) seenIds.add(item.id);
+      uniqueLogs.push(item);
     }
-    if (error) {
-      console.warn('Supabase fetch logs failed, falling back to LocalStorage:', error.message);
-    }
-  } catch (e) {
-    console.warn('Supabase query error, fallback to LocalStorage:', e);
   }
 
-  const fallback = getLocalLogs();
-  if (userName) {
-    return fallback.filter((l) => l.user_name === userName);
-  }
-  return fallback;
+  return uniqueLogs.sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
 }
 
 /**
@@ -521,73 +538,73 @@ export async function fetchRecallLogs(
 ): Promise<OutfitLog[]> {
   const activeUserId = userId || getSavedActiveUserId();
   const isGuest = !activeUserId || userName === '게스트' || userName === '기본 사용자';
+  const targetNames = isGuest
+    ? ['게스트', '기본 사용자']
+    : userName === '레이' || userName === 'Ray'
+    ? ['레이', 'Ray']
+    : [userName];
 
-  // 1. 비로그인 게스트 모드: LocalStorage에서 2단계 범위 검색 후 슬라이스
-  if (isGuest || !supabase) {
-    const local = getLocalLogs().filter((l) => !userName || l.user_name === userName);
-    // 1단계: ±2.5°C
-    let matched = local.filter(
-      (l) => l.target_temp >= targetTemp - 2.5 && l.target_temp <= targetTemp + 2.5
+  let dbLogs: OutfitLog[] = [];
+  if (supabase) {
+    try {
+      // 1단계: ±2.5°C 쿼리
+      const { data, error } = await supabase
+        .from('outfit_logs')
+        .select('*')
+        .in('user_name', targetNames)
+        .gte('target_temp', targetTemp - 2.5)
+        .lte('target_temp', targetTemp + 2.5)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (!error && data && data.length > 0) {
+        dbLogs = data.map((l) => migrateOutfitLog(l));
+      } else {
+        // 2단계 폴백: ±3.5°C 확장 쿼리
+        const fallbackRes = await supabase
+          .from('outfit_logs')
+          .select('*')
+          .in('user_name', targetNames)
+          .gte('target_temp', targetTemp - 3.5)
+          .lte('target_temp', targetTemp + 3.5)
+          .order('created_at', { ascending: false })
+          .limit(limit);
+        if (!fallbackRes.error && fallbackRes.data) {
+          dbLogs = fallbackRes.data.map((l) => migrateOutfitLog(l));
+        }
+      }
+    } catch (e) {
+      console.warn('Supabase fetchRecallLogs exception:', e);
+    }
+  }
+
+  // 로컬스토리지 로그와 통합
+  const localLogs = getLocalLogs().filter((l) =>
+    isGuest
+      ? !l.user_name || l.user_name === '게스트' || l.user_name === '기본 사용자'
+      : targetNames.includes(l.user_name)
+  );
+
+  let localMatched = localLogs.filter(
+    (l) => l.target_temp >= targetTemp - 2.5 && l.target_temp <= targetTemp + 2.5
+  );
+  if (localMatched.length === 0) {
+    localMatched = localLogs.filter(
+      (l) => l.target_temp >= targetTemp - 3.5 && l.target_temp <= targetTemp + 3.5
     );
-    // 2단계 폴백: 0건인 경우 ±3.5°C 1회 확장
-    if (matched.length === 0) {
-      matched = local.filter(
-        (l) => l.target_temp >= targetTemp - 3.5 && l.target_temp <= targetTemp + 3.5
-      );
-    }
-    return matched
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, limit);
   }
 
-  // 2. 로그인 사용자: Supabase SQL 레벨에서 범위 필터링 및 LIMIT 적용
-  try {
-    let query = supabase
-      .from('outfit_logs')
-      .select('*')
-      .gte('target_temp', targetTemp - 2.5)
-      .lte('target_temp', targetTemp + 2.5)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (activeUserId) {
-      query = query.eq('user_id', activeUserId);
-    } else {
-      query = query.eq('user_name', userName);
+  const combined = [...dbLogs, ...localMatched];
+  const seenIds = new Set<string>();
+  const uniqueLogs: OutfitLog[] = [];
+  for (const item of combined) {
+    if (!item.id || !seenIds.has(item.id)) {
+      if (item.id) seenIds.add(item.id);
+      uniqueLogs.push(item);
     }
-
-    const { data, error } = await query;
-    if (!error && data && data.length > 0) {
-      return (data as OutfitLog[]).map((l) => migrateOutfitLog(l));
-    }
-
-    // 1단계 0건 시 2단계: ±3.5°C 1회 확장 쿼리
-    let fallbackQuery = supabase
-      .from('outfit_logs')
-      .select('*')
-      .gte('target_temp', targetTemp - 3.5)
-      .lte('target_temp', targetTemp + 3.5)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (activeUserId) {
-      fallbackQuery = fallbackQuery.eq('user_id', activeUserId);
-    } else {
-      fallbackQuery = fallbackQuery.eq('user_name', userName);
-    }
-
-    const fallbackRes = await fallbackQuery;
-    if (!fallbackRes.error && fallbackRes.data && fallbackRes.data.length > 0) {
-      return (fallbackRes.data as OutfitLog[]).map((l) => migrateOutfitLog(l));
-    }
-  } catch (e) {
-    console.warn('Supabase fetchRecallLogs failed, using LocalStorage:', e);
   }
 
-  // 3. 폴백: 로컬스토리지 2단계 필터링
-  const fallbackLocal = getLocalLogs().filter((l) => !userName || l.user_name === userName);
-  return fallbackLocal
-    .filter((l) => l.target_temp >= targetTemp - 3.5 && l.target_temp <= targetTemp + 3.5)
+  return uniqueLogs
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, limit);
 }
@@ -604,18 +621,21 @@ export async function createOutfitLog(input: NewOutfitLogInput): Promise<{
 }> {
   const activeUserId = input.user_id || getSavedActiveUserId();
   const isGuest = !activeUserId || input.user_name === '게스트' || input.user_name === '기본 사용자';
+  const effectiveUserName = isGuest ? '게스트' : (input.user_name || '게스트');
 
   const generatedId = `log-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   const logToSave: OutfitLog = {
     ...input,
+    user_name: effectiveUserName,
     id: generatedId,
     created_at: new Date().toISOString(),
     user_id: activeUserId || undefined,
   };
 
-  // [보안/격리] 비로그인 게스트 상태: Supabase API 일체 호출 금지, 100% 브라우저 LocalStorage에만 보관
-  if (isGuest || !supabase) {
-    saveLocalLog(logToSave);
+  // 1. 브라우저 LocalStorage에 항상 즉시 영속화
+  saveLocalLog(logToSave);
+
+  if (!supabase) {
     return {
       success: true,
       savedLog: logToSave,
@@ -623,30 +643,29 @@ export async function createOutfitLog(input: NewOutfitLogInput): Promise<{
     };
   }
 
-  // 카카오 로그인 상태: 본인의 user_id 바인딩하여 Supabase DB INSERT
+  // 2. Supabase DB 저장 (게스트 및 로그인 사용자 모두 DB에 동기화하여 전체 집계 및 리콜에 활용)
   try {
+    // outfit_logs 테이블 스키마에 부합하는 컬럼만 추출 (user_id, calculated_cover_temp 등 불일치 컬럼 제외)
+    const outfitPayload = {
+      user_name: effectiveUserName,
+      location_name: input.location_name,
+      target_temp: input.target_temp,
+      apparent_temp: input.apparent_temp,
+      time_slot: input.time_slot,
+      selected_outer: input.selected_outer,
+      selected_top: input.selected_top,
+      selected_bottom: input.selected_bottom,
+      selected_items: input.selected_items,
+      score: input.score,
+      condition: input.condition,
+      memo: input.memo || null,
+      gender: input.gender || 'male',
+      total_insulation_score: input.total_insulation_score ?? 0,
+    };
+
     const { data, error } = await supabase
       .from('outfit_logs')
-      .insert([
-        {
-          user_id: activeUserId,
-          user_name: input.user_name,
-          location_name: input.location_name,
-          target_temp: input.target_temp,
-          apparent_temp: input.apparent_temp,
-          time_slot: input.time_slot,
-          selected_outer: input.selected_outer,
-          selected_top: input.selected_top,
-          selected_bottom: input.selected_bottom,
-          selected_items: input.selected_items,
-          score: input.score,
-          condition: input.condition,
-          memo: input.memo,
-          gender: input.gender || 'male',
-          total_insulation_score: input.total_insulation_score ?? 0,
-          calculated_cover_temp: input.calculated_cover_temp,
-        },
-      ])
+      .insert([outfitPayload])
       .select()
       .single();
 
@@ -658,8 +677,8 @@ export async function createOutfitLog(input: NewOutfitLogInput): Promise<{
         await supabase.from('temperature_evaluations').insert([
           {
             id: data.id,
-            user_id: activeUserId,
-            user_name: input.user_name,
+            user_id: activeUserId || null,
+            user_name: effectiveUserName,
             location_name: input.location_name,
             target_temp: input.target_temp,
             apparent_temp: input.apparent_temp,
@@ -669,26 +688,36 @@ export async function createOutfitLog(input: NewOutfitLogInput): Promise<{
             selected_bottom: input.selected_bottom,
             selected_items: input.selected_items,
             score: input.score,
+            rating: input.score,
             condition: input.condition,
             memo: input.memo || null,
             gender: input.gender || 'male',
             total_insulation_score: input.total_insulation_score ?? 0,
-            calculated_cover_temp: input.calculated_cover_temp,
           },
         ]);
       } catch (syncErr) {
         console.warn('temperature_evaluations sync notice:', syncErr);
       }
 
-      return { success: true, savedLog: data as OutfitLog, isFallback: false };
+      return {
+        success: true,
+        savedLog: data as OutfitLog,
+        isFallback: false,
+      };
     }
-    console.warn('Supabase insert failed, fallback to LocalStorage:', error?.message);
+
+    if (error) {
+      console.warn('Supabase outfit_logs insert error, using local fallback:', error.message);
+    }
   } catch (e) {
-    console.warn('Supabase insert exception, fallback to LocalStorage:', e);
+    console.warn('Supabase insert exception, using local fallback:', e);
   }
 
-  saveLocalLog(logToSave);
-  return { success: true, savedLog: logToSave, isFallback: true };
+  return {
+    success: true,
+    savedLog: logToSave,
+    isFallback: true,
+  };
 }
 
 // ==========================================
@@ -796,17 +825,32 @@ export async function updateOutfitLog(
   id: string,
   updates: Partial<OutfitLog>
 ): Promise<{ success: boolean; data?: OutfitLog; error?: string }> {
-  const activeUserId = getSavedActiveUserId();
-  const isGuest = !activeUserId;
-
-  // 비로그인 게스트 모드가 아닐 때만 Supabase DB UPDATE 동기화 시도
-  if (!isGuest && supabase) {
+  // outfit_logs 테이블 스키마에 존재하는 컬럼만 선별 전달
+  if (supabase) {
     try {
-      await supabase.from('outfit_logs').update(updates).eq('id', id);
-      try {
-        await supabase.from('temperature_evaluations').update(updates).eq('id', id);
-      } catch (e) {
-        // evaluations 테이블에 없는 항목일 수 있으므로 무시
+      const outfitUpdates: Record<string, any> = {};
+      if (updates.target_temp !== undefined) outfitUpdates.target_temp = updates.target_temp;
+      if (updates.apparent_temp !== undefined) outfitUpdates.apparent_temp = updates.apparent_temp;
+      if (updates.score !== undefined) outfitUpdates.score = updates.score;
+      if (updates.condition !== undefined) outfitUpdates.condition = updates.condition;
+      if (updates.memo !== undefined) outfitUpdates.memo = updates.memo;
+      if (updates.selected_outer !== undefined) outfitUpdates.selected_outer = updates.selected_outer;
+      if (updates.selected_top !== undefined) outfitUpdates.selected_top = updates.selected_top;
+      if (updates.selected_bottom !== undefined) outfitUpdates.selected_bottom = updates.selected_bottom;
+      if (updates.selected_items !== undefined) outfitUpdates.selected_items = updates.selected_items;
+      if (updates.total_insulation_score !== undefined) outfitUpdates.total_insulation_score = updates.total_insulation_score;
+      if (updates.gender !== undefined) outfitUpdates.gender = updates.gender;
+
+      if (Object.keys(outfitUpdates).length > 0) {
+        await supabase.from('outfit_logs').update(outfitUpdates).eq('id', id);
+        try {
+          await supabase
+            .from('temperature_evaluations')
+            .update({ ...outfitUpdates, rating: outfitUpdates.score })
+            .eq('id', id);
+        } catch (e) {
+          // evaluations 테이블에 없는 항목일 수 있으므로 무시
+        }
       }
     } catch (err: any) {
       console.warn('Supabase outfit_logs update warning:', err);

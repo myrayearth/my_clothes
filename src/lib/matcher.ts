@@ -33,13 +33,24 @@ export function findMatchingRecallLogs(
 ): MatchedRecallRecord[] {
   const offset = getConditionOffset(condition);
   const effectiveTemp = currentTemp + offset;
+  const isGuest = !userName || userName === '게스트' || userName === '기본 사용자';
+
+  const checkUserMatch = (log: OutfitLog) => {
+    if (isGuest) {
+      return !log.user_name || log.user_name === '게스트' || log.user_name === '기본 사용자';
+    }
+    return (
+      log.user_name === userName ||
+      (userName === '레이' && log.user_name === 'Ray') ||
+      (userName === 'Ray' && log.user_name === '레이')
+    );
+  };
 
   // 1단계: ±2.5°C 윈도우 필터링
   let tolerance = 2.5;
   let candidateLogs = logs.filter((log) => {
-    const isUserMatch = !userName || log.user_name === userName;
     return (
-      isUserMatch &&
+      checkUserMatch(log) &&
       log.target_temp >= effectiveTemp - tolerance &&
       log.target_temp <= effectiveTemp + tolerance
     );
@@ -49,9 +60,8 @@ export function findMatchingRecallLogs(
   if (candidateLogs.length === 0) {
     tolerance = 3.5;
     candidateLogs = logs.filter((log) => {
-      const isUserMatch = !userName || log.user_name === userName;
       return (
-        isUserMatch &&
+        checkUserMatch(log) &&
         log.target_temp >= effectiveTemp - tolerance &&
         log.target_temp <= effectiveTemp + tolerance
       );

@@ -131,9 +131,11 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
   }, [insulationStatus]);
 
   const formatScoreBadge = (item: string) => {
+    if (!item || item === '없음' || item === '미착용') return '';
     const score = getItemInsulationScore(item);
-    const temp = Math.round(scoreToCoverTemperature(score));
-    return `(약 ${temp}°C)`;
+    const itemCoverTemp = scoreToCoverTemperature(score);
+    const diff = Math.round(itemCoverTemp - temperature);
+    return `(현재 대비 ${diff > 0 ? `+${diff}` : diff}도)`;
   };
 
   // OUTER 단일 선택 변경 (클릭 시 선택, 이미 선택된 외투 클릭 시 '없음'으로 선택 해제 토글)
@@ -913,7 +915,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
         <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-slate-200/60">
           <div className="flex items-center gap-1.5 font-bold text-slate-800">
             <Shirt className="w-4 h-4 text-blue-600 shrink-0" />
-            <span>현재 코디: 복장 커버 기온 약 {coverTemp}°C</span>
+            <span>현재 코디: 복장 커버 기온 약 {coverTemp}°C ({relativeStatus.diff > 0 ? `+${relativeStatus.diff}` : relativeStatus.diff}°C)</span>
             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border shadow-2xs ${relativeStatus.badgeStyle}`}>
               {relativeStatus.badgeText}
             </span>
