@@ -1,0 +1,269 @@
+'use client';
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { LocationInfo } from '@/types/location';
+import { ProcessedWeatherData, TargetTimeSlot } from '@/types/weather';
+import { OutfitSelection } from '@/types/outfit';
+import { OutfitLog, UserCondition } from '@/types/database';
+import { DEFAULT_LOCATION, getSavedLocation, getCurrentLocation, saveLocation } from '@/lib/location';
+import { fetchWeatherData } from '@/lib/weather';
+import { getOutfitRuleByTemperature, getDefaultOutfitSelection } from '@/lib/outfit';
+import { fetchAllOutfitLogs } from '@/lib/storage';
+import { findMatchingRecallLogs } from '@/lib/matcher';
+import { LocationBar } from '@/components/layout/LocationBar';
+import { WeatherOverview } from '@/components/weather/WeatherOverview';
+import { TimeSlotTabs } from '@/components/weather/TimeSlotTabs';
+import { OutfitSelector } from '@/components/OutfitSelector';
+import { HistoryRecallCard } from '@/components/HistoryRecallCard';
+import { FeedbackForm } from '@/components/FeedbackForm';
+import { DailyForecast } from '@/components/weather/DailyForecast';
+import { RefreshCw, Shirt, AlertCircle, History } from 'lucide-react';
+
+export default function Home() {
+  const [location, setLocation] = useState<LocationInfo>(DEFAULT_LOCATION);
+  const [weather, setWeather] = useState<ProcessedWeatherData | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<TargetTimeSlot>('08:00');
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // 과거 복장 로그 데이터베이스 목록
+  const [outfitLogs, setOutfitLogs] = useState<OutfitLog[]>([]);
+
+  // 사용자 현재 컨디션 상태 ('정상', '피곤', '감기', '활동량많음')
+  const [userCondition, setUserCondition] = useState<UserCondition>('정상');
+
+  // 시간대별 사용자의 복장 선택 상태 (08:00, 13:00, 19:00)
+  const [outfitSelections, setOutfitSelections] = useState<Record<TargetTimeSlot, OutfitSelection>>({
+    '08:00': { outer: '자켓', top: '니트', bottom: '청바지', items: [] },
+    '13:00': { outer: '없음', top: '반팔 티셔츠', bottom: '면바지', items: [] },
+    '19:00': { outer: '트렌치코트', top: '도톰한 니트', bottom: '기모바지', items: [] },
+  });
+
+  // 현재 시간에 따라 초기 타겟 시간대 결정
+  useEffect(() => {
+    const currentHour = new Date().getHours();
+    if (currentHour < 11) {
+      setSelectedSlot('08:00');
+    } else if (currentHour < 16) {
+      setSelectedSlot('13:00');
+    } else {
+      setSelectedSlot('19:00');
+    }
+  }, []);
+
+  // 과거 로그 데이터 로드 함수
+  const loadLogs = useCallback(async () => {
+    try {
+      const logs = await fetchAllOutfitLogs();
+      setOutfitLogs(logs);
+    } catch (err) {
+      console.error('과거 로그 불러오기 실패:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadLogs();
+  }, [loadLogs]);
+
+  // 날씨 데이터가 로드되면 각 시간대 기온에 맞는 8단계 추천 기본값 자동 세팅
+  const initOutfitSelectionsForWeather = useCallback((data: ProcessedWeatherData) => {
+    const slots: TargetTimeSlot[] = ['08:00', '13:00', '19:00'];
+    const newSelections: Partial<Record<TargetTimeSlot, OutfitSelection>> = {};
+
+    slots.forEach((slot) => {
+      const slotTemp = data.timeSlots[slot].temperature;
+      const rule = getOutfitRuleByTemperature(slotTemp);
+      newSelections[slot] = getDefaultOutfitSelection(rule);
+    });
+
+    setOutfitSelections(newSelections as Record<TargetTimeSlot, OutfitSelection>);
+  }, []);
+
+  // 날씨 데이터 로드 함수
+  const loadWeather = useCallback(
+    async (loc: LocationInfo) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const data = await fetchWeatherData(loc.latitude, loc.longitude);
+        setWeather(data);
+        initOutfitSelectionsForWeather(data);
+      } catch (err: any) {
+        console.error('날씨 데이터 로드 실패:', err);
+        setError(err.message || '날씨 정보를 불러오는 중 오류가 발생했습니다.');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [initOutfitSelectionsForWeather]
+  );
+
+  // 초기 위치 설정 및 자동 Geolocation 감지
+  useEffect(() => {
+    const saved = getSavedLocation();
+    if (saved) {
+      setLocation(saved);
+      loadWeather(saved);
+    } else {
+      getCurrentLocation()
+        .then((cur) => {
+          saveLocation(cur);
+          setLocation(cur);
+          loadWeather(cur);
+        })
+        .catch((err) => {
+          console.log('GPS 자동 감지 생략 (서울 기본 적용):', err.message);
+          setLocation(DEFAULT_LOCATION);
+          loadWeather(DEFAULT_LOCATION);
+        });
+    }
+  }, [loadWeather]);
+
+  // 위치 변경 핸들러
+  const handleLocationChange = (newLoc: LocationInfo) => {
+    setLocation(newLoc);
+    loadWeather(newLoc);
+  };
+
+  // 현재 선택된 시간대의 복장 선택 변경 핸들러
+  const handleCurrentOutfitChange = (newSelection: OutfitSelection) => {
+    setOutfitSelections((prev) => ({
+      ...prev,
+      [selectedSlot]: newSelection,
+    }));
+  };
+
+  const currentSlotWeather = weather ? weather.timeSlots[selectedSlot] : null;
+  const currentSlotSelection = outfitSelections[selectedSlot];
+
+  // 지능형 리콜: 현재 선택된 시간대 기온(±2°C) 및 컨디션 보정이 적용된 매칭 로그 계산
+  const matchedRecalls = useMemo(() => {
+    if (!currentSlotWeather) return [];
+    return findMatchingRecallLogs(
+      outfitLogs,
+      currentSlotWeather.temperature,
+      userCondition
+    );
+  }, [outfitLogs, currentSlotWeather, userCondition]);
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* 1. 상단 위치 바 및 검색 */}
+      <LocationBar
+        currentLocation={location}
+        onLocationChange={handleLocationChange}
+        isLoadingWeather={isLoading}
+      />
+
+      {/* 메인 콘텐츠 컨테이너 */}
+      <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-5 space-y-5">
+        {/* 서비스 타이틀 & 새로고침 */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-blue-600 text-white rounded-xl shadow-xs">
+              <Shirt className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-slate-900 leading-tight">
+                Weather Outfit
+              </h1>
+              <p className="text-xs text-slate-500">
+                기온 기반 맞춤 복장 추천 및 체감 피드백
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => {
+                loadWeather(location);
+                loadLogs();
+              }}
+              disabled={isLoading}
+              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-all disabled:opacity-50"
+              title="날씨 및 기록 새로고침"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* 에러 상태 안내 */}
+        {error && (
+          <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 text-rose-800 text-sm">
+            <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold">날씨 정보를 가져오지 못했습니다.</p>
+              <p className="text-xs text-rose-600 mt-0.5">{error}</p>
+              <button
+                onClick={() => loadWeather(location)}
+                className="mt-2 text-xs font-semibold text-rose-700 underline underline-offset-2"
+              >
+                다시 시도하기
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 2. 오늘 날씨 요약 카드 */}
+        {weather && <WeatherOverview weather={weather} isLoading={isLoading} />}
+
+        {/* 3. 08시 / 13시 / 19시 타겟 시간대 탭 */}
+        {weather && (
+          <TimeSlotTabs
+            timeSlots={weather.timeSlots}
+            selectedSlot={selectedSlot}
+            onSelectSlot={setSelectedSlot}
+          />
+        )}
+
+        {/* 4. 지능형 리콜 카드 (현재 기온 ±2°C 및 컨디션 보정 기록) */}
+        {matchedRecalls.length > 0 && (
+          <HistoryRecallCard
+            recalls={matchedRecalls}
+            onApplyOutfit={handleCurrentOutfitChange}
+          />
+        )}
+
+        {/* 5. 복장 추천 및 칩 커스터마이징 컴포넌트 */}
+        {currentSlotWeather && currentSlotSelection && (
+          <OutfitSelector
+            temperature={currentSlotWeather.temperature}
+            timeSlotLabel={
+              selectedSlot === '08:00'
+                ? '08시 (출근/등교)'
+                : selectedSlot === '13:00'
+                ? '13시 (낮 활동)'
+                : '19시 (퇴근/귀가)'
+            }
+            selection={currentSlotSelection}
+            onChangeSelection={handleCurrentOutfitChange}
+          />
+        )}
+
+        {/* 6. 오늘의 복장 체감 평가 & 피드백 폼 */}
+        {currentSlotWeather && currentSlotSelection && (
+          <FeedbackForm
+            currentTemp={currentSlotWeather.temperature}
+            apparentTemp={currentSlotWeather.apparentTemperature}
+            timeSlot={selectedSlot}
+            locationName={location.name}
+            currentOutfit={currentSlotSelection}
+            onLogSaved={loadLogs}
+            userCondition={userCondition}
+            onChangeUserCondition={setUserCondition}
+          />
+        )}
+
+        {/* 7. 7일간의 주간 예보 */}
+        {weather && <DailyForecast forecasts={weather.dailyForecast} />}
+      </main>
+
+      {/* 푸터 */}
+      <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
+        <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
+        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL</p>
+      </footer>
+    </div>
+  );
+}
