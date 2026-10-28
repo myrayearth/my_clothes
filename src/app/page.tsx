@@ -527,16 +527,17 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* 1. 상단 위치 바 및 검색 */}
-      <LocationBar
-        currentLocation={location}
-        onLocationChange={handleLocationChange}
-        isLoadingWeather={isLoading}
-      />
+      {/* 1. 상단 날씨 & 위치 바 섹션 래퍼: 지능형 리콜 요약 카드 진입 시 LocationBar의 sticky 고정이 자연스럽게 해제되어 위로 스크롤되어 사라짐 */}
+      <section className="relative weather-flow-section">
+        {/* 상단 위치 바 및 검색 */}
+        <LocationBar
+          currentLocation={location}
+          onLocationChange={handleLocationChange}
+          isLoadingWeather={isLoading}
+        />
 
-      {/* 메인 콘텐츠 컨테이너 */}
-      <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-5 space-y-5">
-        {/* 서비스 타이틀, 성별 선택, 카카오 인증 바 & 새로고침 */}
+        <div className="max-w-2xl w-full mx-auto px-4 pt-5 pb-2.5 space-y-5">
+          {/* 서비스 타이틀, 성별 선택, 카카오 인증 바 & 새로고침 */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl overflow-hidden shadow-xs border border-slate-200/80 bg-white flex items-center justify-center shrink-0">
@@ -548,7 +549,7 @@ export default function HomePage() {
                   Ondo Fit
                 </h1>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
-                  v0.29.2
+                  v0.30.0
                 </span>
               </div>
               {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
@@ -718,7 +719,11 @@ export default function HomePage() {
             />
           )
         )}
+        </div>
+      </section>
 
+      {/* 2. 지능형 리콜, 복장 추천 및 체감 평가 메인 콘텐츠 컨테이너 */}
+      <main className="flex-1 max-w-2xl w-full mx-auto px-4 pt-2.5 pb-5 space-y-5">
         {/* 5. 지능형 리콜 카드 (현재 모드 기준 기온 기반) */}
         {matchedRecalls.length > 0 && (
           <HistoryRecallCard
@@ -772,7 +777,7 @@ export default function HomePage() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.29.2</strong></p>
+        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.30.0</strong></p>
       </footer>
     </div>
   );

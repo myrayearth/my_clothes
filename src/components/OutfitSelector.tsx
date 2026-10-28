@@ -391,7 +391,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
   }, [selection.items, dynamicOptions.items, gender]);
 
   return (
-    <div className="bg-white rounded-2xl shadow-xs border border-slate-200/90 p-4 sm:p-5 space-y-4">
+    <div className="relative outfit-flow-wrapper bg-white rounded-2xl shadow-xs border border-slate-200/90 p-4 sm:p-5 space-y-4">
       {/* 컴포넌트 헤더 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
         <div>
@@ -454,8 +454,8 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
         </div>
       </div>
 
-      {/* [개편] 복장 적정 기온 (°C) 환산 및 ±5°C 상대 동적 게이지 그래프 */}
-      <div className="bg-gradient-to-br from-slate-50 to-slate-100/80 dark:from-slate-800/60 dark:to-slate-800/90 rounded-2xl p-4 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs space-y-3">
+      {/* [개편] 복장 적정 기온 (°C) 환산 및 ±5°C 상대 동적 게이지 그래프 (스티키 상단 고정: 의류 선택 중 지속 확인) */}
+      <div className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-4 border border-slate-200/90 dark:border-slate-700/80 shadow-md space-y-3 transition-all">
         {/* 상단 정보 텍스트 & 상태 뱃지 (2줄 구조) */}
         <div className="space-y-1.5 border-b border-slate-200/60 dark:border-slate-700/60 pb-2.5">
           {/* 첫 번째 줄: 헤더 타이틀 */}

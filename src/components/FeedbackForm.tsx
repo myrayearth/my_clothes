@@ -150,18 +150,9 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
 
   const offsetInfo = getOffsetInfo(tempOffset);
 
-  // 시간대 명칭 매핑 (아침, 낮, 저녁, 현재, 수동)
-  const getSlotName = (slot: string) => {
-    if (slot === '08:00' || slot.endsWith('08:00')) return '아침';
-    if (slot === '13:00' || slot.endsWith('13:00')) return '낮';
-    if (slot === '19:00' || slot.endsWith('19:00')) return '저녁';
-    if (slot === 'manual') return '수동';
-    return '현재';
-  };
-  const slotLabel = getSlotName(timeSlot);
-  // [새벽 02:00 롤오버 기준 D-day 일자 반영]
+  // [새벽 02:00 롤오버 기준 D-day 일자 반영] 시간대 수식어(현재/아침/낮/저녁) 배제하고 일자/기온 기준 표기 단순화
   const effectiveDay = getEffectiveDayNumber();
-  const titleText = `오늘(${effectiveDay}일) ${slotLabel}(${currentTemp}°C) 복장 체감 평가`;
+  const titleText = `오늘(${effectiveDay}일) ${currentTemp}°C 복장 체감 평가`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
