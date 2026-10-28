@@ -15,17 +15,17 @@ const slotMeta: Record<
 > = {
   '08:00': {
     label: '08시',
-    sub: '출근/등교',
+    sub: '아침',
     icon: <Briefcase className="w-3.5 h-3.5" />,
   },
   '13:00': {
     label: '13시',
-    sub: '낮 활동',
+    sub: '낮',
     icon: <Sun className="w-3.5 h-3.5" />,
   },
   '19:00': {
     label: '19시',
-    sub: '퇴근/귀가',
+    sub: '저녁',
     icon: <Home className="w-3.5 h-3.5" />,
   },
 };
@@ -69,15 +69,8 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
               {/* 상단 라벨 */}
               <div className="flex items-center justify-center gap-1 text-[11px] font-semibold opacity-90 w-full">
                 {meta.icon}
-                <span>{meta.label}</span>
-                <span
-                  className={`hidden sm:inline-block text-[10px] px-1 rounded ${
-                    isSelected
-                      ? 'bg-white/20 text-white'
-                      : 'bg-slate-100 text-slate-500'
-                  }`}
-                >
-                  {meta.sub}
+                <span>
+                  {meta.label} ({meta.sub})
                 </span>
               </div>
 

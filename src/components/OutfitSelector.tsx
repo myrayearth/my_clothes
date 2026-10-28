@@ -36,36 +36,136 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     });
   };
 
-  // TOP 다중 토글 (있으면 제거, 없으면 추가. 최소 1개는 유지)
-  const handleTopToggle = (topItem: string) => {
-    const isSelected = selection.top.includes(topItem);
-    let newTop: string[];
-    if (isSelected) {
-      newTop = selection.top.filter((t) => t !== topItem);
-      // 최소 1개 유지 방어 (모두 해제 방지)
-      if (newTop.length === 0) newTop = [topItem];
-    } else {
-      newTop = [...selection.top, topItem];
+  /**
+   * 다중 선택 카드의 전체/이름(텍스트) 영역 클릭 핸들러
+   * 1. 현재 0개 선택 상태: 1개 선택됨
+   * 2. 현재 1개 선택 상태:
+   *    - 다른 카드의 텍스트 클릭: 기존 선택 해제 후 해당 아이템만 단일 선택 (단일 전환)
+   *    - 이미 선택된 카드의 텍스트 클릭: 선택 해제 (0개)
+   * 3. 현재 2개 이상 선택 상태:
+   *    - 미선택 카드 클릭: 다중 선택 추가
+   *    - 이미 선택된 카드 클릭: 선택 해제
+   */
+  const handleMultiSelectCardClick = (
+    category: 'top' | 'bottom',
+    item: string
+  ) => {
+    const currentList = selection[category];
+    const isSelected = currentList.includes(item);
+
+    // 1. 현재 0개 선택 상태
+    if (currentList.length === 0) {
+      onChangeSelection({
+        ...selection,
+        [category]: [item],
+      });
+      return;
     }
-    onChangeSelection({
-      ...selection,
-      top: newTop,
-    });
+
+    // 2. 현재 1개만 선택된 상태
+    if (currentList.length === 1) {
+      if (isSelected) {
+        // 이미 선택된 카드 클릭 시 해제
+        onChangeSelection({
+          ...selection,
+          [category]: [],
+        });
+      } else {
+        // 다른 카드의 텍스트 클릭: 기존 선택 해제하고 해당 아이템만 단일 선택
+        onChangeSelection({
+          ...selection,
+          [category]: [item],
+        });
+      }
+      return;
+    }
+
+    // 3. 현재 2개 이상 선택된 상태
+    if (isSelected) {
+      // 이미 선택된 카드 클릭: 해제
+      onChangeSelection({
+        ...selection,
+        [category]: currentList.filter((x) => x !== item),
+      });
+    } else {
+      // 미선택 카드 클릭: 추가
+      onChangeSelection({
+        ...selection,
+        [category]: [...currentList, item],
+      });
+    }
   };
 
-  // BOTTOM 다중 토글
-  const handleBottomToggle = (bottomItem: string) => {
-    const isSelected = selection.bottom.includes(bottomItem);
-    let newBottom: string[];
-    if (isSelected) {
-      newBottom = selection.bottom.filter((b) => b !== bottomItem);
-      if (newBottom.length === 0) newBottom = [bottomItem];
-    } else {
-      newBottom = [...selection.bottom, bottomItem];
+  /**
+   * 다중 선택 카드의 '+ (아이콘)' 영역 클릭 핸들러
+   * 1. 현재 0개 선택 상태: 1개 선택됨
+   * 2. 현재 1개 선택 상태:
+   *    - 다른 카드의 '+' 아이콘 클릭: 기존 선택 유지 + 해당 아이템 추가 (다중 선택 시작)
+   *    - 이미 선택된 카드의 체크 아이콘 클릭: 선택 해제 (0개)
+   * 3. 현재 2개 이상 선택 상태:
+   *    - 미선택 카드 클릭: 다중 선택 추가
+   *    - 이미 선택된 카드 클릭: 선택 해제
+   */
+  const handleMultiSelectIconClick = (
+    category: 'top' | 'bottom',
+    item: string
+  ) => {
+    const currentList = selection[category];
+    const isSelected = currentList.includes(item);
+
+    // 1. 현재 0개 선택 상태
+    if (currentList.length === 0) {
+      onChangeSelection({
+        ...selection,
+        [category]: [item],
+      });
+      return;
     }
+
+    // 2. 현재 1개만 선택된 상태
+    if (currentList.length === 1) {
+      if (isSelected) {
+        // 이미 선택된 카드 클릭 시 해제
+        onChangeSelection({
+          ...selection,
+          [category]: [],
+        });
+      } else {
+        // 다른 카드의 '+' 아이콘 클릭: 기존 선택 유지한 채 추가 (다중 선택 시작)
+        onChangeSelection({
+          ...selection,
+          [category]: [...currentList, item],
+        });
+      }
+      return;
+    }
+
+    // 3. 현재 2개 이상 선택된 상태
+    if (isSelected) {
+      // 이미 선택된 카드 클릭: 해제
+      onChangeSelection({
+        ...selection,
+        [category]: currentList.filter((x) => x !== item),
+      });
+    } else {
+      // 미선택 카드 클릭: 추가
+      onChangeSelection({
+        ...selection,
+        [category]: [...currentList, item],
+      });
+    }
+  };
+
+  // 모달용 단순 토글
+  const handleModalToggle = (category: 'top' | 'bottom', item: string) => {
+    const currentList = selection[category];
+    const isSelected = currentList.includes(item);
+    const nextList = isSelected
+      ? currentList.filter((x) => x !== item)
+      : [...currentList, item];
     onChangeSelection({
       ...selection,
-      bottom: newBottom,
+      [category]: nextList,
     });
   };
 
@@ -160,14 +260,14 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
         </div>
 
-        {/* 2. TOP (상의 - 다중 선택 토글) */}
+        {/* 2. TOP (상의 - 다중 선택) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <span>TOP (상의)</span>
                 <span className="text-[10px] text-blue-600 bg-blue-50 font-medium px-1.5 py-0.2 rounded">
-                  다중 선택 가능 (레이어드)
+                  다중 선택
                 </span>
               </label>
               <button
@@ -180,7 +280,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
               </button>
             </div>
             <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md truncate max-w-[180px]">
-              선택 ({selection.top.length}): {selection.top.join(' + ')}
+              선택 ({selection.top.length}): {selection.top.length > 0 ? selection.top.join(' + ') : '선택 없음'}
             </span>
           </div>
 
@@ -188,36 +288,63 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             {currentRule.options.top.map((opt) => {
               const isSelected = selection.top.includes(opt);
               return (
-                <button
+                <div
                   key={opt}
-                  type="button"
-                  onClick={() => handleTopToggle(opt)}
-                  className={`min-h-[38px] px-3 py-1.5 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleMultiSelectCardClick('top', opt)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleMultiSelectCardClick('top', opt);
+                    }
+                  }}
+                  className={`group min-h-[38px] pl-1.5 pr-3 py-1 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 cursor-pointer select-none active:scale-[0.98] touch-manipulation ${
                     isSelected
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
-                  {isSelected ? (
-                    <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                  ) : (
-                    <Plus className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  )}
-                  <span>{opt}</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMultiSelectIconClick('top', opt);
+                    }}
+                    title={
+                      isSelected
+                        ? '선택 해제'
+                        : selection.top.length === 1
+                        ? '다중 선택으로 추가 (+)'
+                        : '선택 추가 (+)'
+                    }
+                    className={`p-1 rounded-lg transition-colors flex items-center justify-center ${
+                      isSelected
+                        ? 'hover:bg-white/20 text-blue-400'
+                        : 'hover:bg-slate-200/80 text-slate-400 group-hover:text-blue-600'
+                    }`}
+                  >
+                    {isSelected ? (
+                      <Check className="w-3.5 h-3.5 shrink-0" />
+                    ) : (
+                      <Plus className="w-3.5 h-3.5 shrink-0" />
+                    )}
+                  </button>
+                  <span className="flex-1 py-0.5">{opt}</span>
+                </div>
               );
             })}
           </div>
         </div>
 
-        {/* 3. BOTTOM (하의 - 다중 선택 토글) */}
+        {/* 3. BOTTOM (하의 - 다중 선택) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <span>BOTTOM (하의)</span>
                 <span className="text-[10px] text-blue-600 bg-blue-50 font-medium px-1.5 py-0.2 rounded">
-                  다중 선택 가능
+                  다중 선택
                 </span>
               </label>
               <button
@@ -230,7 +357,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
               </button>
             </div>
             <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md truncate max-w-[180px]">
-              선택 ({selection.bottom.length}): {selection.bottom.join(' + ')}
+              선택 ({selection.bottom.length}): {selection.bottom.length > 0 ? selection.bottom.join(' + ') : '선택 없음'}
             </span>
           </div>
 
@@ -238,23 +365,50 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             {currentRule.options.bottom.map((opt) => {
               const isSelected = selection.bottom.includes(opt);
               return (
-                <button
+                <div
                   key={opt}
-                  type="button"
-                  onClick={() => handleBottomToggle(opt)}
-                  className={`min-h-[38px] px-3 py-1.5 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleMultiSelectCardClick('bottom', opt)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleMultiSelectCardClick('bottom', opt);
+                    }
+                  }}
+                  className={`group min-h-[38px] pl-1.5 pr-3 py-1 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 cursor-pointer select-none active:scale-[0.98] touch-manipulation ${
                     isSelected
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
-                  {isSelected ? (
-                    <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                  ) : (
-                    <Plus className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  )}
-                  <span>{opt}</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMultiSelectIconClick('bottom', opt);
+                    }}
+                    title={
+                      isSelected
+                        ? '선택 해제'
+                        : selection.bottom.length === 1
+                        ? '다중 선택으로 추가 (+)'
+                        : '선택 추가 (+)'
+                    }
+                    className={`p-1 rounded-lg transition-colors flex items-center justify-center ${
+                      isSelected
+                        ? 'hover:bg-white/20 text-blue-400'
+                        : 'hover:bg-slate-200/80 text-slate-400 group-hover:text-blue-600'
+                    }`}
+                  >
+                    {isSelected ? (
+                      <Check className="w-3.5 h-3.5 shrink-0" />
+                    ) : (
+                      <Plus className="w-3.5 h-3.5 shrink-0" />
+                    )}
+                  </button>
+                  <span className="flex-1 py-0.5">{opt}</span>
+                </div>
               );
             })}
           </div>
@@ -323,11 +477,11 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </span>
           <span className="text-slate-300">+</span>
           <span className="bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-slate-800 font-semibold shadow-2xs">
-            상의: {selection.top.join(' + ')}
+            상의: {selection.top.length > 0 ? selection.top.join(' + ') : '선택 없음'}
           </span>
           <span className="text-slate-300">+</span>
           <span className="bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-slate-800 font-semibold shadow-2xs">
-            하의: {selection.bottom.join(' + ')}
+            하의: {selection.bottom.length > 0 ? selection.bottom.join(' + ') : '선택 없음'}
           </span>
           {selection.items.length > 0 && (
             <>
@@ -368,9 +522,9 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             if (modalCategory === 'outer') {
               handleOuterSelect(item);
             } else if (modalCategory === 'top') {
-              handleTopToggle(item);
+              handleModalToggle('top', item);
             } else if (modalCategory === 'bottom') {
-              handleBottomToggle(item);
+              handleModalToggle('bottom', item);
             } else if (modalCategory === 'items') {
               handleItemToggle(item);
             }
