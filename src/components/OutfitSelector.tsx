@@ -39,13 +39,14 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
   /**
    * 다중 선택 카드의 전체/이름(텍스트) 영역 클릭 핸들러
+   * (TOP, BOTTOM은 반드시 최소 1개의 선택이 유지되어야 함)
    * 1. 현재 0개 선택 상태: 1개 선택됨
    * 2. 현재 1개 선택 상태:
-   *    - 다른 카드의 텍스트 클릭: 기존 선택 해제 후 해당 아이템만 단일 선택 (단일 전환)
-   *    - 이미 선택된 카드의 텍스트 클릭: 선택 해제 (0개)
+   *    - 다른 카드의 텍스트 클릭: 기존 선택을 교체하고 해당 아이템만 단일 선택 (단일 전환 이동으로 1개 유지)
+   *    - 이미 선택된 카드의 텍스트 클릭: 최소 1개 유지 원칙에 따라 해제 불가 (선택 유지)
    * 3. 현재 2개 이상 선택 상태:
    *    - 미선택 카드 클릭: 다중 선택 추가
-   *    - 이미 선택된 카드 클릭: 선택 해제
+   *    - 이미 선택된 카드 클릭: 선택 해제 (남은 개수가 1개 이상이므로 허용)
    */
   const handleMultiSelectCardClick = (
     category: 'top' | 'bottom',
@@ -63,16 +64,13 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
       return;
     }
 
-    // 2. 현재 1개만 선택된 상태
+    // 2. 현재 1개만 선택된 상태 (최소 1개 유지)
     if (currentList.length === 1) {
       if (isSelected) {
-        // 이미 선택된 카드 클릭 시 해제
-        onChangeSelection({
-          ...selection,
-          [category]: [],
-        });
+        // 이미 1개 선택된 카드 클릭 시: 최소 1개 선택 유지를 위해 해제하지 않음
+        return;
       } else {
-        // 다른 카드의 텍스트 클릭: 기존 선택 해제하고 해당 아이템만 단일 선택
+        // 다른 카드의 텍스트 클릭: 기존 선택 교체하고 해당 아이템 단일 선택 (1개 유지)
         onChangeSelection({
           ...selection,
           [category]: [item],
@@ -83,7 +81,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
     // 3. 현재 2개 이상 선택된 상태
     if (isSelected) {
-      // 이미 선택된 카드 클릭: 해제
+      // 2개 이상일 때는 1개를 해제해도 최소 1개가 남으므로 해제 허용
       onChangeSelection({
         ...selection,
         [category]: currentList.filter((x) => x !== item),
@@ -99,13 +97,14 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
   /**
    * 다중 선택 카드의 '+ (아이콘)' 영역 클릭 핸들러
+   * (TOP, BOTTOM은 반드시 최소 1개의 선택이 유지되어야 함)
    * 1. 현재 0개 선택 상태: 1개 선택됨
    * 2. 현재 1개 선택 상태:
    *    - 다른 카드의 '+' 아이콘 클릭: 기존 선택 유지 + 해당 아이템 추가 (다중 선택 시작)
-   *    - 이미 선택된 카드의 체크 아이콘 클릭: 선택 해제 (0개)
+   *    - 이미 선택된 카드의 체크 아이콘 클릭: 최소 1개 유지 원칙에 따라 해제 불가 (선택 유지)
    * 3. 현재 2개 이상 선택 상태:
    *    - 미선택 카드 클릭: 다중 선택 추가
-   *    - 이미 선택된 카드 클릭: 선택 해제
+   *    - 이미 선택된 카드 클릭: 선택 해제 (남은 개수가 1개 이상이므로 허용)
    */
   const handleMultiSelectIconClick = (
     category: 'top' | 'bottom',
@@ -123,14 +122,11 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
       return;
     }
 
-    // 2. 현재 1개만 선택된 상태
+    // 2. 현재 1개만 선택된 상태 (최소 1개 유지)
     if (currentList.length === 1) {
       if (isSelected) {
-        // 이미 선택된 카드 클릭 시 해제
-        onChangeSelection({
-          ...selection,
-          [category]: [],
-        });
+        // 이미 1개 선택된 카드의 아이콘 클릭 시: 해제 불가 (선택 유지)
+        return;
       } else {
         // 다른 카드의 '+' 아이콘 클릭: 기존 선택 유지한 채 추가 (다중 선택 시작)
         onChangeSelection({
@@ -143,7 +139,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
     // 3. 현재 2개 이상 선택된 상태
     if (isSelected) {
-      // 이미 선택된 카드 클릭: 해제
+      // 2개 이상일 때는 1개를 해제해도 최소 1개가 남으므로 해제 허용
       onChangeSelection({
         ...selection,
         [category]: currentList.filter((x) => x !== item),
@@ -157,17 +153,25 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     }
   };
 
-  // 모달용 단순 토글
+  // 모달용 토글 (TOP, BOTTOM은 최소 1개 선택 유지)
   const handleModalToggle = (category: 'top' | 'bottom', item: string) => {
     const currentList = selection[category];
     const isSelected = currentList.includes(item);
-    const nextList = isSelected
-      ? currentList.filter((x) => x !== item)
-      : [...currentList, item];
-    onChangeSelection({
-      ...selection,
-      [category]: nextList,
-    });
+    if (isSelected) {
+      // 이미 선택된 항목 해제 시: 최소 1개 선택이 유지되어야 함
+      if (currentList.length <= 1) {
+        return;
+      }
+      onChangeSelection({
+        ...selection,
+        [category]: currentList.filter((x) => x !== item),
+      });
+    } else {
+      onChangeSelection({
+        ...selection,
+        [category]: [...currentList, item],
+      });
+    }
   };
 
   // ITEM 다중 토글
@@ -262,14 +266,14 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
         </div>
 
-        {/* 2. TOP (상의 - 다중 선택) */}
+        {/* 2. TOP (상의 - 다중 선택 / 최소 1개 필수) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <span>TOP (상의)</span>
                 <span className="text-[10px] text-blue-600 bg-blue-50 font-medium px-1.5 py-0.2 rounded">
-                  다중 선택
+                  다중 선택 (최소 1개 필수)
                 </span>
               </label>
               <button
@@ -315,7 +319,9 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }}
                     title={
                       isSelected
-                        ? '선택 해제'
+                        ? selection.top.length === 1
+                          ? '최소 1개 선택 필수 (다른 아이템 클릭 시 교체)'
+                          : '선택 해제'
                         : selection.top.length === 1
                         ? '다중 선택으로 추가 (+)'
                         : '선택 추가 (+)'
@@ -339,14 +345,14 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
         </div>
 
-        {/* 3. BOTTOM (하의 - 다중 선택) */}
+        {/* 3. BOTTOM (하의 - 다중 선택 / 최소 1개 필수) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <span>BOTTOM (하의)</span>
                 <span className="text-[10px] text-blue-600 bg-blue-50 font-medium px-1.5 py-0.2 rounded">
-                  다중 선택
+                  다중 선택 (최소 1개 필수)
                 </span>
               </label>
               <button
@@ -392,7 +398,9 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }}
                     title={
                       isSelected
-                        ? '선택 해제'
+                        ? selection.bottom.length === 1
+                          ? '최소 1개 선택 필수 (다른 아이템 클릭 시 교체)'
+                          : '선택 해제'
                         : selection.bottom.length === 1
                         ? '다중 선택으로 추가 (+)'
                         : '선택 추가 (+)'
@@ -416,14 +424,14 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
         </div>
 
-        {/* 4. ITEM (소품/기타 - 다중 토글 칩) */}
+        {/* 4. ITEM (소품/기타 - 다중 토글 칩 / 선택 해제 가능) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <span>ITEM (소품 및 방한/냉방 아이템)</span>
                 <span className="text-[10px] text-indigo-600 bg-indigo-50 font-medium px-1.5 py-0.2 rounded">
-                  다중 선택
+                  다중 선택 (선택 해제 가능)
                 </span>
               </label>
               <button
@@ -448,6 +456,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   key={opt}
                   type="button"
                   onClick={() => handleItemToggle(opt)}
+                  title={isSelected ? '클릭하여 선택 해제' : '선택 추가'}
                   className={`min-h-[38px] px-3 py-1.5 text-xs font-medium rounded-full border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${
                     isSelected
                       ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
