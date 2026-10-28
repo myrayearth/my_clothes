@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ProcessedWeatherData, TargetTimeSlot, DailyForecastItem } from '@/types/weather';
 import { OutfitSelection } from '@/types/outfit';
 import { OutfitLog, UserCondition, UserProfile, UserGender } from '@/types/database';
@@ -103,21 +103,47 @@ export default function HomePage() {
     }
   };
 
+  // 최신 상태 유지를 위한 Ref 참조 (불필요한 리렌더 및 이펙트 루프 방지)
+  const outfitLogsRef = useRef(outfitLogs);
+  outfitLogsRef.current = outfitLogs;
+
+  const activeUserRef = useRef(activeUser);
+  activeUserRef.current = activeUser;
+
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  isAuthenticatedRef.current = isAuthenticated;
+
+  const authProfileRef = useRef(authProfile);
+  authProfileRef.current = authProfile;
+
+  const selectedGenderRef = useRef(selectedGender);
+  selectedGenderRef.current = selectedGender;
+
+  const manualTempRef = useRef(manualTemp);
+  manualTempRef.current = manualTemp;
+
   // 과거 로그 데이터 로드 함수 (게스트 모드 시 100% 로컬 격리, 로그인 시 사용자 ID 바인딩 조회)
   const loadLogs = useCallback(async (overrideUserName?: string, overrideUserId?: string) => {
     try {
-      const targetUser = overrideUserName || (isAuthenticated && authProfile ? authProfile.name : '게스트');
-      const targetUserId = overrideUserId || (isAuthenticated && authProfile ? authProfile.id : undefined);
+      const targetUser =
+        overrideUserName ||
+        (isAuthenticatedRef.current && authProfileRef.current ? authProfileRef.current.name : '게스트');
+      const targetUserId =
+        overrideUserId ||
+        (isAuthenticatedRef.current && authProfileRef.current ? authProfileRef.current.id : undefined);
       const logs = await fetchAllOutfitLogs(targetUser, targetUserId);
       setOutfitLogs(logs);
+      return logs;
     } catch (err) {
       console.error('과거 로그 불러오기 실패:', err);
+      return [];
     }
-  }, [isAuthenticated, authProfile]);
+  }, []);
 
   // 기온별 커뮤니티 누적 집계 데이터 로드 및 추천값 동적 반영
   const loadAggregatedData = useCallback(
-    async (weatherData: ProcessedWeatherData, currentLogs: OutfitLog[] = outfitLogs) => {
+    (weatherData: ProcessedWeatherData, currentLogs?: OutfitLog[]) => {
+      const logs = currentLogs ?? outfitLogsRef.current;
       const slots: TargetTimeSlot[] = ['current', '08:00', '13:00', '19:00'];
       const newSelections: Partial<Record<TargetTimeSlot, OutfitSelection>> = {};
 
@@ -130,18 +156,18 @@ export default function HomePage() {
         // 개인화 및 오염 방지 가중치 추천 산출
         const result = calculateWeightedRecommendations(
           rule,
-          currentLogs,
+          logs,
           slotTemp,
-          activeUser,
-          isAuthenticated,
-          selectedGender
+          activeUserRef.current,
+          isAuthenticatedRef.current,
+          selectedGenderRef.current
         );
         newSelections[slot] = result.defaults;
       });
 
       setOutfitSelections(newSelections as Record<TargetTimeSlot, OutfitSelection>);
     },
-    [activeUser, isAuthenticated, selectedGender, outfitLogs]
+    []
   );
 
   // 수동 온도 변경 핸들러 (1°C 변경 시 실시간 복장 추천 및 보온 범위 재계산)
@@ -151,15 +177,15 @@ export default function HomePage() {
       const rule = getOutfitRuleByTemperature(temp);
       const rec = calculateWeightedRecommendations(
         rule,
-        outfitLogs,
+        outfitLogsRef.current,
         temp,
-        activeUser,
-        isAuthenticated,
-        selectedGender
+        activeUserRef.current,
+        isAuthenticatedRef.current,
+        selectedGenderRef.current
       );
       setManualSelection(rec.defaults);
     },
-    [outfitLogs, activeUser, isAuthenticated, selectedGender]
+    []
   );
 
   // 날씨 데이터 가져오기 함수
@@ -170,7 +196,7 @@ export default function HomePage() {
       try {
         const data = await fetchWeatherData(loc.latitude, loc.longitude);
         setWeather(data);
-        await loadAggregatedData(data);
+        loadAggregatedData(data, outfitLogsRef.current);
 
         // 수동 점검 기본값도 현재 기온으로 초기 동기화
         const curTemp = Math.round(data.currentTemp);
@@ -178,11 +204,11 @@ export default function HomePage() {
         const rule = getOutfitRuleByTemperature(curTemp);
         const rec = calculateWeightedRecommendations(
           rule,
-          outfitLogs,
+          outfitLogsRef.current,
           curTemp,
-          activeUser,
-          isAuthenticated,
-          selectedGender
+          activeUserRef.current,
+          isAuthenticatedRef.current,
+          selectedGenderRef.current
         );
         setManualSelection(rec.defaults);
       } catch (err: any) {
@@ -192,16 +218,16 @@ export default function HomePage() {
         setIsLoading(false);
       }
     },
-    [loadAggregatedData, outfitLogs, activeUser, isAuthenticated, selectedGender]
+    [loadAggregatedData]
   );
 
-  // 성별 변경 시 추천 복장 즉시 재계산
+  // 성별, 로그 데이터, 사용자 상태 변경 시 추천 복장 즉시 재계산 (날씨 API 재호출 없음)
   useEffect(() => {
     if (weather) {
       loadAggregatedData(weather, outfitLogs);
-      handleManualTempChange(manualTemp);
+      handleManualTempChange(manualTempRef.current);
     }
-  }, [selectedGender]);
+  }, [selectedGender, outfitLogs, activeUser, isAuthenticated, weather, loadAggregatedData, handleManualTempChange]);
 
   // 주간 예보 미래 일자(D+1 ~ D+6) 클릭 핸들러 (최저/최고 기온 추천 갱신)
   const handleSelectForecastDate = useCallback(
@@ -219,27 +245,27 @@ export default function HomePage() {
 
       const morningRec = calculateWeightedRecommendations(
         getOutfitRuleByTemperature(morningTemp),
-        outfitLogs,
+        outfitLogsRef.current,
         morningTemp,
-        activeUser,
-        isAuthenticated,
-        selectedGender
+        activeUserRef.current,
+        isAuthenticatedRef.current,
+        selectedGenderRef.current
       );
       const dayRec = calculateWeightedRecommendations(
         getOutfitRuleByTemperature(dayTemp),
-        outfitLogs,
+        outfitLogsRef.current,
         dayTemp,
-        activeUser,
-        isAuthenticated,
-        selectedGender
+        activeUserRef.current,
+        isAuthenticatedRef.current,
+        selectedGenderRef.current
       );
       const eveningRec = calculateWeightedRecommendations(
         getOutfitRuleByTemperature(eveningTemp),
-        outfitLogs,
+        outfitLogsRef.current,
         eveningTemp,
-        activeUser,
-        isAuthenticated,
-        selectedGender
+        activeUserRef.current,
+        isAuthenticatedRef.current,
+        selectedGenderRef.current
       );
 
       setForecastSelections({
@@ -248,7 +274,7 @@ export default function HomePage() {
         '19:00': eveningRec.defaults,
       });
     },
-    [outfitLogs, activeUser, isAuthenticated, selectedGender, selectedSlot]
+    [selectedSlot]
   );
 
   // 실시간 오늘 날씨 모드로 복귀 핸들러
@@ -265,20 +291,27 @@ export default function HomePage() {
     handleManualTempChange(manualTemp);
   }, [handleManualTempChange, manualTemp]);
 
-  // Supabase Auth 세션 및 상태 변화 리스너 (카카오 로그인 연동)
+  // Supabase Auth 세션 및 상태 변화 리스너 (카카오 로그인 연동 - 마운트 시 1회만 등록)
   useEffect(() => {
-    if (!supabase) return;
+    let isMounted = true;
+
+    if (!supabase) {
+      loadLogs('게스트');
+      return;
+    }
 
     // 1. 기존 세션 확인
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!isMounted) return;
       if (session?.user) {
         try {
           const profile = await syncKakaoUserProfile(session.user);
+          if (!isMounted) return;
           setAuthProfile(profile);
           setIsAuthenticated(true);
           setActiveUser(profile.name);
           saveActiveUser({ id: profile.id, name: profile.name });
-          await loadLogs(profile.name);
+          await loadLogs(profile.name, profile.id);
         } catch (e) {
           console.error('카카오 프로필 동기화 에러:', e);
         }
@@ -296,14 +329,16 @@ export default function HomePage() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
       if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
         try {
           const profile = await syncKakaoUserProfile(session.user);
+          if (!isMounted) return;
           setAuthProfile(profile);
           setIsAuthenticated(true);
           setActiveUser(profile.name);
           saveActiveUser({ id: profile.id, name: profile.name });
-          await loadLogs(profile.name);
+          await loadLogs(profile.name, profile.id);
         } catch (e) {
           console.error('카카오 프로필 갱신 에러:', e);
         }
@@ -317,36 +352,33 @@ export default function HomePage() {
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
-  }, [loadLogs]);
-
-  useEffect(() => {
-    loadLogs();
   }, [loadLogs]);
 
   // 관리자 페이지 등에서 평가 수정/삭제 시 동기화 리스너
   useEffect(() => {
     const handleLogsChanged = () => {
       loadLogs();
-      if (weather) {
-        loadAggregatedData(weather);
-      }
     };
 
     window.addEventListener('weather_outfit_logs_changed', handleLogsChanged);
     window.addEventListener('storage', handleLogsChanged);
-    window.addEventListener('focus', handleLogsChanged);
 
     return () => {
       window.removeEventListener('weather_outfit_logs_changed', handleLogsChanged);
       window.removeEventListener('storage', handleLogsChanged);
-      window.removeEventListener('focus', handleLogsChanged);
     };
-  }, [loadLogs, loadAggregatedData, weather]);
+  }, [loadLogs]);
 
-  // 초기 위치 설정 및 자동 Geolocation 감지
+  const isInitialLocationLoadedRef = useRef(false);
+
+  // 초기 위치 설정 및 자동 Geolocation 감지 (컴포넌트 마운트 시 1회만 실행)
   useEffect(() => {
+    if (isInitialLocationLoadedRef.current) return;
+    isInitialLocationLoadedRef.current = true;
+
     const saved = getSavedLocation();
     if (saved) {
       if (
@@ -365,14 +397,16 @@ export default function HomePage() {
             };
             saveLocation(upgraded);
             setLocation(upgraded);
+            loadWeather(upgraded);
           })
           .catch(() => {
             setLocation(saved);
+            loadWeather(saved);
           });
       } else {
         setLocation(saved);
+        loadWeather(saved);
       }
-      loadWeather(saved);
     } else {
       getCurrentLocation()
         .then((cur) => {
@@ -508,7 +542,7 @@ export default function HomePage() {
                   Weather Outfit
                 </h1>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                  v0.23.1
+                  v0.23.2
                 </span>
               </div>
               {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
@@ -728,7 +762,7 @@ export default function HomePage() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.23.1</strong></p>
+        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.23.2</strong></p>
       </footer>
     </div>
   );
