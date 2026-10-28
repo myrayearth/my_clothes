@@ -525,6 +525,7 @@ export async function createOutfitLog(input: NewOutfitLogInput): Promise<{
             memo: input.memo,
             gender: input.gender || 'male',
             total_insulation_score: input.total_insulation_score ?? 0,
+            calculated_cover_temp: input.calculated_cover_temp,
           },
         ])
         .select()
@@ -552,6 +553,7 @@ export async function createOutfitLog(input: NewOutfitLogInput): Promise<{
               memo: input.memo || null,
               gender: input.gender || 'male',
               total_insulation_score: input.total_insulation_score ?? 0,
+              calculated_cover_temp: input.calculated_cover_temp,
             },
           ]);
         } catch (syncErr) {
@@ -759,6 +761,9 @@ export async function createTemperatureEvaluation(
           score: input.score,
           condition: input.condition,
           memo: input.memo || null,
+          gender: input.gender || 'male',
+          total_insulation_score: input.total_insulation_score,
+          calculated_cover_temp: input.calculated_cover_temp,
         },
       ]);
     } catch (logErr) {

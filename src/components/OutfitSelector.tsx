@@ -15,6 +15,8 @@ import {
   getInsulationStatusMeta,
   getItemInsulationScore,
   clampUserOffset,
+  scoreToCoverTemperature,
+  getRelativeCoverStatus,
 } from '@/lib/insulation';
 import { AllItemsModal } from '@/components/outfit/AllItemsModal';
 import { Shirt, RotateCcw, Check, Plus, ExternalLink, Sparkles, Thermometer } from 'lucide-react';
@@ -97,6 +99,24 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     return getInsulationTargetRange(temperature, userOffset);
   }, [temperature, userOffset]);
 
+  // [신규] 보온 점수 -> 복장 적정 커버 기온 (°C) 환산
+  const coverTemp = useMemo(() => {
+    return scoreToCoverTemperature(totalInsulationScore);
+  }, [totalInsulationScore]);
+
+  // [신규] 현재 기준 온도(temperature) 대비 ±5°C 상대 범위 상태 산출
+  const relativeStatus = useMemo(() => {
+    return getRelativeCoverStatus(coverTemp, temperature);
+  }, [coverTemp, temperature]);
+
+  // 게이지 바 표시 범위: [temperature - 5, temperature + 5] (총 10°C 폭)
+  const gaugeMinTemp = temperature - 5;
+  const gaugeMaxTemp = temperature + 5;
+  const rawCoverPct = ((coverTemp - gaugeMinTemp) / 10) * 100;
+  const markerPct = Math.max(0, Math.min(100, rawCoverPct));
+  const isLeftOverflow = coverTemp < gaugeMinTemp;
+  const isRightOverflow = coverTemp > gaugeMaxTemp;
+
   const insulationStatus = useMemo(() => {
     return getInsulationStatus(
       totalInsulationScore,
@@ -109,12 +129,6 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
   const statusMeta = useMemo(() => {
     return getInsulationStatusMeta(insulationStatus);
   }, [insulationStatus]);
-
-  // 게이지 바 퍼센트 계산 (0 ~ 350 기준)
-  const scaleMax = 350;
-  const targetMinPct = Math.min(100, Math.max(0, (targetRange.min / scaleMax) * 100));
-  const targetMaxPct = Math.min(100, Math.max(0, (targetRange.max / scaleMax) * 100));
-  const currentScorePct = Math.min(100, Math.max(0, (totalInsulationScore / scaleMax) * 100));
 
   const formatScoreBadge = (item: string) => {
     const score = getItemInsulationScore(item);
@@ -379,76 +393,110 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
         </div>
       </div>
 
-      {/* 보온 수치 지수 (Insulation Score) 게이지 및 실시간 분석 카드 */}
+      {/* [개편] 복장 적정 기온 (°C) 환산 및 ±5°C 상대 동적 게이지 그래프 */}
       <div className="bg-gradient-to-br from-slate-50 to-slate-100/80 rounded-2xl p-4 border border-slate-200/90 shadow-2xs space-y-3">
+        {/* 상단 정보 텍스트 & 상태 뱃지 */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="p-1.5 bg-amber-100/80 text-amber-800 rounded-lg shrink-0">
-              <Thermometer className="w-4 h-4 text-amber-600" />
+            <div className="p-1.5 bg-blue-100/80 text-blue-800 rounded-lg shrink-0">
+              <Thermometer className="w-4 h-4 text-blue-600" />
             </div>
             <div>
               <span className="text-xs font-bold text-slate-800">
-                실시간 보온 지수 분석
+                복장 적정 체감 기온 분석
               </span>
-              <span className="text-xs text-slate-500 ml-2">
-                현재 <strong className="text-slate-900 font-bold">{totalInsulationScore}점</strong>
+              <span className="text-xs text-slate-500 ml-2 transition-all duration-200">
+                현재 복장 커버 기온: <strong className="text-slate-900 font-bold">약 {coverTemp}°C</strong>
                 <span className="mx-1 text-slate-300">/</span>
-                권장 범위 <strong className="text-blue-700 font-bold">{targetRange.label}</strong>
+                기준 기온: <strong className="text-blue-700 font-bold">{temperature}°C</strong>
+                <span className="text-[11px] text-slate-400 ml-1.5 font-normal">({totalInsulationScore}점)</span>
               </span>
             </div>
           </div>
 
-          {/* 상태 뱃지 */}
+          {/* 3색 상태 뱃지: [적정] 초록 / [과보온] 빨강 / [보온 필요] 파랑 */}
           <div className="flex items-center gap-1.5 self-start sm:self-center">
             <span
-              className={`text-xs font-bold px-2.5 py-0.5 rounded-full border shadow-2xs flex items-center gap-1 ${statusMeta.badgeStyle}`}
+              className={`text-xs font-bold px-2.5 py-0.5 rounded-full border shadow-2xs flex items-center gap-1 transition-all duration-300 ${relativeStatus.badgeStyle}`}
             >
-              <span>{statusMeta.badgeText}</span>
+              <span>{relativeStatus.badgeText}</span>
+              {relativeStatus.diff !== 0 && (
+                <span className="text-[10px] font-normal opacity-90">
+                  ({relativeStatus.diff > 0 ? `+${relativeStatus.diff}` : relativeStatus.diff}°C)
+                </span>
+              )}
             </span>
           </div>
         </div>
 
-        {/* 안내 설명 */}
-        <p className={`text-xs font-medium ${statusMeta.textColor} bg-white/70 px-3 py-1.5 rounded-xl border border-slate-200/60`}>
-          {statusMeta.description}
+        {/* 상태별 동적 안내 문구 */}
+        <p className={`text-xs font-medium ${relativeStatus.textColor} bg-white/80 px-3 py-1.5 rounded-xl border border-slate-200/70 transition-all duration-300`}>
+          {relativeStatus.description}
         </p>
 
-        {/* 비주얼 게이지 프로그레스 바 */}
-        <div className="pt-1 pb-1">
-          <div className="relative h-4 w-full bg-slate-200/80 rounded-full overflow-hidden shadow-inner border border-slate-300/60">
-            {/* 권장 적정 범위 하이라이트 (에메랄드/그린 존) */}
+        {/* 현재 기준 기온(T_target) 기준 ±5°C 상대 동적 게이지 그래프 */}
+        <div className="pt-2 pb-1">
+          <div className="relative h-6 w-full bg-slate-200/70 rounded-full overflow-hidden shadow-inner border border-slate-300/60">
+            {/* 1. 좌측 과보온 구역 (0% ~ 25%) */}
             <div
-              className="absolute top-0 bottom-0 bg-emerald-300/90 border-x border-emerald-500/60"
-              style={{
-                left: `${targetMinPct}%`,
-                width: `${Math.max(3, targetMaxPct - targetMinPct)}%`,
-              }}
-              title={`적정 보온 권장 범위: ${targetRange.label}`}
+              className="absolute top-0 bottom-0 left-0 w-1/4 bg-rose-100/60"
+              title={`과보온 구역 (${gaugeMinTemp}°C ~ ${temperature - 2.5}°C)`}
             />
 
-            {/* 현재 보온 지수 게이지 채우기 */}
+            {/* 2. 중앙 적정 보온 구간 하이라이트 (25% ~ 75%, ±2.5°C 폭) */}
             <div
-              className={`h-full rounded-full transition-all duration-300 ${statusMeta.progressColor} opacity-70`}
-              style={{ width: `${currentScorePct}%` }}
+              className="absolute top-0 bottom-0 left-1/4 w-1/2 bg-emerald-200/90 border-x-2 border-emerald-500/80 shadow-xs flex items-center justify-center"
+              title={`적정 보온 권장 범위 (${temperature - 2.5}°C ~ ${temperature + 2.5}°C)`}
+            >
+              <span className="text-[9px] font-black text-emerald-800/70 tracking-wider uppercase select-none">
+                적정 범위 (±2.5°C)
+              </span>
+            </div>
+
+            {/* 3. 우측 보온 필요 구역 (75% ~ 100%) */}
+            <div
+              className="absolute top-0 bottom-0 right-0 w-1/4 bg-sky-100/60"
+              title={`보온 필요 구역 (${temperature + 2.5}°C ~ ${gaugeMaxTemp}°C)`}
             />
 
-            {/* 현재 위치 마커 핀 */}
+            {/* 중앙 50% 기준 기온(T_target) 점선 핀 */}
             <div
-              className="absolute top-0 bottom-0 w-1.5 bg-slate-900 shadow-sm transition-all duration-300 transform -translate-x-1/2"
-              style={{ left: `${currentScorePct}%` }}
+              className="absolute top-0 bottom-0 left-1/2 w-0.5 border-l-2 border-dashed border-slate-500/70"
+              title={`기준 기온: ${temperature}°C`}
             />
+
+            {/* 현재 복장 커버 기온 마커 핀 */}
+            <div
+              className="absolute top-0 bottom-0 transition-all duration-300 ease-out z-10"
+              style={{ left: `${markerPct}%` }}
+            >
+              {/* 마커 세로선 */}
+              <div
+                className={`w-1 h-full -translate-x-1/2 ${relativeStatus.markerColor} shadow-md`}
+              />
+              {/* 마커 헤드 뱃지 */}
+              <div
+                className={`absolute -top-1 left-0 -translate-x-1/2 w-4 h-4 rounded-full border-2 border-white shadow-md ${
+                  relativeStatus.markerColor
+                } ${
+                  isLeftOverflow || isRightOverflow ? 'animate-bounce ring-4 ring-offset-1' : ''
+                }`}
+                title={`현재 복장 커버 기온: 약 ${coverTemp}°C`}
+              />
+            </div>
           </div>
 
-          {/* 게이지 하단 눈금 표시 */}
-          <div className="relative mt-1.5 h-4 text-[10px] text-slate-500 font-medium select-none">
-            <span className="absolute left-0">0점 (시원)</span>
-            <span
-              className="absolute transform -translate-x-1/2 text-emerald-700 font-bold hidden sm:inline"
-              style={{ left: `${Math.max(15, Math.min(85, (targetMinPct + targetMaxPct) / 2))}%` }}
-            >
-              🎯 권장 적정 범위 ({targetRange.label})
+          {/* 게이지 하단 상대 기온 눈금 표시 */}
+          <div className="relative mt-2 h-4 text-[10px] text-slate-500 font-medium select-none flex items-center justify-between">
+            <span className={`transition-colors ${isLeftOverflow ? 'text-rose-600 font-bold' : ''}`}>
+              ◀ {gaugeMinTemp}°C (두꺼움)
             </span>
-            <span className="absolute right-0">350점 (극강방한)</span>
+            <span className="text-emerald-800 font-bold hidden sm:inline">
+              🎯 기준 기온 {temperature}°C
+            </span>
+            <span className={`transition-colors ${isRightOverflow ? 'text-sky-600 font-bold' : ''}`}>
+              {gaugeMaxTemp}°C (얇음) ▶
+            </span>
           </div>
         </div>
       </div>
@@ -882,10 +930,11 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="text-[11px] font-semibold text-slate-500">총 보온 지수:</span>
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${statusMeta.badgeStyle}`}>
-            {totalInsulationScore}점 ({statusMeta.badgeText})
+          <span className="text-[11px] font-semibold text-slate-500">복장 커버 기온:</span>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${relativeStatus.badgeStyle}`}>
+            약 {coverTemp}°C ({relativeStatus.badgeText})
           </span>
+          <span className="text-[10px] text-slate-400 font-medium">({totalInsulationScore}점)</span>
         </div>
       </div>
 

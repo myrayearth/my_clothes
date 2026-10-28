@@ -31,6 +31,7 @@ export interface OutfitLog {
   memo?: string;
   gender?: UserGender;
   total_insulation_score?: number; // 의류 보온 수치 점수 (Insulation Score)
+  calculated_cover_temp?: number; // 환산된 복장 적정 커버 기온 (°C)
 }
 
 export type NewOutfitLogInput = Omit<OutfitLog, 'id' | 'created_at'>;
@@ -67,6 +68,7 @@ export interface TemperatureEvaluation {
   memo?: string | null;
   gender?: UserGender;
   total_insulation_score?: number;
+  calculated_cover_temp?: number;
 }
 
 export type NewTemperatureEvaluationInput = Omit<TemperatureEvaluation, 'id' | 'created_at'>;

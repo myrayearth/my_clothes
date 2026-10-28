@@ -345,6 +345,79 @@ export function getInsulationTargetRange(temp: number, userOffset: number = 0): 
 export type InsulationStatus = 'COLD' | 'OPTIMAL' | 'HOT';
 
 /**
+ * 보온 점수(0~300) -> 복장 적정 커버 기온(-20°C ~ +35°C) 역산 함수
+ * - 점수가 0점(최소)일 때 = +35°C (한여름 폭염용)
+ * - 점수가 300점(최대)일 때 = -20°C (혹한기 완전 무장)
+ * - 점수가 높을수록(따뜻할수록) 더 낮은 영하의 온도를 견딜 수 있으므로 온도는 반비례 감소합니다.
+ */
+export function scoreToCoverTemperature(score: number): number {
+  // 0점 이하는 35도, 300점 이상은 -20도로 클램프 (총 55도 폭)
+  const clampedScore = Math.max(0, Math.min(300, score));
+  const temp = 35 - (clampedScore / 300) * 55;
+  return Math.round(temp * 10) / 10; // 소수점 첫째자리 반올림
+}
+
+export type RelativeCoverStatus = 'OPTIMAL' | 'OVERHEATED' | 'COLD_NEED_WARMTH';
+
+/**
+ * 현재 기준 기온(targetTemp) 대비 복장 커버 기온(coverTemp)의 상대적 상태 산출
+ * - 적정 상태 (초록색): |coverTemp - targetTemp| <= 2.5°C
+ * - 과보온 상태 (빨간색 - 방향): coverTemp < targetTemp - 2.5°C (옷이 너무 두꺼워 더 낮은 온도를 가리킴)
+ * - 보온 필요 상태 (파란색 + 방향): coverTemp > targetTemp + 2.5°C (옷이 너무 얇아 더 높은 온도를 가리킴)
+ */
+export function getRelativeCoverStatus(
+  coverTemp: number,
+  targetTemp: number
+): {
+  status: RelativeCoverStatus;
+  badgeText: string;
+  badgeStyle: string;
+  description: string;
+  textColor: string;
+  markerColor: string;
+  diff: number;
+} {
+  const diff = Math.round((coverTemp - targetTemp) * 10) / 10;
+
+  // 1. 적정 상태 (초록색)
+  if (Math.abs(diff) <= 2.5) {
+    return {
+      status: 'OPTIMAL',
+      badgeText: '적정',
+      badgeStyle: 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold',
+      description: `현재 기온(약 ${targetTemp}°C)에 적합한 보온 수준입니다.`,
+      textColor: 'text-emerald-700',
+      markerColor: 'bg-emerald-600',
+      diff,
+    };
+  }
+
+  // 2. 과보온 상태 (빨간색) - 옷이 너무 두꺼움
+  if (diff < -2.5) {
+    return {
+      status: 'OVERHEATED',
+      badgeText: '과보온',
+      badgeStyle: 'bg-rose-100 text-rose-800 border-rose-300 font-bold',
+      description: '현재 기온보다 두껍습니다. 땀이 나거나 더울 수 있어요. (외투나 이너를 가볍게 조절하세요)',
+      textColor: 'text-rose-700',
+      markerColor: 'bg-rose-600',
+      diff,
+    };
+  }
+
+  // 3. 보온 필요 상태 (파란색) - 옷이 너무 얇음
+  return {
+    status: 'COLD_NEED_WARMTH',
+    badgeText: '보온 필요',
+    badgeStyle: 'bg-sky-100 text-sky-800 border-sky-300 font-bold',
+    description: '현재 기온보다 얇습니다. 쌀쌀할 수 있으니 겉옷이나 내의를 챙기세요.',
+    textColor: 'text-sky-700',
+    markerColor: 'bg-sky-600',
+    diff,
+  };
+}
+
+/**
  * 현재 보온 지수와 권장 범위 비교 상태 산출
  * - -15°C 이하 등 hasNoUpperBound인 경우 상한 초과 과보온 판정 제외
  */
