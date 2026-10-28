@@ -9,10 +9,13 @@ import { DEFAULT_LOCATION, getSavedLocation, getCurrentLocation, saveLocation } 
 import { fetchWeatherData } from '@/lib/weather';
 import { getOutfitRuleByTemperature, getDefaultOutfitSelection } from '@/lib/outfit';
 import {
+  fetchAggregatedRecommendations,
+  getPrioritizedOutfitOptions,
+  TemperatureAggregatedResult,
+} from '@/lib/recommendation';
+import {
   fetchAllOutfitLogs,
-  fetchProfiles,
   getSavedActiveUser,
-  getSavedActiveUserId,
   saveActiveUser,
   supabase,
 } from '@/lib/storage';
@@ -25,10 +28,8 @@ import { OutfitSelector } from '@/components/OutfitSelector';
 import { HistoryRecallCard } from '@/components/HistoryRecallCard';
 import { FeedbackForm } from '@/components/FeedbackForm';
 import { DailyForecast } from '@/components/weather/DailyForecast';
-import { UserProfileSelector } from '@/components/profile/UserProfileSelector';
-import { UserManagementModal } from '@/components/profile/UserManagementModal';
 import { KakaoAuthBar } from '@/components/auth/KakaoAuthBar';
-import { RefreshCw, Shirt, AlertCircle, Settings } from 'lucide-react';
+import { RefreshCw, Shirt, AlertCircle, Sparkles } from 'lucide-react';
 
 export default function Home() {
   const [location, setLocation] = useState<LocationInfo>(DEFAULT_LOCATION);
@@ -37,12 +38,17 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 사용자 프로필 및 카카오 인증 상태
-  const [profiles, setProfiles] = useState<UserProfile[]>([]);
-  const [activeUser, setActiveUser] = useState<string>('기본 사용자');
+  // 사용자 프로필 및 카카오 인증 상태 (카카오 로그인으로 단일화)
+  const [activeUser, setActiveUser] = useState<string>('게스트');
   const [authProfile, setAuthProfile] = useState<UserProfile | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isManageModalOpen, setIsManageModalOpen] = useState<boolean>(false);
+
+  // 시간대별 기온별 누적 평가 집계 데이터 (게스트 + 로그인 유저 통합 추천용)
+  const [aggregatedStats, setAggregatedStats] = useState<Record<TargetTimeSlot, TemperatureAggregatedResult | null>>({
+    '08:00': null,
+    '13:00': null,
+    '19:00': null,
+  });
 
   // 과거 복장 로그 데이터베이스 목록
   const [outfitLogs, setOutfitLogs] = useState<OutfitLog[]>([]);
@@ -69,39 +75,6 @@ export default function Home() {
     }
   }, []);
 
-  // 프로필 로드 함수 (Supabase DB 최우선 + LocalStorage 활성 사용자 ID 매칭)
-  const loadProfiles = useCallback(async () => {
-    try {
-      const pList = await fetchProfiles();
-      setProfiles(pList);
-
-      if (isAuthenticated && authProfile) {
-        setActiveUser(authProfile.name);
-        return;
-      }
-
-      const savedId = getSavedActiveUserId();
-      const savedUser = getSavedActiveUser();
-
-      // 1. 활성화된 사용자 ID로 먼저 매칭 시도
-      const matchedById = savedId ? pList.find((p) => p.id === savedId) : null;
-      // 2. 사용자 이름으로 매칭 시도
-      const matchedByName = pList.find((p) => p.name === savedUser);
-
-      const target = matchedById || matchedByName;
-
-      if (target) {
-        setActiveUser(target.name);
-        saveActiveUser({ id: target.id, name: target.name });
-      } else if (pList.length > 0) {
-        setActiveUser(pList[0].name);
-        saveActiveUser({ id: pList[0].id, name: pList[0].name });
-      }
-    } catch (err) {
-      console.error('프로필 로드 실패:', err);
-    }
-  }, [isAuthenticated, authProfile]);
-
   // 과거 로그 데이터 로드 함수 (현재 선택된 사용자 전용)
   const loadLogs = useCallback(async (userName?: string) => {
     const target = userName || activeUser;
@@ -112,6 +85,33 @@ export default function Home() {
       console.error('과거 로그 불러오기 실패:', err);
     }
   }, [activeUser]);
+
+  // 기온별 커뮤니티 누적 집계 데이터 로드 및 추천값 동적 반영
+  const loadAggregatedData = useCallback(async (weatherData: ProcessedWeatherData) => {
+    const slots: TargetTimeSlot[] = ['08:00', '13:00', '19:00'];
+    const newAggregated: Record<TargetTimeSlot, TemperatureAggregatedResult | null> = {
+      '08:00': null,
+      '13:00': null,
+      '19:00': null,
+    };
+    const newSelections: Partial<Record<TargetTimeSlot, OutfitSelection>> = {};
+
+    await Promise.all(
+      slots.map(async (slot) => {
+        const slotTemp = weatherData.timeSlots[slot].temperature;
+        const rule = getOutfitRuleByTemperature(slotTemp);
+        const agg = await fetchAggregatedRecommendations(slotTemp);
+        newAggregated[slot] = agg;
+
+        // 집계된 1위 아이템이 있다면 기본 선택에 동적 반영
+        const prioritized = getPrioritizedOutfitOptions(rule, agg);
+        newSelections[slot] = prioritized.defaults;
+      })
+    );
+
+    setAggregatedStats(newAggregated);
+    setOutfitSelections(newSelections as Record<TargetTimeSlot, OutfitSelection>);
+  }, []);
 
   // Supabase Auth 세션 및 상태 변화 리스너 (카카오 로그인 연동)
   useEffect(() => {
@@ -131,12 +131,12 @@ export default function Home() {
           console.error('카카오 프로필 동기화 에러:', e);
         }
       } else {
-        // 비로그인 상태: 기본 사용자 및 기본 추천 데이터
+        // 비로그인 상태: 게스트 모드
         setIsAuthenticated(false);
         setAuthProfile(null);
-        setActiveUser('기본 사용자');
-        saveActiveUser('기본 사용자');
-        await loadLogs('기본 사용자');
+        setActiveUser('게스트');
+        saveActiveUser('게스트');
+        await loadLogs('게스트');
       }
     });
 
@@ -151,7 +151,6 @@ export default function Home() {
           setIsAuthenticated(true);
           setActiveUser(profile.name);
           saveActiveUser({ id: profile.id, name: profile.name });
-          await loadProfiles();
           await loadLogs(profile.name);
         } catch (e) {
           console.error('카카오 프로필 갱신 에러:', e);
@@ -159,20 +158,16 @@ export default function Home() {
       } else if (event === 'SIGNED_OUT') {
         setIsAuthenticated(false);
         setAuthProfile(null);
-        setActiveUser('기본 사용자');
-        saveActiveUser('기본 사용자');
-        await loadLogs('기본 사용자');
+        setActiveUser('게스트');
+        saveActiveUser('게스트');
+        await loadLogs('게스트');
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [loadLogs, loadProfiles]);
-
-  useEffect(() => {
-    loadProfiles();
-  }, [loadProfiles]);
+  }, [loadLogs]);
 
   useEffect(() => {
     if (activeUser) {
@@ -184,6 +179,9 @@ export default function Home() {
   useEffect(() => {
     const handleLogsChanged = () => {
       loadLogs(activeUser);
+      if (weather) {
+        loadAggregatedData(weather);
+      }
     };
 
     window.addEventListener('weather_outfit_logs_changed', handleLogsChanged);
@@ -195,28 +193,7 @@ export default function Home() {
       window.removeEventListener('storage', handleLogsChanged);
       window.removeEventListener('focus', handleLogsChanged);
     };
-  }, [activeUser, loadLogs]);
-
-  // 사용자 전환 핸들러
-  const handleSelectUser = (userName: string, userId?: string) => {
-    setActiveUser(userName);
-    saveActiveUser({ id: userId, name: userName });
-    loadLogs(userName);
-  };
-
-  // 날씨 데이터가 로드되면 각 시간대 기온에 맞는 8단계 추천 기본값 자동 세팅
-  const initOutfitSelectionsForWeather = useCallback((data: ProcessedWeatherData) => {
-    const slots: TargetTimeSlot[] = ['08:00', '13:00', '19:00'];
-    const newSelections: Partial<Record<TargetTimeSlot, OutfitSelection>> = {};
-
-    slots.forEach((slot) => {
-      const slotTemp = data.timeSlots[slot].temperature;
-      const rule = getOutfitRuleByTemperature(slotTemp);
-      newSelections[slot] = getDefaultOutfitSelection(rule);
-    });
-
-    setOutfitSelections(newSelections as Record<TargetTimeSlot, OutfitSelection>);
-  }, []);
+  }, [activeUser, loadLogs, weather, loadAggregatedData]);
 
   // 날씨 데이터 로드 함수
   const loadWeather = useCallback(
@@ -226,7 +203,7 @@ export default function Home() {
       try {
         const data = await fetchWeatherData(loc.latitude, loc.longitude);
         setWeather(data);
-        initOutfitSelectionsForWeather(data);
+        await loadAggregatedData(data);
       } catch (err: any) {
         console.error('날씨 데이터 로드 실패:', err);
         setError(err.message || '날씨 정보를 불러오는 중 오류가 발생했습니다.');
@@ -234,7 +211,7 @@ export default function Home() {
         setIsLoading(false);
       }
     },
-    [initOutfitSelectionsForWeather]
+    [loadAggregatedData]
   );
 
   // 초기 위치 설정 및 자동 Geolocation 감지
@@ -275,7 +252,7 @@ export default function Home() {
   const currentSlotWeather = weather ? weather.timeSlots[selectedSlot] : null;
   const currentSlotSelection = outfitSelections[selectedSlot];
 
-  // 지능형 리콜: 현재 선택된 사용자의 기록만 필터링하여 매칭 계산
+  // 지능형 리콜: 현재 사용자(또는 게스트)의 기록을 필터링하여 매칭 계산
   const matchedRecalls = useMemo(() => {
     if (!currentSlotWeather) return [];
     return findMatchingRecallLogs(
@@ -297,7 +274,7 @@ export default function Home() {
 
       {/* 메인 콘텐츠 컨테이너 */}
       <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-5 space-y-5">
-        {/* 서비스 타이틀, 사용자 프로필 셀렉터 & 새로고침 */}
+        {/* 서비스 타이틀, 카카오 인증 바 & 새로고침 */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-blue-600 text-white rounded-xl shadow-xs">
@@ -309,48 +286,25 @@ export default function Home() {
                   Weather Outfit
                 </h1>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                  v0.9.1
+                  v0.10.0
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                기온 기반 맞춤 복장 추천 및 체감 피드백
+                기온 기반 맞춤 복장 추천 및 실시간 체감 피드백
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 self-end sm:self-center flex-wrap justify-end">
-            {/* 카카오 로그인 / 프로필 바 */}
+            {/* 카카오 로그인 / 프로필 바 (단일화된 사용자 인증) */}
             <KakaoAuthBar
               currentProfile={authProfile}
               isAuthenticated={isAuthenticated}
               onAuthChange={() => {
-                loadProfiles();
                 loadLogs(activeUser);
+                if (weather) loadAggregatedData(weather);
               }}
             />
-
-            {/* 비로그인 상태 게스트 프로필 전환 드롭다운 및 관리 */}
-            {!isAuthenticated && (
-              <>
-                <UserProfileSelector
-                  currentUserName={activeUser}
-                  profiles={profiles}
-                  onSelectUser={handleSelectUser}
-                  onProfileCreated={loadProfiles}
-                  onOpenManageModal={() => setIsManageModalOpen(true)}
-                />
-
-                <button
-                  type="button"
-                  onClick={() => setIsManageModalOpen(true)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition-all active:scale-95 touch-manipulation shadow-2xs hover:border-slate-300"
-                  title="사용자 관리 (수정 / 삭제)"
-                >
-                  <Settings className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="hidden sm:inline">사용자 관리</span>
-                </button>
-              </>
-            )}
 
             <button
               onClick={() => {
@@ -395,7 +349,7 @@ export default function Home() {
           />
         )}
 
-        {/* 4. 지능형 리콜 카드 (현재 선택된 사용자 전용) */}
+        {/* 4. 지능형 리콜 카드 (내 과거 체감 기록 기반) */}
         {matchedRecalls.length > 0 && (
           <HistoryRecallCard
             recalls={matchedRecalls}
@@ -404,7 +358,7 @@ export default function Home() {
           />
         )}
 
-        {/* 5. 복장 추천 및 칩 커스터마이징 컴포넌트 (다중 선택 & 모든 항목 보기 지원) */}
+        {/* 5. 복장 추천 및 칩 커스터마이징 컴포넌트 (집계 추천 및 토글 인터랙션) */}
         {currentSlotWeather && currentSlotSelection && (
           <OutfitSelector
             temperature={currentSlotWeather.temperature}
@@ -417,22 +371,27 @@ export default function Home() {
             }
             selection={currentSlotSelection}
             onChangeSelection={handleCurrentOutfitChange}
+            aggregated={aggregatedStats[selectedSlot]}
           />
         )}
 
-        {/* 6. 오늘의 복장 체감 평가 & 피드백 폼 */}
+        {/* 6. 오늘의 복장 체감 평가 & 피드백 폼 (게스트 및 로그인 사용자 누구나 DB 기록) */}
         {currentSlotWeather && currentSlotSelection && (
           <FeedbackForm
-            userName={activeUser}
+            userName={isAuthenticated && authProfile ? authProfile.name : '게스트'}
             currentTemp={currentSlotWeather.temperature}
             apparentTemp={currentSlotWeather.apparentTemperature}
             timeSlot={selectedSlot}
             locationName={location.name}
             currentOutfit={currentSlotSelection}
-            onLogSaved={() => loadLogs(activeUser)}
+            onLogSaved={() => {
+              loadLogs(activeUser);
+              if (weather) {
+                loadAggregatedData(weather);
+              }
+            }}
             userCondition={userCondition}
             onChangeUserCondition={setUserCondition}
-            onRequireUserChange={() => setIsManageModalOpen(true)}
             onKakaoLogin={() => signInWithKakao()}
           />
         )}
@@ -444,17 +403,8 @@ export default function Home() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.9.1</strong></p>
+        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.10.0</strong></p>
       </footer>
-      {/* 8. 사용자 관리 (편집 / 삭제) 모달 */}
-      <UserManagementModal
-        isOpen={isManageModalOpen}
-        onClose={() => setIsManageModalOpen(false)}
-        currentUserName={activeUser}
-        profiles={profiles}
-        onSelectUser={handleSelectUser}
-        onProfilesChanged={loadProfiles}
-      />
     </div>
   );
 }

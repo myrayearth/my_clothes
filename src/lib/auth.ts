@@ -69,9 +69,9 @@ export async function signInWithKakao(): Promise<void> {
     provider: 'kakao',
     options: {
       redirectTo: `${origin}/auth/callback`,
-      scopes: 'profile_nickname profile_image', // 카카오에 등록된 항목만 명시하여 account_email 요청 차단
+      scopes: 'profile_nickname', // 프로필 사진 강제 제외, 닉네임 위주로만 요청
       queryParams: {
-        scope: 'profile_nickname profile_image', // 쿼리 파라미터로도 scope 강제 지정
+        scope: 'profile_nickname', // 쿼리 파라미터로도 scope 지정
       },
     },
   });

@@ -124,8 +124,11 @@ export const KakaoAuthBar: React.FC<KakaoAuthBarProps> = ({
           </div>
         </div>
       ) : (
-        // 비로그인 상태 UI (기본 사용자 + 카카오 3초 로그인 버튼)
+        // 비로그인 상태 UI (게스트 뱃지 + 카카오 로그인 버튼)
         <div className="flex items-center gap-1.5">
+          <span className="hidden sm:inline text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-1.5 rounded-xl border border-slate-200/60">
+            게스트
+          </span>
           <button
             type="button"
             onClick={handleLogin}

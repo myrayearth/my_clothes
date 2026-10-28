@@ -10,13 +10,11 @@ import {
   Send,
   Loader2,
   CheckCircle2,
-  Sliders,
   Smile,
   Activity,
   ThermometerSnowflake,
   Coffee,
-  Thermometer,
-  AlertTriangle,
+  Sparkles,
 } from 'lucide-react';
 
 interface FeedbackFormProps {
@@ -75,75 +73,53 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
   onLogSaved,
   userCondition,
   onChangeUserCondition,
-  onRequireUserChange,
   onKakaoLogin,
 }) => {
-  // 기본값: 0도 (적정)
+  // 기본값: 0 (적정) / 범위: -2 ~ +2
   const [tempOffset, setTempOffset] = useState<number>(0);
   const [memo, setMemo] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [userWarning, setUserWarning] = useState<string | null>(null);
   const [feedbackSuccess, setFeedbackSuccess] = useState<{
     message: string;
     isFallback: boolean;
   } | null>(null);
 
-  // '기본 사용자' 여부 검사 (기본 사용자인 경우 저장 금지)
-  const isDefaultUser =
+  // 게스트(비로그인) 여부
+  const isGuest =
     !userName ||
     userName.trim() === '기본 사용자' ||
-    userName.trim() === '기본사용자';
+    userName.trim() === '기본사용자' ||
+    userName.trim() === '게스트';
 
-  // 사용자가 변경되면 경고 메시지 리셋
-  React.useEffect(() => {
-    if (!isDefaultUser) {
-      setUserWarning(null);
-    }
-  }, [userName, isDefaultUser]);
-
-  // 온도 기반(-5°C ~ +5°C) 체감 상태 라벨 계산
+  // 평가 점수(-2 ~ +2) 체감 상태 라벨 계산
   const getOffsetInfo = (offset: number) => {
-    const formatted = formatScoreTemp(offset);
-
-    if (offset <= -4) {
+    if (offset <= -2) {
       return {
-        label: `${formatted} (매우 추움)`,
+        label: '-2 (추움)',
         emoji: '🥶',
         color: 'text-blue-700 bg-blue-100 border-blue-300',
       };
-    } else if (offset <= -2) {
-      return {
-        label: `${formatted} (꽤 쌀쌀함)`,
-        emoji: '🧣',
-        color: 'text-sky-600 bg-sky-50 border-sky-200',
-      };
     } else if (offset === -1) {
       return {
-        label: `${formatted} (약간 쌀쌀함)`,
+        label: '-1 (약간 쌀쌀함)',
         emoji: '🍃',
         color: 'text-teal-600 bg-teal-50 border-teal-200',
       };
     } else if (offset === 0) {
       return {
-        label: `0°C (적정 / 딱 맞음)`,
+        label: '0 (적정 / 딱 맞음)',
         emoji: '✨',
         color: 'text-emerald-700 bg-emerald-50 border-emerald-300 font-bold',
       };
     } else if (offset === 1) {
       return {
-        label: `${formatted} (약간 더움)`,
+        label: '+1 (약간 더움)',
         emoji: '🌤️',
         color: 'text-amber-600 bg-amber-50 border-amber-200',
       };
-    } else if (offset <= 3) {
-      return {
-        label: `${formatted} (꽤 더움)`,
-        emoji: '☀️',
-        color: 'text-orange-600 bg-orange-50 border-orange-200',
-      };
     } else {
       return {
-        label: `${formatted} (매우 더움)`,
+        label: '+2 (더움)',
         emoji: '🥵',
         color: 'text-rose-700 bg-rose-100 border-rose-300',
       };
@@ -154,27 +130,14 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // 기본 사용자인 경우 카카오 로그인 또는 다른 프로필 선택 유도
-    if (isDefaultUser) {
-      if (onKakaoLogin) {
-        onKakaoLogin();
-        return;
-      }
-      setUserWarning(
-        '개인 맞춤 피드백을 기록하려면 "기본 사용자"가 아닌 카카오 로그인 또는 본인 프로필을 선택해야 합니다.'
-      );
-      onRequireUserChange?.();
-      return;
-    }
-
     setIsSubmitting(true);
     setFeedbackSuccess(null);
-    setUserWarning(null);
+
+    const effectiveUserName = isGuest ? '게스트' : userName;
 
     try {
       const res = await createOutfitLog({
-        user_name: userName,
+        user_name: effectiveUserName,
         location_name: locationName,
         target_temp: currentTemp,
         apparent_temp: apparentTemp,
@@ -183,15 +146,17 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
         selected_top: currentOutfit.top,
         selected_bottom: currentOutfit.bottom,
         selected_items: currentOutfit.items,
-        score: tempOffset, // -5 ~ +5 체감 온도 편차 저장
+        score: tempOffset, // -2 ~ +2 체감 평가 점수 저장
         condition: userCondition,
         memo: memo.trim() || undefined,
       });
 
       setFeedbackSuccess({
         message: res.isFallback
-          ? '체감 피드백이 로컬 스토리지에 안전하게 기록되었습니다! (Supabase Fallback)'
-          : '체감 피드백이 Supabase 클라우드에 성공적으로 기록되었습니다!',
+          ? '체감 피드백이 로컬에 안전하게 기록되었습니다.'
+          : isGuest
+          ? '게스트 피드백이 DB에 저장되어 전체 추천 집계에 반영되었습니다!'
+          : '내 체감 피드백이 Supabase DB에 성공적으로 저장되었습니다!',
         isFallback: res.isFallback,
       });
 
@@ -203,36 +168,50 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
       }, 4000);
     } catch (err) {
       console.error(err);
+      alert('피드백 저장 중 오류가 발생했습니다.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="w-full bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-xs space-y-4 sm:space-y-5">
-      {/* 폼 타이틀 */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+    <div className="bg-white rounded-2xl shadow-xs border border-slate-200/90 p-4 sm:p-5 space-y-4">
+      {/* 폼 상단 헤더 */}
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <span className="p-1.5 bg-indigo-100 text-indigo-700 rounded-lg shrink-0">
-            <Thermometer className="w-4 h-4" />
-          </span>
+          <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+            <Sparkles className="w-4 h-4" />
+          </div>
           <div>
-            <h3 className="text-sm sm:text-base font-bold text-slate-900">
-              오늘의 복장 체감 평가 & 피드백
+            <h3 className="text-sm font-bold text-slate-800">
+              오늘의 복장 체감 평가 (-2 ~ +2)
             </h3>
-            <p className="text-xs text-slate-500">
-              실제 체감 편차(-5°C ~ +5°C)를 기록하면 지능형 리콜 추천에 반영됩니다.
+            <p className="text-[11px] text-slate-400">
+              {isGuest
+                ? '게스트 평가도 DB에 저장되어 전체 평균 추천에 반영됩니다.'
+                : `${userName} 님의 체감 기록이 실시간 축적됩니다.`}
             </p>
           </div>
         </div>
+
+        {isGuest && onKakaoLogin && (
+          <button
+            type="button"
+            onClick={onKakaoLogin}
+            className="flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-[#FEE500] hover:bg-[#FDD835] px-2.5 py-1 rounded-lg shadow-2xs transition-all active:scale-95"
+            title="카카오 로그인 시 나만의 과거 기록 맞춤 리콜 제공"
+          >
+            <span>💬 카카오 로그인 연동</span>
+          </button>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* 1. 체감 온도 편차 슬라이더 (-5°C ~ +5°C) */}
+        {/* 1. 체감 온도 평가 슬라이더 (-2 ~ +2) */}
         <div className="space-y-2">
           <div className="flex items-center justify-between flex-wrap gap-1">
             <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-              <span>착용 체감 온도 편차</span>
+              <span>착용 체감 평가 점수</span>
               <span className="text-[11px] text-slate-400 font-normal">
                 (기온 {currentTemp}°C 기준)
               </span>
@@ -247,18 +226,20 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
           <div className="pt-2 px-1">
             <input
               type="range"
-              min={-5}
-              max={5}
+              min={-2}
+              max={2}
               step={1}
               value={tempOffset}
               onChange={(e) => setTempOffset(Number(e.target.value))}
               className="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 focus:outline-none touch-manipulation"
             />
-            {/* 눈금 라벨 (-5°C: 매우 추움 / 0°C: 적정 / +5°C: 매우 더움) */}
+            {/* 눈금 라벨 (-2: 추움 / 0: 적정 / +2: 더움) */}
             <div className="flex items-center justify-between text-[11px] font-medium mt-2">
-              <span className="text-blue-600 font-bold">-5°C : 매우 추움</span>
-              <span className="text-emerald-600 font-bold">0°C : 적정</span>
-              <span className="text-rose-600 font-bold">+5°C : 매우 더움</span>
+              <span className="text-blue-600 font-bold">-2 : 추움</span>
+              <span className="text-sky-600">-1 : 약간 쌀쌀</span>
+              <span className="text-emerald-600 font-bold">0 : 적정 (딱 맞음)</span>
+              <span className="text-amber-600">+1 : 약간 더움</span>
+              <span className="text-rose-600 font-bold">+2 : 더움</span>
             </div>
           </div>
         </div>
@@ -270,7 +251,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
               내 오늘의 컨디션
             </label>
             <span className="text-[10px] text-slate-400">
-              기온 자동 보정
+              체감 보정
             </span>
           </div>
 
@@ -321,86 +302,26 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
           />
         </div>
 
-        {/* 4. 기본 사용자 경고 안내 또는 피드백 메시지 */}
-        {isDefaultUser && (
-          <div className="p-3 bg-amber-50 border border-amber-200/90 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-amber-900 text-xs animate-in fade-in duration-150">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>
-                현재 <strong>&apos;기본 사용자&apos;</strong> 상태입니다. 내 기록을 저장하려면 카카오 로그인이 필요합니다.
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 self-end sm:self-center">
-              {onKakaoLogin && (
-                <button
-                  type="button"
-                  onClick={onKakaoLogin}
-                  className="px-2.5 py-1 bg-[#FEE500] hover:bg-[#FDD835] text-[#191919] text-xs font-bold rounded-xl shrink-0 transition-all active:scale-95 shadow-2xs flex items-center gap-1"
-                >
-                  <svg viewBox="0 0 24 24" fill="#191919" className="w-3 h-3">
-                    <path d="M12 3c-4.97 0-9 3.185-9 7.115 0 2.557 1.707 4.8 4.27 6.012l-1.08 4.025c-.097.362.316.65.617.433l4.757-3.15c.144.01.29.016.436.016 4.97 0 9-3.185 9-7.116S16.97 3 12 3z" />
-                  </svg>
-                  <span>카카오 로그인</span>
-                </button>
-              )}
-              {onRequireUserChange && (
-                <button
-                  type="button"
-                  onClick={onRequireUserChange}
-                  className="px-2 py-1 bg-white hover:bg-slate-50 border border-amber-200 text-amber-800 text-xs font-semibold rounded-xl shrink-0 transition-all active:scale-95"
-                >
-                  프로필 선택
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {userWarning && (
-          <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between gap-2 text-xs text-rose-800 animate-in fade-in duration-150">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-              <span className="font-medium">{userWarning}</span>
-            </div>
-            {onRequireUserChange && (
-              <button
-                type="button"
-                onClick={onRequireUserChange}
-                className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shrink-0 transition-all active:scale-95 shadow-2xs"
-              >
-                프로필 변경하기
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* 5. 저장 버튼 & 성공 안내 피드백 */}
+        {/* 4. 저장 버튼 & 성공 안내 피드백 */}
         <div className="pt-1">
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`w-full min-h-[46px] py-3 active:scale-[0.99] font-bold text-sm rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 touch-manipulation ${
-              isDefaultUser
-                ? 'bg-[#FEE500] hover:bg-[#FDD835] text-[#191919]'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-            }`}
+            className="w-full min-h-[46px] py-3 active:scale-[0.99] font-bold text-sm rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 touch-manipulation bg-blue-600 hover:bg-blue-700 text-white"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>저장 중...</span>
+                <span>평가 저장 중...</span>
               </>
-            ) : isDefaultUser ? (
-              <div className="flex items-center gap-1.5 text-[#191919]">
-                <svg viewBox="0 0 24 24" fill="#191919" className="w-4 h-4">
-                  <path d="M12 3c-4.97 0-9 3.185-9 7.115 0 2.557 1.707 4.8 4.27 6.012l-1.08 4.025c-.097.362.316.65.617.433l4.757-3.15c.144.01.29.016.436.016 4.97 0 9-3.185 9-7.116S16.97 3 12 3z" />
-                </svg>
-                <span>카카오 로그인하고 내 체감 저장하기</span>
-              </div>
             ) : (
               <>
                 <Send className="w-4 h-4" />
-                <span>오늘 복장 체감 저장하기 ({userName})</span>
+                <span>
+                  {isGuest
+                    ? '오늘 복장 체감 피드백 등록하기 (게스트)'
+                    : `오늘 복장 체감 저장하기 (${userName})`}
+                </span>
               </>
             )}
           </button>
