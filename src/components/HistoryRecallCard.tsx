@@ -1,10 +1,16 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { MatchedRecallRecord } from '@/types/database';
+import { MatchedRecallRecord, OutfitLog } from '@/types/database';
 import { OutfitSelection } from '@/types/outfit';
 import { formatScoreTemp } from '@/lib/matcher';
-import { isDiscontinuedItem, migrateOutfitSelection } from '@/lib/dataMigration';
+import {
+  isDiscontinuedItem,
+  migrateOutfitSelection,
+  getDiscontinuedItemsInLog,
+} from '@/lib/dataMigration';
+import { updateOutfitLog } from '@/lib/storage';
+import { EvaluationEditModal } from '@/components/outfit/EvaluationEditModal';
 import {
   Sparkles,
   Snowflake,
@@ -17,6 +23,8 @@ import {
   X,
   ChevronRight,
   History,
+  Edit2,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface HistoryRecallCardProps {
@@ -32,6 +40,7 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [appliedFeedback, setAppliedFeedback] = useState<string | null>(null);
+  const [editingRecord, setEditingRecord] = useState<OutfitLog | null>(null);
 
   // 1. 대표 리콜 항목 선정 (체감 편차 |score|가 0에 가장 가까운 최적 평가 항목)
   const { bestRecall, avgScore, avgScoreFormatted } = useMemo(() => {
@@ -100,6 +109,55 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
       setAppliedFeedback(null);
     }, 2500);
   };
+
+  const handleReplaceAndApply = async (
+    log: OutfitLog,
+    discontinued: { category: any; oldItem: string; replacement: string }[]
+  ) => {
+    let newOuter = log.selected_outer;
+    let newTop = Array.isArray(log.selected_top) ? [...log.selected_top] : [log.selected_top];
+    let newBottom = Array.isArray(log.selected_bottom) ? [...log.selected_bottom] : [log.selected_bottom];
+    let newItems = Array.isArray(log.selected_items) ? [...log.selected_items] : [];
+
+    for (const d of discontinued) {
+      if (d.category === 'outer') {
+        newOuter = d.replacement;
+      } else if (d.category === 'top') {
+        newTop = newTop.map((t) => (t === d.oldItem ? d.replacement : t));
+      } else if (d.category === 'bottom') {
+        newBottom = newBottom.map((b) => (b === d.oldItem ? d.replacement : b));
+      } else if (d.category === 'items') {
+        newItems = newItems.map((it) => (it === d.oldItem ? d.replacement : it));
+      }
+    }
+
+    const replacedOutfit: OutfitSelection = {
+      outer: newOuter,
+      top: newTop,
+      bottom: newBottom,
+      items: newItems,
+    };
+
+    onApplyOutfit(replacedOutfit);
+
+    if (log.id) {
+      await updateOutfitLog(log.id, {
+        selected_outer: newOuter,
+        selected_top: newTop,
+        selected_bottom: newBottom,
+        selected_items: newItems,
+      });
+    }
+
+    setAppliedFeedback(
+      `단종된 '${discontinued[0].oldItem}' 대신 '${discontinued[0].replacement}'(으)로 대체 적용 및 저장되었습니다.`
+    );
+    setTimeout(() => {
+      setAppliedFeedback(null);
+    }, 3500);
+  };
+
+  const bestDiscontinued = bestRecall ? getDiscontinuedItemsInLog(bestRecall.log) : [];
 
   return (
     <div className="w-full">
@@ -170,6 +228,25 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
             </button>
           </div>
         </div>
+
+        {/* 대표 코디 내 단종 아이템 대체 추천 안내 */}
+        {bestDiscontinued.length > 0 && (
+          <div className="mt-2.5 p-2.5 bg-amber-50/90 border border-amber-200/90 rounded-xl flex items-center justify-between gap-2 flex-wrap text-xs text-amber-900 shadow-2xs">
+            <div className="flex items-center gap-1.5">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>
+                단종된 <strong>'{bestDiscontinued[0].oldItem}'</strong> 대신 비슷한 <strong>'{bestDiscontinued[0].replacement}'</strong>(으)로 대체하시겠습니까?
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleReplaceAndApply(bestRecall.log, bestDiscontinued)}
+              className="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-600 hover:bg-amber-700 text-white shadow-xs active:scale-95 transition-all cursor-pointer"
+            >
+              대체 적용
+            </button>
+          </div>
+        )}
 
         {appliedFeedback && (
           <div className="mt-2.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -340,14 +417,46 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
                       )}
                     </div>
 
-                    {/* 적용 버튼 */}
-                    <div className="mt-2.5 flex justify-end">
+                    {/* 단종 아이템 감지 및 최적 대체 제안 알림 */}
+                    {(() => {
+                      const itemDiscontinued = getDiscontinuedItemsInLog(log);
+                      if (itemDiscontinued.length === 0) return null;
+                      return (
+                        <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 flex-wrap text-[11px] text-amber-900">
+                          <div className="flex items-center gap-1.5">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            <span>
+                              단종된 <strong>'{itemDiscontinued[0].oldItem}'</strong> 대신 비슷한 <strong>'{itemDiscontinued[0].replacement}'</strong>(으)로 대체하시겠습니까?
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleReplaceAndApply(log, itemDiscontinued)}
+                            className="px-2 py-0.5 text-[11px] font-bold rounded-lg bg-amber-600 hover:bg-amber-700 text-white shadow-xs active:scale-95 transition-all"
+                          >
+                            대체 적용
+                          </button>
+                        </div>
+                      );
+                    })()}
+
+                    {/* 수정 및 적용 버튼 영역 */}
+                    <div className="mt-2.5 flex items-center justify-end gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setEditingRecord(log)}
+                        className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 transition-all shadow-2xs active:scale-95 touch-manipulation cursor-pointer"
+                        title="이 착용 평가 기록 수정"
+                      >
+                        <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                        <span>수정</span>
+                      </button>
                       <button
                         type="button"
                         onClick={() => {
                           handleApply(targetOutfit, `${formattedDate} 코디가 적용되었습니다.`);
                         }}
-                        className={`w-full sm:w-auto flex items-center justify-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all shadow-2xs active:scale-95 touch-manipulation ${themeStyles.button}`}
+                        className={`flex items-center justify-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all shadow-2xs active:scale-95 touch-manipulation cursor-pointer ${themeStyles.button}`}
                       >
                         <CornerDownRight className="w-3.5 h-3.5 shrink-0" />
                         <span>이 조합 그대로 선택기에 적용</span>
@@ -373,6 +482,19 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* 과거 평가 기록 수정 모달 */}
+      {editingRecord && (
+        <EvaluationEditModal
+          isOpen={true}
+          onClose={() => setEditingRecord(null)}
+          record={editingRecord}
+          onSuccess={() => {
+            setAppliedFeedback('착용 평가 기록이 성공적으로 수정되었습니다.');
+            setTimeout(() => setAppliedFeedback(null), 3000);
+          }}
+        />
       )}
     </div>
   );

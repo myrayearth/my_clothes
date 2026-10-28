@@ -5,7 +5,7 @@ import { OutfitCategory } from '@/types/outfit';
 import { UserGender } from '@/types/database';
 import { getAllUniqueCategoryItems } from '@/lib/outfit';
 import { filterItemsByGender } from '@/lib/gender';
-import { getItemInsulationScore } from '@/lib/insulation';
+import { getItemInsulationScore, scoreToCoverTemperature } from '@/lib/insulation';
 import { ITEM_SEASONS } from '@/data/itemScores';
 import { X, Check, Shirt, Sun, CloudSun, Snowflake } from 'lucide-react';
 
@@ -283,7 +283,8 @@ export const AllItemsModal: React.FC<AllItemsModalProps> = ({
               {displayedItems.map((item) => {
                 const isSelected = selectedItems.includes(item);
                 const score = getItemInsulationScore(item);
-                const scoreBadge = score > 0 ? `+${score}점` : `${score}점`;
+                const itemCoverTemp = Math.round(scoreToCoverTemperature(score));
+                const scoreBadge = `약 ${itemCoverTemp}°C`;
 
                 return (
                   <button

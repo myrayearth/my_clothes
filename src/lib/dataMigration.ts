@@ -1,5 +1,5 @@
 import { STANDARD_ITEMS, ITEM_SCORES } from '@/data/itemScores';
-import { OutfitSelection } from '@/types/outfit';
+import { OutfitSelection, OutfitCategory } from '@/types/outfit';
 import { OutfitLog, TemperatureEvaluation } from '@/types/database';
 
 /**
@@ -188,6 +188,94 @@ export function isDiscontinuedItem(item: string): boolean {
   if (STANDARD_ITEM_SET.has(trimmed)) return false;
   if (LEGACY_REPLACEMENTS[trimmed] !== undefined) return false;
   return true;
+}
+
+/**
+ * 단종/구버전 아이템에 대해 동일 카테고리 내 보온 수치가 가장 유사한 최신 표준 아이템 추천
+ */
+export function findBestReplacementItem(
+  discontinuedItem: string,
+  category: OutfitCategory
+): string {
+  const defaultCategoryScore: Record<OutfitCategory, number> = {
+    outer: 35,
+    top: 18,
+    bottom: 20,
+    items: 10,
+  };
+  const itemScore =
+    ITEM_SCORES[discontinuedItem] ?? defaultCategoryScore[category] ?? 20;
+
+  const candidates = STANDARD_ITEMS.filter((it) => it.category === category);
+  if (candidates.length === 0) return discontinuedItem;
+
+  let best = candidates[0];
+  let minDiff = Math.abs(itemScore - best.score);
+
+  for (const cand of candidates) {
+    const diff = Math.abs(itemScore - cand.score);
+    if (diff < minDiff) {
+      minDiff = diff;
+      best = cand;
+    }
+  }
+  return best.name;
+}
+
+/**
+ * 로그 데이터 내에 존재하는 단종 아이템 목록 및 최적 대체 제안 추출
+ */
+export function getDiscontinuedItemsInLog(log: OutfitLog | TemperatureEvaluation): {
+  category: OutfitCategory;
+  oldItem: string;
+  replacement: string;
+}[] {
+  const result: { category: OutfitCategory; oldItem: string; replacement: string }[] = [];
+
+  if (log.selected_outer && isDiscontinuedItem(log.selected_outer)) {
+    result.push({
+      category: 'outer',
+      oldItem: log.selected_outer,
+      replacement: findBestReplacementItem(log.selected_outer, 'outer'),
+    });
+  }
+
+  const topList = Array.isArray(log.selected_top) ? log.selected_top : [log.selected_top];
+  for (const t of topList) {
+    if (t && isDiscontinuedItem(t)) {
+      result.push({
+        category: 'top',
+        oldItem: t,
+        replacement: findBestReplacementItem(t, 'top'),
+      });
+    }
+  }
+
+  const bottomList = Array.isArray(log.selected_bottom)
+    ? log.selected_bottom
+    : [log.selected_bottom];
+  for (const b of bottomList) {
+    if (b && isDiscontinuedItem(b)) {
+      result.push({
+        category: 'bottom',
+        oldItem: b,
+        replacement: findBestReplacementItem(b, 'bottom'),
+      });
+    }
+  }
+
+  const itemsList = Array.isArray(log.selected_items) ? log.selected_items : [];
+  for (const it of itemsList) {
+    if (it && isDiscontinuedItem(it)) {
+      result.push({
+        category: 'items',
+        oldItem: it,
+        replacement: findBestReplacementItem(it, 'items'),
+      });
+    }
+  }
+
+  return result;
 }
 
 /**

@@ -1,0 +1,409 @@
+'use client';
+
+import React, { useState, useMemo } from 'react';
+import { OutfitLog, TemperatureEvaluation, UserCondition, UserGender } from '@/types/database';
+import { STANDARD_ITEMS, StandardItem } from '@/data/itemScores';
+import { filterItemsByGender } from '@/lib/gender';
+import { calculateTotalInsulation, scoreToCoverTemperature } from '@/lib/insulation';
+import { formatScoreTemp } from '@/lib/matcher';
+import { updateOutfitLog, updateTemperatureEvaluation } from '@/lib/storage';
+import { X, Check, Shirt, Sparkles, AlertCircle, Save, Loader2 } from 'lucide-react';
+
+interface EvaluationEditModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  record: OutfitLog | TemperatureEvaluation | null;
+  onSuccess?: () => void;
+  gender?: UserGender;
+}
+
+export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
+  isOpen,
+  onClose,
+  record,
+  onSuccess,
+  gender = 'male',
+}) => {
+  if (!isOpen || !record) return null;
+
+  // 초기 폼 상태 초기화
+  const initialTop = Array.isArray(record.selected_top)
+    ? record.selected_top
+    : [record.selected_top].filter(Boolean);
+  const initialBottom = Array.isArray(record.selected_bottom)
+    ? record.selected_bottom
+    : [record.selected_bottom].filter(Boolean);
+  const initialItems = Array.isArray(record.selected_items)
+    ? record.selected_items
+    : [];
+
+  const [outer, setOuter] = useState<string>(record.selected_outer || '없음');
+  const [top, setTop] = useState<string[]>(initialTop.length > 0 ? initialTop : ['반팔 티셔츠']);
+  const [bottom, setBottom] = useState<string[]>(initialBottom.length > 0 ? initialBottom : ['기본 데님']);
+  const [items, setItems] = useState<string[]>(initialItems);
+  const [score, setScore] = useState<number>(record.score ?? 0);
+  const [condition, setCondition] = useState<UserCondition>(record.condition || '정상');
+  const [memo, setMemo] = useState<string>(record.memo || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // 성별 필터링이 적용된 표준 옵션 목록
+  const outerOptions = useMemo(() => {
+    const list = STANDARD_ITEMS.filter((i) => i.category === 'outer').map((i) => i.name);
+    return ['없음', ...filterItemsByGender(list, gender)];
+  }, [gender]);
+
+  const topOptions = useMemo(() => {
+    const list = STANDARD_ITEMS.filter((i) => i.category === 'top').map((i) => i.name);
+    return filterItemsByGender(list, gender);
+  }, [gender]);
+
+  const bottomOptions = useMemo(() => {
+    const list = STANDARD_ITEMS.filter((i) => i.category === 'bottom').map((i) => i.name);
+    return filterItemsByGender(list, gender);
+  }, [gender]);
+
+  const itemOptions = useMemo(() => {
+    const list = STANDARD_ITEMS.filter((i) => i.category === 'items').map((i) => i.name);
+    return filterItemsByGender(list, gender);
+  }, [gender]);
+
+  // 실시간 보온 수치 및 커버 기온 재계산
+  const totalScore = useMemo(() => {
+    return calculateTotalInsulation({
+      outer: outer === '없음' ? '' : outer,
+      top,
+      bottom,
+      items,
+    });
+  }, [outer, top, bottom, items]);
+
+  const coverTemp = useMemo(() => {
+    return Math.round(scoreToCoverTemperature(totalScore) * 10) / 10;
+  }, [totalScore]);
+
+  // 상의 다중 선택 토글 (최소 1개 유지)
+  const handleToggleTop = (item: string) => {
+    if (top.includes(item)) {
+      if (top.length <= 1) return;
+      setTop(top.filter((t) => t !== item));
+    } else {
+      setTop([...top, item]);
+    }
+  };
+
+  // 하의 다중 선택 토글 (최소 1개 유지)
+  const handleToggleBottom = (item: string) => {
+    if (bottom.includes(item)) {
+      if (bottom.length <= 1) return;
+      setBottom(bottom.filter((b) => b !== item));
+    } else {
+      setBottom([...bottom, item]);
+    }
+  };
+
+  // 소품 다중 선택 토글
+  const handleToggleItem = (item: string) => {
+    if (items.includes(item)) {
+      setItems(items.filter((i) => i !== item));
+    } else {
+      setItems([...items, item]);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!record.id) return;
+
+    if (top.length === 0) {
+      setErrorMessage('상의는 최소 1개 이상 선택해야 합니다.');
+      return;
+    }
+    if (bottom.length === 0) {
+      setErrorMessage('하의는 최소 1개 이상 선택해야 합니다.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    const updates = {
+      selected_outer: outer === '없음' ? '' : outer,
+      selected_top: top,
+      selected_bottom: bottom,
+      selected_items: items,
+      score,
+      condition,
+      memo: memo.trim() || undefined,
+      total_insulation_score: totalScore,
+      calculated_cover_temp: coverTemp,
+    };
+
+    try {
+      const res = await updateOutfitLog(record.id, updates);
+      if (res.success) {
+        onSuccess?.();
+        onClose();
+      } else {
+        setErrorMessage(res.error || '수정 저장에 실패했습니다.');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || '저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 text-slate-800"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 모달 헤더 */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/80">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-blue-600 text-white rounded-xl">
+              <Shirt className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">
+                착용 평가 데이터 수정
+              </h3>
+              <p className="text-xs text-slate-500">
+                {record.user_name} 님 • 기준 기온 {record.target_temp}°C ({record.time_slot})
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-xl transition-all"
+            title="닫기"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* 폼 본문 */}
+        <form onSubmit={handleSubmit} className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1 scrollbar-thin text-xs">
+          {errorMessage && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-rose-800 font-medium">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {/* 실시간 계산 요약 배너 */}
+          <div className="p-3 bg-blue-50/70 border border-blue-200/70 rounded-xl flex items-center justify-between gap-2 flex-wrap text-blue-950 font-medium">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-blue-600 shrink-0" />
+              <span>복장 커버 기온: <strong className="text-blue-700 font-bold">약 {coverTemp}°C</strong></span>
+            </div>
+            <div className="text-[11px] text-blue-600">
+              기준 기온 {record.target_temp}°C 대비 {Math.abs(coverTemp - record.target_temp) <= 2.5 ? '적정 범위' : coverTemp < record.target_temp ? '과보온' : '보온 필요'}
+            </div>
+          </div>
+
+          {/* 1. 외투 (단일 선택) */}
+          <div>
+            <label className="block text-slate-700 font-bold mb-1.5 flex items-center justify-between">
+              <span>외투 (단일 선택)</span>
+              <span className="text-blue-600 font-semibold">{outer}</span>
+            </label>
+            <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50/50 scrollbar-thin">
+              {outerOptions.map((opt) => {
+                const isSelected = outer === opt;
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setOuter(opt)}
+                    className={`px-2.5 py-1 rounded-lg border font-medium transition-all ${
+                      isSelected
+                        ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 2. 상의 (다중 선택, 최소 1개) */}
+          <div>
+            <label className="block text-slate-700 font-bold mb-1.5 flex items-center justify-between">
+              <span>상의 (다중 선택, 최소 1개)</span>
+              <span className="text-blue-600 font-semibold">{top.join(' + ')}</span>
+            </label>
+            <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50/50 scrollbar-thin">
+              {topOptions.map((opt) => {
+                const isSelected = top.includes(opt);
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => handleToggleTop(opt)}
+                    className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
+                      isSelected
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    {isSelected && <Check className="w-3 h-3" />}
+                    <span>{opt}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 3. 하의 (다중 선택, 최소 1개) */}
+          <div>
+            <label className="block text-slate-700 font-bold mb-1.5 flex items-center justify-between">
+              <span>하의 (다중 선택, 최소 1개)</span>
+              <span className="text-blue-600 font-semibold">{bottom.join(' + ')}</span>
+            </label>
+            <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50/50 scrollbar-thin">
+              {bottomOptions.map((opt) => {
+                const isSelected = bottom.includes(opt);
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => handleToggleBottom(opt)}
+                    className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
+                      isSelected
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    {isSelected && <Check className="w-3 h-3" />}
+                    <span>{opt}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 4. 소품 (다중 선택) */}
+          <div>
+            <label className="block text-slate-700 font-bold mb-1.5 flex items-center justify-between">
+              <span>소품 (ITEM)</span>
+              <span className="text-blue-600 font-semibold">{items.length > 0 ? items.join(', ') : '없음'}</span>
+            </label>
+            <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50/50 scrollbar-thin">
+              {itemOptions.map((opt) => {
+                const isSelected = items.includes(opt);
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => handleToggleItem(opt)}
+                    className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
+                      isSelected
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    {isSelected && <Check className="w-3 h-3" />}
+                    <span>{opt}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 5. 체감 편차 / 만족도 점수 (-5°C ~ +5°C) */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-slate-700 font-bold">
+                체감 편차 ({formatScoreTemp(score)})
+              </label>
+              <span className="text-[11px] text-slate-500">
+                {score === 0 ? '딱 맞음 (0°C)' : score > 0 ? `더움 (+${score}°C)` : `추움 (${score}°C)`}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="range"
+                min="-5"
+                max="5"
+                step="1"
+                value={score}
+                onChange={(e) => setScore(parseInt(e.target.value, 10))}
+                className="flex-1 cursor-pointer"
+              />
+              <span className="font-bold text-sm w-12 text-right text-slate-800">
+                {formatScoreTemp(score)}
+              </span>
+            </div>
+          </div>
+
+          {/* 6. 컨디션 및 메모 */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-slate-700 font-bold mb-1">컨디션</label>
+              <select
+                value={condition}
+                onChange={(e) => setCondition(e.target.value as UserCondition)}
+                className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-medium"
+              >
+                <option value="정상">정상</option>
+                <option value="피곤">피곤</option>
+                <option value="감기">감기</option>
+                <option value="활동량많음">활동량많음</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-slate-700 font-bold mb-1">피드백 메모</label>
+              <input
+                type="text"
+                value={memo}
+                onChange={(e) => setMemo(e.target.value)}
+                placeholder="착용 당시 느낌이나 메모를 입력하세요"
+                className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl"
+              />
+            </div>
+          </div>
+
+          {/* 모달 푸터 버튼 */}
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-all"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl flex items-center gap-1.5 shadow-xs transition-all disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>저장 중...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-3.5 h-3.5" />
+                  <span>수정 사항 저장</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};

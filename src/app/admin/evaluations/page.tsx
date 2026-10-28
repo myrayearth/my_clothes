@@ -42,6 +42,7 @@ import {
 import outfitRulesData from '@/data/outfitRules.json';
 import { OutfitRuleStep } from '@/types/outfit';
 import { isDiscontinuedItem } from '@/lib/dataMigration';
+import { EvaluationEditModal } from '@/components/outfit/EvaluationEditModal';
 
 // outfitRules.json 11단계 룰셋 데이터로부터 동적 매핑 생성 (하드코딩 제거 및 일원화)
 const outfitRules = outfitRulesData as OutfitRuleStep[];
@@ -828,133 +829,16 @@ function EvaluationsDashboardContent() {
 
       {/* 6. 수정 모달 */}
       {editingItem && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-xl max-w-md w-full p-6 space-y-4 border border-slate-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900">평가 데이터 수정</h3>
-              <button
-                onClick={() => setEditingItem(null)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleEditSubmit} className="space-y-4 text-xs">
-              <div>
-                <label className="block text-slate-600 font-bold mb-1">사용자</label>
-                <input
-                  type="text"
-                  disabled
-                  value={editingItem.user_name}
-                  className="w-full p-2 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 font-semibold"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-slate-600 font-bold mb-1">기온 (°C)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={editingItem.target_temp}
-                    onChange={(e) =>
-                      setEditingItem({
-                        ...editingItem,
-                        target_temp: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-600 font-bold mb-1">체감 기온 (°C)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={editingItem.apparent_temp}
-                    onChange={(e) =>
-                      setEditingItem({
-                        ...editingItem,
-                        apparent_temp: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-600 font-bold mb-1">
-                  체감 점수 편차 (-5°C ~ +5°C)
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="range"
-                    min="-5"
-                    max="5"
-                    step="1"
-                    value={editingItem.score}
-                    onChange={(e) =>
-                      setEditingItem({ ...editingItem, score: parseInt(e.target.value, 10) })
-                    }
-                    className="flex-1"
-                  />
-                  <span className="font-bold text-sm w-12 text-right">
-                    {formatScoreTemp(editingItem.score)}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-600 font-bold mb-1">컨디션</label>
-                <select
-                  value={editingItem.condition}
-                  onChange={(e) =>
-                    setEditingItem({
-                      ...editingItem,
-                      condition: e.target.value as UserCondition,
-                    })
-                  }
-                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl"
-                >
-                  <option value="정상">정상</option>
-                  <option value="피곤">피곤</option>
-                  <option value="감기">감기</option>
-                  <option value="활동량많음">활동량많음</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-slate-600 font-bold mb-1">메모</label>
-                <textarea
-                  rows={2}
-                  value={editingItem.memo || ''}
-                  onChange={(e) => setEditingItem({ ...editingItem, memo: e.target.value })}
-                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl"
-                  placeholder="피드백 메모"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setEditingItem(null)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl"
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl disabled:opacity-50"
-                >
-                  {isSubmitting ? '저장 중...' : '변경사항 저장'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <EvaluationEditModal
+          isOpen={true}
+          onClose={() => setEditingItem(null)}
+          record={editingItem}
+          onSuccess={async () => {
+            setActionSuccessMsg('평가 데이터가 성공적으로 수정되었습니다.');
+            setEditingItem(null);
+            await loadData();
+          }}
+        />
       )}
 
       {/* 7. 삭제 확인 모달 */}

@@ -132,9 +132,8 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
   const formatScoreBadge = (item: string) => {
     const score = getItemInsulationScore(item);
-    if (score > 0) return `(+${score})`;
-    if (score < 0) return `(${score})`;
-    return `(0)`;
+    const temp = Math.round(scoreToCoverTemperature(score));
+    return `(약 ${temp}°C)`;
   };
 
   // OUTER 단일 선택 변경 (클릭 시 선택, 이미 선택된 외투 클릭 시 '없음'으로 선택 해제 토글)
@@ -395,37 +394,41 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
       {/* [개편] 복장 적정 기온 (°C) 환산 및 ±5°C 상대 동적 게이지 그래프 */}
       <div className="bg-gradient-to-br from-slate-50 to-slate-100/80 rounded-2xl p-4 border border-slate-200/90 shadow-2xs space-y-3">
-        {/* 상단 정보 텍스트 & 상태 뱃지 */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="p-1.5 bg-blue-100/80 text-blue-800 rounded-lg shrink-0">
-              <Thermometer className="w-4 h-4 text-blue-600" />
+        {/* 상단 정보 텍스트 & 상태 뱃지 (2줄 구조) */}
+        <div className="space-y-1.5 border-b border-slate-200/60 pb-2.5">
+          {/* 첫 번째 줄: 헤더 타이틀 */}
+          <div className="flex items-center gap-1.5">
+            <div className="p-1 bg-blue-100/80 text-blue-800 rounded-lg shrink-0">
+              <Thermometer className="w-3.5 h-3.5 text-blue-600" />
             </div>
-            <div>
-              <span className="text-xs font-bold text-slate-800">
-                복장 적정 체감 기온 분석
-              </span>
-              <span className="text-xs text-slate-500 ml-2 transition-all duration-200">
-                현재 복장 커버 기온: <strong className="text-slate-900 font-bold">약 {coverTemp}°C</strong>
-                <span className="mx-1 text-slate-300">/</span>
-                기준 기온: <strong className="text-blue-700 font-bold">{temperature}°C</strong>
-                <span className="text-[11px] text-slate-400 ml-1.5 font-normal">({totalInsulationScore}점)</span>
-              </span>
-            </div>
+            <h4 className="text-sm font-bold text-slate-800">
+              적정 체감 복장 분석
+            </h4>
           </div>
 
-          {/* 3색 상태 뱃지: [적정] 초록 / [과보온] 빨강 / [보온 필요] 파랑 */}
-          <div className="flex items-center gap-1.5 self-start sm:self-center">
-            <span
-              className={`text-xs font-bold px-2.5 py-0.5 rounded-full border shadow-2xs flex items-center gap-1 transition-all duration-300 ${relativeStatus.badgeStyle}`}
-            >
-              <span>{relativeStatus.badgeText}</span>
-              {relativeStatus.diff !== 0 && (
-                <span className="text-[10px] font-normal opacity-90">
-                  ({relativeStatus.diff > 0 ? `+${relativeStatus.diff}` : relativeStatus.diff}°C)
-                </span>
-              )}
+          {/* 두 번째 줄: 현재 복장 커버 기온 & 우측 상태 뱃지 및 기준 기온 표시 */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+            <span className="text-xs text-slate-600 font-medium">
+              현재 복장 커버 기온: <strong className="text-slate-900 font-bold text-sm">약 {coverTemp}°C</strong>
             </span>
+
+            <div className="flex items-center gap-2 self-start sm:self-center">
+              <span className="text-xs text-slate-500 font-medium">
+                (기준 기온: <strong className="text-blue-700 font-bold">{temperature}°C</strong>)
+              </span>
+
+              {/* 3색 상태 뱃지: [적정] 초록 / [과보온] 빨강 / [보온 필요] 파랑 */}
+              <span
+                className={`text-xs font-bold px-2.5 py-0.5 rounded-full border shadow-2xs flex items-center gap-1 transition-all duration-300 ${relativeStatus.badgeStyle}`}
+              >
+                <span>{relativeStatus.badgeText}</span>
+                {relativeStatus.diff !== 0 && (
+                  <span className="text-[10px] font-normal opacity-90">
+                    ({relativeStatus.diff > 0 ? `+${relativeStatus.diff}` : relativeStatus.diff}°C)
+                  </span>
+                )}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -527,7 +530,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
               </button>
             </div>
             <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md truncate max-w-[160px]">
-              선택: {selection.outer && selection.outer !== '없음' ? selection.outer : '없음'}
+              {selection.outer && selection.outer !== '없음' ? '1개 선택' : '0개 선택'}
             </span>
           </div>
 
@@ -609,7 +612,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
               </button>
             </div>
             <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md truncate max-w-[190px]">
-              상의 ({selection.top.length}): {selection.top.length > 0 ? selection.top.join(' + ') : '선택 없음'}
+              {selection.top.length}개 선택
             </span>
           </div>
 
@@ -728,7 +731,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
               </button>
             </div>
             <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md truncate max-w-[190px]">
-              하의 ({selection.bottom.length}): {selection.bottom.length > 0 ? selection.bottom.join(' + ') : '선택 없음'}
+              {selection.bottom.length}개 선택
             </span>
           </div>
 
@@ -904,37 +907,45 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
         </div>
       </div>
 
-      {/* 실시간 선택 조합 요약 배너 */}
-      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs text-slate-600 flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-bold text-slate-700 flex items-center gap-1">
-            <Shirt className="w-3.5 h-3.5 text-blue-600" />
-            현재 코디:
-          </span>
-          <span className="text-slate-800">
-            [외투] {selection.outer && selection.outer !== '없음' ? selection.outer : '없음'}
-          </span>
-          <span className="text-slate-400">•</span>
-          <span className="text-slate-800">
-            [상의] {selection.top.length > 0 ? selection.top.join(' + ') : '선택 없음'}
-          </span>
-          <span className="text-slate-400">•</span>
-          <span className="text-slate-800">
-            [하의] {selection.bottom.length > 0 ? selection.bottom.join(' + ') : '선택 없음'}
-          </span>
-          {selection.items.length > 0 && (
-            <>
-              <span className="text-slate-400">•</span>
-              <span className="text-slate-800">[소품] {selection.items.join(', ')}</span>
-            </>
-          )}
+      {/* 실시간 선택 조합 요약 카드 */}
+      <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200/90 text-xs text-slate-700 space-y-2">
+        {/* 첫 번째 줄: 현재 코디: 복장 커버 기온 약 XX.X°C (상태 라벨) */}
+        <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-slate-200/60">
+          <div className="flex items-center gap-1.5 font-bold text-slate-800">
+            <Shirt className="w-4 h-4 text-blue-600 shrink-0" />
+            <span>현재 코디: 복장 커버 기온 약 {coverTemp}°C</span>
+            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border shadow-2xs ${relativeStatus.badgeStyle}`}>
+              {relativeStatus.badgeText}
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className="text-[11px] font-semibold text-slate-500">복장 커버 기온:</span>
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${relativeStatus.badgeStyle}`}>
-            약 {coverTemp}°C ({relativeStatus.badgeText})
-          </span>
-          <span className="text-[10px] text-slate-400 font-medium">({totalInsulationScore}점)</span>
+
+        {/* 선택된 카테고리 목록 (미선택 카테고리 줄은 조건부로 아예 미렌더링, 최대 4줄) */}
+        <div className="space-y-1 text-slate-700 pl-1 font-medium">
+          {selection.outer && selection.outer !== '없음' && (
+            <div className="flex items-start gap-2">
+              <span className="font-semibold text-slate-500 w-10 shrink-0">외투:</span>
+              <span className="font-semibold text-slate-900">{selection.outer}</span>
+            </div>
+          )}
+          {selection.top && selection.top.length > 0 && (
+            <div className="flex items-start gap-2">
+              <span className="font-semibold text-slate-500 w-10 shrink-0">상의:</span>
+              <span className="font-semibold text-slate-900">{selection.top.join(', ')}</span>
+            </div>
+          )}
+          {selection.bottom && selection.bottom.length > 0 && (
+            <div className="flex items-start gap-2">
+              <span className="font-semibold text-slate-500 w-10 shrink-0">하의:</span>
+              <span className="font-semibold text-slate-900">{selection.bottom.join(', ')}</span>
+            </div>
+          )}
+          {selection.items && selection.items.length > 0 && (
+            <div className="flex items-start gap-2">
+              <span className="font-semibold text-slate-500 w-10 shrink-0">소품:</span>
+              <span className="font-semibold text-slate-900">{selection.items.join(', ')}</span>
+            </div>
+          )}
         </div>
       </div>
 

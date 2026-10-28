@@ -506,7 +506,7 @@ export default function HomePage() {
                   Weather Outfit
                 </h1>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                  v0.21.0
+                  v0.22.0
                 </span>
               </div>
               {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
@@ -619,25 +619,9 @@ export default function HomePage() {
           />
         )}
 
-        {/* 4. 시간대별 탭 (실시간/예보 모드) 또는 수동 모드 안내 바 */}
+        {/* 4. 시간대별 탭 (실시간/예보 모드; 수동 모드 시 별도 중복 안내 배너 미노출) */}
         {weather && (
-          recommendationMode === 'MANUAL_MODE' ? (
-            <div className="p-3 bg-gradient-to-r from-indigo-50/90 to-purple-50/70 border border-indigo-200/90 rounded-2xl flex items-center justify-between text-xs text-indigo-950 flex-wrap gap-2 shadow-2xs">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-indigo-600 text-white rounded-lg shrink-0">
-                  <Sliders className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="font-bold text-indigo-900">
-                    수동 기온 점검 모드 ({manualTemp}°C)
-                  </span>
-                  <p className="text-[11px] text-indigo-700 mt-0.5">
-                    설정한 온도에 맞춰 대표 추천 복장 및 보온 지수(Insulation Score)가 분석됩니다. (상단 좌측 '현재 기온' 클릭 시 오늘 복귀)
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : recommendationMode === 'DAILY_FORECAST_MODE' && selectedForecastItem ? (
+          recommendationMode === 'MANUAL_MODE' ? null : recommendationMode === 'DAILY_FORECAST_MODE' && selectedForecastItem ? (
             <TimeSlotTabs
               timeSlots={{
                 'current': {

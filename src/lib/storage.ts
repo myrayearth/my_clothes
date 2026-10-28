@@ -673,6 +673,44 @@ export async function updateTemperatureEvaluation(
 }
 
 /**
+ * 복장 로그(outfit_logs) 데이터 항목 수정 (HistoryRecall & Admin 공통)
+ */
+export async function updateOutfitLog(
+  id: string,
+  updates: Partial<OutfitLog>
+): Promise<{ success: boolean; data?: OutfitLog; error?: string }> {
+  if (supabase) {
+    try {
+      await supabase.from('outfit_logs').update(updates).eq('id', id);
+      try {
+        await supabase.from('temperature_evaluations').update(updates).eq('id', id);
+      } catch (e) {
+        // evaluations 테이블에 없는 항목일 수 있으므로 무시
+      }
+    } catch (err: any) {
+      console.warn('Supabase outfit_logs update warning:', err);
+    }
+  }
+
+  // LocalStorage 실시간 동기화
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(LOCAL_LOGS_KEY);
+      if (raw) {
+        const logs: OutfitLog[] = JSON.parse(raw);
+        const updatedLogs = logs.map((l) => (l.id === id ? { ...l, ...updates } : l));
+        localStorage.setItem(LOCAL_LOGS_KEY, JSON.stringify(updatedLogs));
+      }
+    } catch (e) {
+      console.warn('local storage update warning:', e);
+    }
+    window.dispatchEvent(new Event('weather_outfit_logs_changed'));
+  }
+
+  return { success: true };
+}
+
+/**
  * 온도별 평가 데이터 항목 삭제 (Admin 전용 - outfit_logs 및 LocalStorage 완벽 연쇄 삭제)
  */
 export async function deleteTemperatureEvaluation(
