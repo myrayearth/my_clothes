@@ -12,7 +12,7 @@ export interface AuthSessionState {
 }
 
 /**
- * 카카오 OAuth 로그인 실행 (Supabase Auth 연동)
+ * 카카오 OAuth 로그인 실행 (Supabase Auth 연동 - email 제외, 닉네임 및 프로필 이미지만 요청)
  */
 export async function signInWithKakao(): Promise<void> {
   if (!supabase) {
@@ -23,7 +23,11 @@ export async function signInWithKakao(): Promise<void> {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'kakao',
     options: {
-      redirectTo: `${origin}/`,
+      redirectTo: `${origin}/auth/callback`,
+      scopes: 'profile_nickname profile_image', // 카카오에 등록된 항목만 명시하여 account_email 요청 차단
+      queryParams: {
+        scope: 'profile_nickname profile_image', // 쿼리 파라미터로도 scope 강제 지정
+      },
     },
   });
 

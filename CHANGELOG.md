@@ -12,6 +12,21 @@
 
 ---
 
+## [v0.8.2] - 2026-10-28 (Patch Release)
+
+카카오 로그인 요청 시 이메일(account_email) 필수 스코프 제외 및 전용 인증 콜백 라우트 신설 릴리즈입니다. (+0.0.1 Patch 증가)
+
+### 🐛 버그 수정 및 개선 사항 (Bug Fixes & Improvements)
+- **카카오 OAuth 동의 요청 스코프 최적화**:
+  - 카카오 비즈앱 미전환 시 발생하는 `account_email` 동의 항목 요청 오류를 방지하기 위해 요청 스코프를 `profile_nickname profile_image`로 한정
+  - `scopes` 및 `queryParams: { scope: 'profile_nickname profile_image' }`를 함께 적용하여 Supabase 기본 `account_email` 스코프 요청을 완전 차단
+- **전용 인증 콜백 페이지 신설 (`/auth/callback`)**:
+  - `src/app/auth/callback/page.tsx` 신설로 카카오 인증 완료 후 부드러운 로딩 스피너 제공 및 프로필 자동 동기화 후 메인 화면 리디렉션 처리
+- **이메일 없는 카카오 프로필 안전 처리**:
+  - 카카오 계정 이메일이 없는 경우에도 닉네임과 아바타 이미지 기반으로 프로필이 정상 생성/동기화되도록 안전 처리
+
+---
+
 ## [v0.8.1] - 2026-10-28 (Patch Release)
 
 Vercel 환경 변수 바인딩 불일치 수정 및 Supabase 카카오 OAuth 400 validation_failed 에러 조치 릴리즈입니다. (+0.0.1 Patch 증가)
