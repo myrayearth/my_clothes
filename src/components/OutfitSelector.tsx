@@ -99,6 +99,14 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     onChangeSelection(dynamicDefaults);
   };
 
+  // 3. 항목별(외투, 상의, 하의, 소품) 개별 리셋 핸들러: 해당 카테고리만 추천 기본값으로 복원
+  const handleResetCategory = (category: 'outer' | 'top' | 'bottom' | 'items') => {
+    onChangeSelection({
+      ...selection,
+      [category]: dynamicDefaults[category] || [],
+    });
+  };
+
   // ==========================================
   // 보온 수치 점수 (Insulation Score) 실시간 계산
   // ==========================================
@@ -672,9 +680,20 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                 <ExternalLink className="w-3 h-3" />
               </button>
             </div>
-            <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded-md truncate max-w-[190px]">
-              {selection.outer.filter((x) => x && x !== '없음').length}개 선택
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleResetCategory('outer')}
+                className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200/80 px-2 py-0.5 rounded-md transition-all active:scale-95 touch-manipulation cursor-pointer border border-slate-200"
+                title="외투 항목 초기화 (추천 기본값으로 복원)"
+              >
+                <RotateCcw className="w-3 h-3 text-slate-500" />
+                <span>초기화</span>
+              </button>
+              <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded-md truncate max-w-[190px]">
+                {selection.outer.filter((x) => x && x !== '없음').length}개 선택
+              </span>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -779,9 +798,20 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                 <ExternalLink className="w-3 h-3" />
               </button>
             </div>
-            <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded-md truncate max-w-[190px]">
-              {selection.top.length}개 선택
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleResetCategory('top')}
+                className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200/80 px-2 py-0.5 rounded-md transition-all active:scale-95 touch-manipulation cursor-pointer border border-slate-200"
+                title="상의 항목 초기화 (추천 기본값으로 복원)"
+              >
+                <RotateCcw className="w-3 h-3 text-slate-500" />
+                <span>초기화</span>
+              </button>
+              <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded-md truncate max-w-[190px]">
+                {selection.top.length}개 선택
+              </span>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -911,9 +941,20 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                 <ExternalLink className="w-3 h-3" />
               </button>
             </div>
-            <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded-md truncate max-w-[190px]">
-              {selection.bottom.length}개 선택
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleResetCategory('bottom')}
+                className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200/80 px-2 py-0.5 rounded-md transition-all active:scale-95 touch-manipulation cursor-pointer border border-slate-200"
+                title="하의 항목 초기화 (추천 기본값으로 복원)"
+              >
+                <RotateCcw className="w-3 h-3 text-slate-500" />
+                <span>초기화</span>
+              </button>
+              <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded-md truncate max-w-[190px]">
+                {selection.bottom.length}개 선택
+              </span>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -1041,9 +1082,20 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                 <ExternalLink className="w-3 h-3" />
               </button>
             </div>
-            <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded-md truncate max-w-[160px]">
-              {selection.items.length > 0 ? `${selection.items.length}개 선택` : '선택 없음'}
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleResetCategory('items')}
+                className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200/80 px-2 py-0.5 rounded-md transition-all active:scale-95 touch-manipulation cursor-pointer border border-slate-200"
+                title="소품 항목 초기화 (추천 기본값으로 복원)"
+              >
+                <RotateCcw className="w-3 h-3 text-slate-500" />
+                <span>초기화</span>
+              </button>
+              <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded-md truncate max-w-[160px]">
+                {selection.items.length > 0 ? `${selection.items.length}개 선택` : '선택 없음'}
+              </span>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-2">

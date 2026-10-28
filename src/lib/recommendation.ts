@@ -84,8 +84,8 @@ export function calculateWeightedRecommendations(
   gender: UserGender = 'male',
   includeGuestData: boolean = false
 ): CalculatedOutfitOptions {
-  // 1. 스펙트럼 기반 기본 후보 목록 (각 카테고리별 10~14개 스펙트럼 배치 및 10°C 미만 이너 핀 고정)
-  const spectrumOptions = getSpectrumOutfitOptions(targetTemp, gender, 14);
+  // 1. 스펙트럼 기반 기본 후보 목록 (추천 중심 위/아래 3개씩 총 7개 + 5도/0도 미만 이너 전면 배치)
+  const spectrumOptions = getSpectrumOutfitOptions(targetTemp, gender);
   const rawOuter = spectrumOptions.outer;
   const rawTop = spectrumOptions.top;
   const rawBottom = spectrumOptions.bottom;
@@ -326,19 +326,12 @@ export function calculateWeightedRecommendations(
 
   const bestItems = highRatedItems.length > 0 ? highRatedItems : filteredRecItems;
 
-  // 기존 스펙트럼 옵션 순서에 랭킹 아이템을 자연스럽게 우선 배치
-  const mergeRankedWithSpectrum = (ranked: string[], spectrum: string[]) => {
-    const set = new Set(ranked);
-    const remaining = spectrum.filter((item) => !set.has(item));
-    return [...ranked, ...remaining];
-  };
-
   return {
     options: {
-      outer: mergeRankedWithSpectrum(outerResult.rankedOptions, rawOuter),
-      top: mergeRankedWithSpectrum(topResult.rankedOptions, rawTop),
-      bottom: mergeRankedWithSpectrum(bottomResult.rankedOptions, rawBottom),
-      items: mergeRankedWithSpectrum(itemResult.rankedOptions, rawItems),
+      outer: rawOuter,
+      top: rawTop,
+      bottom: rawBottom,
+      items: rawItems,
     },
     defaults: {
       outer: bestOuter && bestOuter !== '없음' ? [bestOuter] : [],
