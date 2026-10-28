@@ -16,6 +16,7 @@ import {
   ThermometerSnowflake,
   Coffee,
   Thermometer,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface FeedbackFormProps {
@@ -28,6 +29,7 @@ interface FeedbackFormProps {
   onLogSaved: () => void;
   userCondition: UserCondition;
   onChangeUserCondition: (cond: UserCondition) => void;
+  onRequireUserChange?: () => void;
 }
 
 const conditionOptions: {
@@ -72,15 +74,30 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
   onLogSaved,
   userCondition,
   onChangeUserCondition,
+  onRequireUserChange,
 }) => {
   // 기본값: 0도 (적정)
   const [tempOffset, setTempOffset] = useState<number>(0);
   const [memo, setMemo] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [userWarning, setUserWarning] = useState<string | null>(null);
   const [feedbackSuccess, setFeedbackSuccess] = useState<{
     message: string;
     isFallback: boolean;
   } | null>(null);
+
+  // '기본 사용자' 여부 검사 (기본 사용자인 경우 저장 금지)
+  const isDefaultUser =
+    !userName ||
+    userName.trim() === '기본 사용자' ||
+    userName.trim() === '기본사용자';
+
+  // 사용자가 변경되면 경고 메시지 리셋
+  React.useEffect(() => {
+    if (!isDefaultUser) {
+      setUserWarning(null);
+    }
+  }, [userName, isDefaultUser]);
 
   // 온도 기반(-5°C ~ +5°C) 체감 상태 라벨 계산
   const getOffsetInfo = (offset: number) => {
@@ -135,8 +152,19 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 기본 사용자인 경우 반드시 다른 사용자를 선택하도록 강제
+    if (isDefaultUser) {
+      setUserWarning(
+        '개인 맞춤 피드백을 기록하려면 "기본 사용자"가 아닌 본인의 프로필을 선택하거나 새로 등록해야 합니다.'
+      );
+      onRequireUserChange?.();
+      return;
+    }
+
     setIsSubmitting(true);
     setFeedbackSuccess(null);
+    setUserWarning(null);
 
     try {
       const res = await createOutfitLog({
@@ -287,17 +315,65 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
           />
         </div>
 
-        {/* 4. 저장 버튼 & 성공 안내 피드백 */}
-        <div className="pt-2">
+        {/* 4. 기본 사용자 경고 안내 또는 피드백 메시지 */}
+        {isDefaultUser && (
+          <div className="p-3 bg-amber-50 border border-amber-200/90 rounded-2xl flex items-center justify-between gap-2.5 text-amber-900 text-xs animate-in fade-in duration-150">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>
+                현재 <strong>&apos;기본 사용자&apos;</strong> 상태입니다. 체감 복장을 기록하려면 본인 프로필을 선택해야 합니다.
+              </span>
+            </div>
+            {onRequireUserChange && (
+              <button
+                type="button"
+                onClick={onRequireUserChange}
+                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shrink-0 transition-all active:scale-95 shadow-2xs"
+              >
+                프로필 선택/추가
+              </button>
+            )}
+          </div>
+        )}
+
+        {userWarning && (
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between gap-2 text-xs text-rose-800 animate-in fade-in duration-150">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span className="font-medium">{userWarning}</span>
+            </div>
+            {onRequireUserChange && (
+              <button
+                type="button"
+                onClick={onRequireUserChange}
+                className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shrink-0 transition-all active:scale-95 shadow-2xs"
+              >
+                프로필 변경하기
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* 5. 저장 버튼 & 성공 안내 피드백 */}
+        <div className="pt-1">
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full min-h-[46px] py-3 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold text-sm rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 touch-manipulation"
+            className={`w-full min-h-[46px] py-3 active:scale-[0.99] text-white font-bold text-sm rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 touch-manipulation ${
+              isDefaultUser
+                ? 'bg-amber-600 hover:bg-amber-700'
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span>저장 중...</span>
+              </>
+            ) : isDefaultUser ? (
+              <>
+                <AlertTriangle className="w-4 h-4" />
+                <span>사용자 선택 후 저장 가능 (현재: 기본 사용자)</span>
               </>
             ) : (
               <>
