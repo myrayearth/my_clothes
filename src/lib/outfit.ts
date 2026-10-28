@@ -1,6 +1,7 @@
 import outfitRulesData from '@/data/outfitRules.json';
 import { STANDARD_ITEMS_BY_CATEGORY } from '@/data/itemScores';
 import { OutfitRuleStep, OutfitSelection } from '@/types/outfit';
+import { isInnerClothingItem } from '@/lib/itemPicker';
 
 const outfitRules: OutfitRuleStep[] = outfitRulesData as OutfitRuleStep[];
 
@@ -25,15 +26,18 @@ export function getOutfitRuleByTemperature(temp: number): OutfitRuleStep {
 /**
  * 룰셋 단계의 대표 추천 의류 선택 객체를 복제하여 반환합니다.
  * - OUTER: recommend.outer 단일 선택
- * - TOP: recommend.top 배열의 아이템들 기본 선택
- * - BOTTOM: recommend.bottom 배열의 아이템들 기본 선택
+ * - TOP: recommend.top 중 이너 항목을 제외한 주 추천 아이템 기본 선택
+ * - BOTTOM: recommend.bottom 중 이너 항목을 제외한 주 추천 아이템 기본 선택
  * - ITEM: recommend.item 배열의 아이템들 기본 선택
  */
 export function getDefaultOutfitSelection(rule: OutfitRuleStep): OutfitSelection {
+  const nonInnerTop = rule.recommend.top.filter((i) => !isInnerClothingItem(i));
+  const nonInnerBottom = rule.recommend.bottom.filter((i) => !isInnerClothingItem(i));
+
   return {
     outer: rule.recommend.outer,
-    top: [...rule.recommend.top],
-    bottom: [...rule.recommend.bottom],
+    top: nonInnerTop.length > 0 ? nonInnerTop : [rule.recommend.top[rule.recommend.top.length - 1] || '기본 반팔'],
+    bottom: nonInnerBottom.length > 0 ? nonInnerBottom : [rule.recommend.bottom[rule.recommend.bottom.length - 1] || '기본 긴바지'],
     items: [...rule.recommend.item],
   };
 }

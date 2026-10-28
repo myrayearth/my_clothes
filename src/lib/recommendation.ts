@@ -1,7 +1,7 @@
 import { OutfitRuleStep, OutfitSelection } from '@/types/outfit';
 import { OutfitLog, UserGender } from '@/types/database';
 import { filterItemsByGender } from '@/lib/gender';
-import { getSpectrumOutfitOptions } from '@/lib/itemPicker';
+import { getSpectrumOutfitOptions, isInnerClothingItem } from '@/lib/itemPicker';
 
 export interface RecommendationWeights {
   mode: 'rule_only' | 'guest_weighted' | 'personal_weighted';
@@ -98,10 +98,13 @@ export function calculateWeightedRecommendations(
   const filteredRecBottom = filterItemsByGender(rule.recommend.bottom, gender);
   const filteredRecItems = filterItemsByGender(rule.recommend.item, gender);
 
+  const nonInnerRecTop = filteredRecTop.filter((i) => !isInnerClothingItem(i));
+  const nonInnerRecBottom = filteredRecBottom.filter((i) => !isInnerClothingItem(i));
+
   const fallbackDefaults: OutfitSelection = {
     outer: filteredRecOuter,
-    top: filteredRecTop.length > 0 ? filteredRecTop : [rawTop[0] || '티셔츠'],
-    bottom: filteredRecBottom.length > 0 ? filteredRecBottom : [rawBottom[0] || '바지'],
+    top: nonInnerRecTop.length > 0 ? nonInnerRecTop : (filteredRecTop.length > 0 ? filteredRecTop : [rawTop[0] || '기본 반팔']),
+    bottom: nonInnerRecBottom.length > 0 ? nonInnerRecBottom : (filteredRecBottom.length > 0 ? filteredRecBottom : [rawBottom[0] || '기본 긴바지']),
     items: filteredRecItems,
   };
 
@@ -239,6 +242,9 @@ export function calculateWeightedRecommendations(
     bestOuter = '없음';
   }
 
+  const bestTop = topResult.rankedOptions.find((i) => !isInnerClothingItem(i)) || topResult.topItem;
+  const bestBottom = bottomResult.rankedOptions.find((i) => !isInnerClothingItem(i)) || bottomResult.topItem;
+
   return {
     options: {
       outer: rawOuter,
@@ -248,8 +254,8 @@ export function calculateWeightedRecommendations(
     },
     defaults: {
       outer: bestOuter,
-      top: [topResult.topItem],
-      bottom: [bottomResult.topItem],
+      top: [bestTop],
+      bottom: [bestBottom],
       items: filteredRecItems,
     },
     weights,

@@ -61,21 +61,32 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     );
   }, [currentRule, allLogs, temperature, currentUser, isLoggedIn, gender]);
 
-  // 1. 추천값 리셋 버튼: 룰셋의 순수 기본 추천값으로 복원
+  // 1. 기본 추천순 100% 반영 리셋: 룰셋의 순수 기본 추천값으로 복원 (이너 기본 선택 제외)
   const handleResetToRuleDefault = () => {
     const rawDefaults = getDefaultOutfitSelection(currentRule);
+    const nonInnerTop = rawDefaults.top.filter((i) => !isInnerClothingItem(i));
+    const nonInnerBottom = rawDefaults.bottom.filter((i) => !isInnerClothingItem(i));
+
     const genderFilteredDefaults: OutfitSelection = {
       outer: filterItemsByGender([rawDefaults.outer], gender)[0] || (dynamicOptions.outer[0] || '없음'),
-      top: filterItemsByGender(rawDefaults.top, gender),
-      bottom: filterItemsByGender(rawDefaults.bottom, gender),
+      top: filterItemsByGender(nonInnerTop.length > 0 ? nonInnerTop : rawDefaults.top, gender),
+      bottom: filterItemsByGender(nonInnerBottom.length > 0 ? nonInnerBottom : rawDefaults.bottom, gender),
       items: filterItemsByGender(rawDefaults.items, gender),
     };
     onChangeSelection(genderFilteredDefaults);
   };
 
-  // 2. 평가 반영 버튼: 산출된 최적 추천 복장 적용
+  // 2. 평가 반영 리셋: 산출된 최적 추천 복장 적용 (이너 기본 선택 제외)
   const handleApplyAggregatedRecommendations = () => {
-    onChangeSelection(dynamicDefaults);
+    const nonInnerTop = dynamicDefaults.top.filter((i) => !isInnerClothingItem(i));
+    const nonInnerBottom = dynamicDefaults.bottom.filter((i) => !isInnerClothingItem(i));
+
+    const cleanedDefaults: OutfitSelection = {
+      ...dynamicDefaults,
+      top: nonInnerTop.length > 0 ? nonInnerTop : dynamicDefaults.top,
+      bottom: nonInnerBottom.length > 0 ? nonInnerBottom : dynamicDefaults.bottom,
+    };
+    onChangeSelection(cleanedDefaults);
   };
 
   // ==========================================
@@ -417,28 +428,28 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </p>
         </div>
 
-        {/* 복장 제안 제어 버튼 세트 */}
+        {/* 복장 추천 리셋 제어 버튼 세트 */}
         <div className="flex items-center gap-2 self-start sm:self-center flex-wrap">
-          {/* 1. 추천값 리셋 버튼 */}
+          {/* 1. 기본 추천순 100% 반영 리셋 */}
           <button
             type="button"
             onClick={handleResetToRuleDefault}
-            className="flex items-center gap-1 text-xs text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-lg font-medium transition-all active:scale-95 touch-manipulation border border-slate-200"
-            title="누적 평가가 반영되지 않은 기본 룰셋 추천값으로 복원"
+            className="flex items-center gap-1.5 text-xs text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-lg font-semibold transition-all active:scale-95 touch-manipulation border border-slate-200 shadow-2xs cursor-pointer"
+            title="사용자 평가가 반영되지 않은 기온별 표준 룰셋 추천 100%로 초기화 (이너 제외)"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>추천값 리셋</span>
+            <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+            <span>기본 추천 100% 리셋</span>
           </button>
 
-          {/* 2. 평가 반영 버튼 */}
+          {/* 2. 평가 반영 리셋 */}
           <button
             type="button"
             onClick={handleApplyAggregatedRecommendations}
-            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all border touch-manipulation bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 shadow-2xs active:scale-95 cursor-pointer font-semibold"
-            title="가중치 추천 복장을 선택기에 즉시 적용"
+            className="flex items-center gap-1.5 text-xs text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100/80 px-2.5 py-1.5 rounded-lg font-semibold transition-all active:scale-95 touch-manipulation border border-blue-200 shadow-2xs cursor-pointer"
+            title="개인 및 게스트 누적 평가 피드백이 가중 반영된 맞춤 복장으로 리셋 (이너 제외)"
           >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>추천 복장 적용</span>
+            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+            <span>평가 반영 리셋</span>
           </button>
         </div>
       </div>
