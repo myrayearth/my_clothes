@@ -14,6 +14,7 @@ import {
   getInsulationStatus,
   getInsulationStatusMeta,
   getItemInsulationScore,
+  clampUserOffset,
 } from '@/lib/insulation';
 import { AllItemsModal } from '@/components/outfit/AllItemsModal';
 import { Shirt, RotateCcw, Check, Plus, ExternalLink, Sparkles, Thermometer } from 'lucide-react';
@@ -80,12 +81,29 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     return calculateTotalInsulation(selection);
   }, [selection]);
 
+  // 개인화 체질 보정값(User Offset) 계산 (최대 ±30점 제한)
+  const userOffset = useMemo(() => {
+    if (!isLoggedIn || !currentUser || currentUser === '게스트') return 0;
+    const userLogs = allLogs.filter(
+      (l) => l.user_name === currentUser && Math.abs(l.target_temp - temperature) <= 3
+    );
+    if (userLogs.length === 0) return 0;
+    const avgScore = userLogs.reduce((sum, l) => sum + (l.score || 0), 0) / userLogs.length;
+    // 추위를 느끼면(+) 목표점수 상향, 더위를 느끼면(-) 목표점수 하향
+    return clampUserOffset(-avgScore * 4);
+  }, [allLogs, temperature, currentUser, isLoggedIn]);
+
   const targetRange = useMemo(() => {
-    return getInsulationTargetRange(temperature);
-  }, [temperature]);
+    return getInsulationTargetRange(temperature, userOffset);
+  }, [temperature, userOffset]);
 
   const insulationStatus = useMemo(() => {
-    return getInsulationStatus(totalInsulationScore, targetRange.min, targetRange.max);
+    return getInsulationStatus(
+      totalInsulationScore,
+      targetRange.min,
+      targetRange.max,
+      targetRange.hasNoUpperBound
+    );
   }, [totalInsulationScore, targetRange]);
 
   const statusMeta = useMemo(() => {
