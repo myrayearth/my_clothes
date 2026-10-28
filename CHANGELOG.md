@@ -12,6 +12,27 @@
 
 ---
 
+## [v0.3.0] - 2026-10-28 (Feature Release)
+
+브라우저 간 사용자 목록 클라우드 DB 완전 동기화 및 사용자 이름 편집/삭제 기능 릴리즈입니다. (+0.1.0 Minor 증가)
+
+### ✨ 추가 및 개선 사항 (Features & Enhancements)
+- **브라우저 간 데이터 미동기화 문제 해결 (Supabase 기준 동기화)**:
+  - `profiles` 테이블 RLS 정책 전면 오픈 (`SELECT`, `INSERT`, `UPDATE`, `DELETE` 익명 권한 허용)
+  - `fetchProfiles`: 항상 Supabase 클라우드 DB를 최우선 조회하여 모든 브라우저 및 시크릿 창에서 동일한 사용자 목록 표시
+  - `createProfile`: Supabase DB에 실시간 `INSERT` 즉시 동기화
+- **사용자 이름 편집 (Edit) 기능 추가**:
+  - `UserProfileSelector` 드롭다운 내 연필(Pencil) 아이콘 클릭으로 인라인 이름 수정 모드 진입
+  - 사용자명 변경 시 `profiles` 테이블 및 해당 사용자의 과거 `outfit_logs.user_name` 연쇄 업데이트
+- **사용자 삭제 (Delete) 기능 추가**:
+  - `UserProfileSelector` 내 휴지통(Trash2) 아이콘 클릭 시 삭제 확인 모달/알림 제공
+  - 삭제 시 `profiles` 및 관련 `outfit_logs` 정리, 활성 사용자일 경우 다른 사용자로 자동 안전 전환
+  - 최소 1명 필수 유지 보호 로직 내장
+- **마이그레이션 SQL 추가**:
+  - `supabase/migrations/allow_anon_profiles_rls.sql` 및 라이브 DB 반영 완료
+
+---
+
 ## [v0.2.0] - 2026-10-28 (Feature Release)
 
 다중 선택 카드 인터랙션 정밀화, UI 텍스트 라벨 통일, 복합 상의 아이템 단일 분리 릴리즈입니다. (+0.1.0 Minor 증가)

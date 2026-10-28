@@ -41,14 +41,28 @@ CREATE INDEX IF NOT EXISTS idx_profiles_name ON public.profiles (name);
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.outfit_logs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read access to profiles"
+-- profiles RLS 정책 (익명 CRUD 전면 허용)
+CREATE POLICY "Allow anon select profiles"
 ON public.profiles FOR SELECT USING (true);
 
-CREATE POLICY "Allow public insert to profiles"
+CREATE POLICY "Allow anon insert profiles"
 ON public.profiles FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Allow public read access to outfit_logs"
+CREATE POLICY "Allow anon update profiles"
+ON public.profiles FOR UPDATE USING (true);
+
+CREATE POLICY "Allow anon delete profiles"
+ON public.profiles FOR DELETE USING (true);
+
+-- outfit_logs RLS 정책 (익명 CRUD 전면 허용)
+CREATE POLICY "Allow anon select outfit_logs"
 ON public.outfit_logs FOR SELECT USING (true);
 
-CREATE POLICY "Allow public insert to outfit_logs"
+CREATE POLICY "Allow anon insert outfit_logs"
 ON public.outfit_logs FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow anon update outfit_logs"
+ON public.outfit_logs FOR UPDATE USING (true);
+
+CREATE POLICY "Allow anon delete outfit_logs"
+ON public.outfit_logs FOR DELETE USING (true);

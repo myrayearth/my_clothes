@@ -148,6 +148,55 @@ export function saveLocalProfile(profile: UserProfile): void {
   }
 }
 
+function updateLocalProfileName(id: string, oldName: string, newName: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const profiles = getLocalProfiles().map((p) =>
+      p.id === id || p.name === oldName ? { ...p, name: newName } : p
+    );
+    localStorage.setItem(LOCAL_PROFILES_KEY, JSON.stringify(profiles));
+
+    const currentActive = getSavedActiveUser();
+    if (currentActive === oldName) {
+      saveActiveUser(newName);
+    }
+
+    const rawLogs = localStorage.getItem(LOCAL_LOGS_KEY);
+    if (rawLogs) {
+      const logs: OutfitLog[] = JSON.parse(rawLogs);
+      const updatedLogs = logs.map((log) =>
+        log.user_name === oldName ? { ...log, user_name: newName } : log
+      );
+      localStorage.setItem(LOCAL_LOGS_KEY, JSON.stringify(updatedLogs));
+    }
+  } catch (e) {
+    console.warn('Failed to update local profile name:', e);
+  }
+}
+
+function deleteLocalProfile(id: string, name: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const profiles = getLocalProfiles().filter(
+      (p) => p.id !== id && p.name !== name
+    );
+    localStorage.setItem(LOCAL_PROFILES_KEY, JSON.stringify(profiles));
+
+    const rawLogs = localStorage.getItem(LOCAL_LOGS_KEY);
+    if (rawLogs) {
+      const logs: OutfitLog[] = JSON.parse(rawLogs);
+      const filtered = logs.filter((log) => log.user_name !== name);
+      localStorage.setItem(LOCAL_LOGS_KEY, JSON.stringify(filtered));
+    }
+  } catch (e) {
+    console.warn('Failed to delete local profile:', e);
+  }
+}
+
+/**
+ * 모든 브라우저 및 기기 간 실시간 사용자 목록 동기화
+ * (Supabase DB를 최우선 조회하며, 응답 시 LocalStorage에도 동기화)
+ */
 export async function fetchProfiles(): Promise<UserProfile[]> {
   if (supabase) {
     try {
@@ -156,8 +205,18 @@ export async function fetchProfiles(): Promise<UserProfile[]> {
         .select('*')
         .order('created_at', { ascending: true });
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
+        if (data.length === 0) {
+          const seed = await createProfile('기본 사용자');
+          return [seed];
+        }
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(LOCAL_PROFILES_KEY, JSON.stringify(data));
+        }
         return data as UserProfile[];
+      }
+      if (error) {
+        console.error('Supabase fetch profiles error:', error);
       }
     } catch (e) {
       console.warn('Supabase fetch profiles failed, using LocalStorage:', e);
@@ -166,13 +225,14 @@ export async function fetchProfiles(): Promise<UserProfile[]> {
   return getLocalProfiles();
 }
 
+/**
+ * 신규 사용자 프로필 생성 (Supabase DB INSERT 최우선)
+ */
 export async function createProfile(name: string): Promise<UserProfile> {
   const trimmed = name.trim();
-  const newProfile: UserProfile = {
-    id: `user-${Date.now()}`,
-    name: trimmed,
-    created_at: new Date().toISOString(),
-  };
+  if (!trimmed) {
+    throw new Error('사용자 이름을 입력해주세요.');
+  }
 
   if (supabase) {
     try {
@@ -186,14 +246,109 @@ export async function createProfile(name: string): Promise<UserProfile> {
         saveLocalProfile(data as UserProfile);
         return data as UserProfile;
       }
-      console.warn('Supabase insert profile failed, using local:', error?.message);
-    } catch (e) {
-      console.warn('Supabase insert profile error, using local:', e);
+      if (error) {
+        console.error('Supabase insert profile error:', error.message);
+        throw new Error(
+          error.code === '23505'
+            ? '이미 존재하는 사용자 이름입니다.'
+            : `사용자 생성 실패: ${error.message}`
+        );
+      }
+    } catch (e: any) {
+      console.warn('Supabase insert profile error:', e);
+      throw e;
     }
   }
 
+  const newProfile: UserProfile = {
+    id: `user-${Date.now()}`,
+    name: trimmed,
+    created_at: new Date().toISOString(),
+  };
   saveLocalProfile(newProfile);
   return newProfile;
+}
+
+/**
+ * 사용자 이름 변경 (profiles 테이블 및 outfit_logs 연쇄 업데이트)
+ */
+export async function updateProfile(
+  id: string,
+  oldName: string,
+  newName: string
+): Promise<UserProfile> {
+  const trimmed = newName.trim();
+  if (!trimmed) {
+    throw new Error('변경할 사용자 이름을 입력해주세요.');
+  }
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ name: trimmed })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase update profile error:', error);
+        throw new Error(
+          error.code === '23505'
+            ? '이미 존재하는 사용자 이름입니다.'
+            : `사용자 이름 변경 실패: ${error.message}`
+        );
+      }
+
+      // 과거 복장 기록의 user_name도 연쇄 업데이트
+      await supabase
+        .from('outfit_logs')
+        .update({ user_name: trimmed })
+        .eq('user_name', oldName);
+
+      updateLocalProfileName(id, oldName, trimmed);
+      return data as UserProfile;
+    } catch (e: any) {
+      console.warn('Supabase update profile error:', e);
+      throw e;
+    }
+  }
+
+  updateLocalProfileName(id, oldName, trimmed);
+  return {
+    id,
+    name: trimmed,
+    created_at: new Date().toISOString(),
+  };
+}
+
+/**
+ * 사용자 프로필 삭제 (profiles 테이블 및 관련 기록 삭제)
+ */
+export async function deleteProfile(id: string, name: string): Promise<void> {
+  if (supabase) {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Supabase delete profile error:', error);
+        throw new Error(`사용자 삭제 실패: ${error.message}`);
+      }
+
+      await supabase
+        .from('outfit_logs')
+        .delete()
+        .eq('user_name', name);
+    } catch (e: any) {
+      console.warn('Supabase delete profile error:', e);
+      throw e;
+    }
+  }
+
+  deleteLocalProfile(id, name);
 }
 
 export function getSavedActiveUser(): string {
