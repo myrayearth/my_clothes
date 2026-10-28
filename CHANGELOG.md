@@ -12,6 +12,21 @@
 
 ---
 
+## [v0.29.2] - 2026-10-28 (Patch Release)
+
+상대 기온 게이지 바에서 '적정' 및 '보온 필요' 상태의 현재 복장 커버 기온 마커(진한 원 헤드 및 세로선)가 '과보온' 상태와 동일하게 해당 온도에 맞는 고대비 색상으로 뚜렷하게 표시되도록 인디케이터 스타일 및 Tailwind purge 설정을 개선한 패치 릴리즈입니다.
+
+### 🎯 상대 기온 게이지 마커 핀 & 세로선 시인성 통일 (`OutfitSelector.tsx`, `insulation.ts`, `tailwind.config.ts`)
+- **과보온/적정/보온 필요 3단 마커 핀 & 세로선 고대비 일원화**:
+  - **과보온 (Overheated)**: 진한 붉은색 원(`bg-rose-500 ring-2 ring-white shadow-md shadow-rose-500/60`) + 붉은색 세로선(`w-1 h-full bg-rose-500 shadow-md shadow-rose-500/50`)
+  - **적정 (Optimal)**: 진한 초록색 원(`bg-emerald-600 dark:bg-emerald-500 ring-2 ring-white shadow-md shadow-emerald-500/60`) + 초록색 세로선(`w-1 h-full bg-emerald-600 dark:bg-emerald-500 shadow-md shadow-emerald-500/50`)
+  - **보온 필요 (Cold Need Warmth)**: 진한 파란색 원(`bg-sky-600 dark:bg-sky-500 ring-2 ring-white shadow-md shadow-sky-500/60`) + 파란색 세로선(`w-1 h-full bg-sky-600 dark:bg-sky-500 shadow-md shadow-sky-500/50`)
+- **Tailwind CSS 빌드 컨텐츠 경로 보강**:
+  - `tailwind.config.ts`의 `content` 배열에 `"./src/lib/**/*.{js,ts,jsx,tsx,mdx}"`를 추가하여 유틸리티 파일에서 선언된 동적 색상 클래스가 빌드 번들에서 누락되지 않도록 방지.
+  - 컴포넌트 JSX 내에서도 정적 조건부 클래스 바인딩을 적용하여 빌드 트리 쉐이킹으로부터 100% 안전하게 보호.
+
+---
+
 ## [v0.29.1] - 2026-10-28 (Patch Release)
 
 복장 추천 리셋 버튼 명칭 간소화(`기본 추천 100% 리셋` ➔ `기본 추천 리셋`) 및 평가 반영 리셋(`handleApplyAggregatedRecommendations`) 시 실제 등록된 평가 데이터가 최우선 반영되지 않던 알고리즘 편향 및 최소 건수 장벽 버그를 수정한 패치 릴리즈입니다.

@@ -543,16 +543,28 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
               className="absolute top-0 bottom-0 transition-all duration-300 ease-out z-20 pointer-events-none"
               style={{ left: `${markerPct}%` }}
             >
-              {/* 마커 세로선 */}
+              {/* 마커 세로선 (과보온: 붉은선, 적정: 초록선, 보온 필요: 파란선) */}
               <div
-                className={`w-1 h-full -translate-x-1/2 ${relativeStatus.markerColor} shadow-md`}
+                className={`w-1 h-full -translate-x-1/2 shadow-md ${
+                  relativeStatus.status === 'OVERHEATED'
+                    ? 'bg-rose-500 shadow-rose-500/50'
+                    : relativeStatus.status === 'OPTIMAL'
+                    ? 'bg-emerald-600 dark:bg-emerald-500 shadow-emerald-500/50'
+                    : 'bg-sky-600 dark:bg-sky-500 shadow-sky-500/50'
+                }`}
               />
-              {/* 마커 헤드 뱃지 */}
+              {/* 마커 헤드 뱃지 (진한 원 + 흰색 링 + 그림자) */}
               <div
-                className={`absolute -top-1.5 left-0 -translate-x-1/2 w-4 h-4 rounded-full ${
-                  relativeStatus.markerPinClass
+                className={`absolute -top-1.5 left-0 -translate-x-1/2 w-4 h-4 rounded-full ring-2 ring-white dark:ring-slate-900 shadow-md ${
+                  relativeStatus.status === 'OVERHEATED'
+                    ? 'bg-rose-500 shadow-rose-500/60'
+                    : relativeStatus.status === 'OPTIMAL'
+                    ? 'bg-emerald-600 dark:bg-emerald-500 shadow-emerald-500/60'
+                    : 'bg-sky-600 dark:bg-sky-500 shadow-sky-500/60'
                 } ${
-                  isLeftOverflow || isRightOverflow ? 'animate-bounce ring-4 ring-offset-1 ring-offset-white dark:ring-offset-slate-900' : ''
+                  isLeftOverflow || isRightOverflow
+                    ? 'animate-bounce ring-4 ring-offset-1 ring-offset-white dark:ring-offset-slate-900'
+                    : ''
                 }`}
                 title={`현재 복장 커버 기온: 약 ${coverTemp}°C`}
               />

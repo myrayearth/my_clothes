@@ -269,9 +269,9 @@ export function getRelativeCoverStatus(
         'bg-emerald-50 text-emerald-800 border-emerald-500 dark:bg-emerald-950/80 dark:text-emerald-200 dark:border-emerald-400 px-3 py-1 rounded-full text-xs sm:text-sm font-bold border-2 shadow-sm',
       description: `현재 기온(약 ${targetTemp}°C)에 적합한 보온 수준입니다.`,
       textColor: 'text-emerald-700 dark:text-emerald-300',
-      markerColor: 'bg-emerald-500',
+      markerColor: 'bg-emerald-600 dark:bg-emerald-500',
       markerPinClass:
-        'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.9)] ring-2 ring-white dark:ring-slate-950',
+        'bg-emerald-600 dark:bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.9)] ring-2 ring-white dark:ring-slate-950',
       diff,
     };
   }
@@ -300,9 +300,9 @@ export function getRelativeCoverStatus(
       'bg-sky-50 text-sky-800 border-sky-500 dark:bg-sky-950/80 dark:text-sky-200 dark:border-sky-400 px-3 py-1 rounded-full text-xs sm:text-sm font-bold border-2 shadow-sm',
     description: '현재 기온보다 얇습니다. 쌀쌀할 수 있으니 겉옷이나 내의를 챙기세요.',
     textColor: 'text-sky-700 dark:text-sky-300',
-    markerColor: 'bg-sky-500',
+    markerColor: 'bg-sky-600 dark:bg-sky-500',
     markerPinClass:
-      'bg-sky-500 shadow-[0_0_12px_rgba(14,165,233,0.9)] ring-2 ring-white dark:ring-slate-950',
+      'bg-sky-600 dark:bg-sky-500 shadow-[0_0_12px_rgba(2,132,199,0.9)] ring-2 ring-white dark:ring-slate-950',
     diff,
   };
 }
