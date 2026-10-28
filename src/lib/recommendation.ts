@@ -127,32 +127,39 @@ export function calculateWeightedRecommendations(
   const guestCount = guestLogs.length;
   const totalCount = matchedLogs.length;
 
-  // 4. 가중치 결정 (1건의 평가라도 즉시 반영되도록 완화)
+  // 4. 가중치 결정 (5건 기준 선형 비례식: 1건당 20% 단위 비례 반영, 5건 이상 시 최대 반영치 도달)
   let w_personal = 0;
   let w_guest = 0;
   let w_rule = 1.0;
   let mode: RecommendationWeights['mode'] = 'rule_only';
   let description = '기본 룰셋 100% 적용';
 
+  // 5건 기준 선형 비율 산출 (1건: 0.2(20%), 2건: 0.4(40%), ... 5건 이상: 1.0(100%))
+  const personalRatio = Math.min(1.0, personalCount / 5);
+  const guestRatio = Math.min(1.0, guestCount / 5);
+
   if (personalCount > 0) {
     mode = 'personal_weighted';
     if (guestCount > 0) {
-      w_personal = 0.7;
-      w_guest = 0.2;
-      w_rule = 0.1;
-      description = `개인화 맞춤 (내 평가 70% + 전체 20% + 기본 10%)`;
+      // 개인 평가와 게스트 평가가 모두 있는 경우 (5건 기준 최대: 내 평가 70%, 게스트 15%, 기본 15%)
+      w_personal = Math.round(0.70 * personalRatio * 100) / 100;
+      w_guest = Math.round(0.15 * guestRatio * 100) / 100;
+      w_rule = Math.round((1.0 - w_personal - w_guest) * 100) / 100;
+      description = `개인화 맞춤 (내 평가 ${Math.round(w_personal * 100)}% + 전체 ${Math.round(w_guest * 100)}% + 기본 ${Math.round(w_rule * 100)}%)`;
     } else {
-      w_personal = 0.8;
+      // 내 평가만 있는 경우 (5건 기준 최대: 내 평가 85%, 기본 15%)
+      w_personal = Math.round(0.85 * personalRatio * 100) / 100;
       w_guest = 0;
-      w_rule = 0.2;
-      description = `개인화 맞춤 (내 평가 80% + 기본 20%)`;
+      w_rule = Math.round((1.0 - w_personal) * 100) / 100;
+      description = `개인화 맞춤 (내 평가 ${personalCount}건 기준 ${Math.round(w_personal * 100)}% + 기본 ${Math.round(w_rule * 100)}%)`;
     }
   } else if (guestCount > 0) {
     mode = 'guest_weighted';
     w_personal = 0;
-    w_guest = 0.75;
-    w_rule = 0.25;
-    description = `전체 누적 평가 반영 (누적 평가 75% + 기본 25%)`;
+    // 게스트 누적 평가만 있는 경우 (5건 기준 최대: 85%, 1건당 17%씩 비례 증가)
+    w_guest = Math.round(0.85 * guestRatio * 100) / 100;
+    w_rule = Math.round((1.0 - w_guest) * 100) / 100;
+    description = `전체 누적 평가 반영 (${guestCount}건 기준 ${Math.round(w_guest * 100)}% + 기본 ${Math.round(w_rule * 100)}%)`;
   } else {
     mode = 'rule_only';
     w_personal = 0;
@@ -205,22 +212,22 @@ export function calculateWeightedRecommendations(
     const items = Array.from(allCandidateSet);
 
     const scoredItems = items.map((item) => {
-      // 1) 룰셋 사전 베이스라인 점수 (대표 추천: 3.2, 스펙트럼 후보: 2.0, 그 외: 1.5)
-      const ruleScore = recommendList.includes(item) ? 3.2 : candidateList.includes(item) ? 2.0 : 1.5;
+      // 1) 룰셋 사전 베이스라인 점수 (대표 추천: 3.0, 일반 후보: 2.8, 그 외: 2.3)
+      const ruleScore = recommendList.includes(item) ? 3.0 : candidateList.includes(item) ? 2.8 : 2.3;
 
       // 2) 개인 평가 점수
-      // - 착용 기록이 있는 경우: avgScore(0~5점) + 만족(3.5점 이상) 시 착용 빈도 신뢰도 보너스
-      // - 착용 기록이 없는 경우: 사전 베이스라인(ruleScore) 부여
+      // - 착용 기록이 있는 경우: avgScore(0~5점) + 만족(3.5점 이상) 시 실측 우대 보너스(+0.5)
+      // - 착용 기록이 없는 경우: 기본 중립 점수(3.0점) 부여
       const pStat = calculateGroupItemScore(item, category, personalLogs);
       const personalScore = pStat.count > 0
-        ? pStat.avgScore + (pStat.avgScore >= 3.5 ? Math.min(0.5, pStat.count * 0.2) : 0)
-        : ruleScore;
+        ? pStat.avgScore + (pStat.avgScore >= 3.5 ? Math.min(0.8, 0.5 + pStat.count * 0.1) : 0)
+        : 3.0;
 
       // 3) 게스트/누적 평가 점수
       const gStat = calculateGroupItemScore(item, category, guestLogs);
       const guestScore = gStat.count > 0
-        ? gStat.avgScore + (gStat.avgScore >= 3.5 ? Math.min(0.5, gStat.count * 0.1) : 0)
-        : ruleScore;
+        ? gStat.avgScore + (gStat.avgScore >= 3.5 ? Math.min(0.8, 0.5 + gStat.count * 0.1) : 0)
+        : 3.0;
 
       // 4) 가중 종합 점수
       const finalScore =

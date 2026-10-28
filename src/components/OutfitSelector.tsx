@@ -410,12 +410,12 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             {weights.mode === 'personal_weighted' ? (
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200 flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-brand-600" />
-                <span>개인화 반영 (내 기록 {weights.personalCount}건 / 전체 {weights.totalCount}건)</span>
+                <span>개인화 반영 (내 기록 {weights.personalCount}건 / {Math.round(weights.w_personal * 100)}% 가중치)</span>
               </span>
             ) : weights.mode === 'guest_weighted' ? (
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-emerald-600" />
-                <span>누적 평가 반영 ({weights.guestCount}건)</span>
+                <span>누적 평가 반영 ({weights.guestCount}건 / {Math.round(weights.w_guest * 100)}% 가중치)</span>
               </span>
             ) : (
               <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200">
