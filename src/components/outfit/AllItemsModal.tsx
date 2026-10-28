@@ -313,8 +313,10 @@ export const AllItemsModal: React.FC<AllItemsModalProps> = ({
                       false
                     )}`}
                   >
-                    {isSelected && <Check className="w-4 h-4 text-white stroke-[2.5] shrink-0" />}
-                    <span>{item}</span>
+                    {isSelected && <Check className="w-4 h-4 text-[#fdfbf7] stroke-[2.5] shrink-0" />}
+                    <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] dark:text-[#f1f5f9] font-semibold'}>
+                      {item}
+                    </span>
                   </button>
                 );
               })}

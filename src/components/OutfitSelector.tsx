@@ -604,9 +604,11 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   )}`}
                 >
                   {isSelected && (
-                    <Check className="w-4 h-4 text-white stroke-[2.5] shrink-0" />
+                    <Check className="w-4 h-4 text-[#fdfbf7] stroke-[2.5] shrink-0" />
                   )}
-                  <span>{opt}</span>
+                  <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] dark:text-[#f1f5f9] font-semibold'}>
+                    {opt}
+                  </span>
                   {isRecommended && (
                     <span
                       className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
@@ -696,9 +698,11 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }
                   >
                     {isSelected && (
-                      <Check className="w-4 h-4 text-white stroke-[2.5] shrink-0" />
+                      <Check className="w-4 h-4 text-[#fdfbf7] stroke-[2.5] shrink-0" />
                     )}
-                    <span>{opt}</span>
+                    <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] dark:text-[#f1f5f9] font-semibold'}>
+                      {opt}
+                    </span>
                     {isInner && (
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
@@ -745,8 +749,8 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }}
                     className={`min-h-[38px] px-2.5 py-1.5 flex items-center justify-center border-l transition-colors active:scale-90 touch-manipulation cursor-pointer ${
                       isSelected
-                        ? 'border-brand-500/80 bg-brand-700/80 hover:bg-brand-700 text-white'
-                        : 'border-inherit hover:bg-black/5 dark:hover:bg-white/10 text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                        ? 'border-brand-500/80 bg-brand-700/80 hover:bg-brand-700 text-[#fdfbf7]'
+                        : 'border-inherit hover:bg-black/5 dark:hover:bg-white/10 text-[#0b192c]/70 hover:text-[#0b192c] dark:hover:text-white'
                     }`}
                     title={
                       isSelected
@@ -824,9 +828,11 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }
                   >
                     {isSelected && (
-                      <Check className="w-4 h-4 text-white stroke-[2.5] shrink-0" />
+                      <Check className="w-4 h-4 text-[#fdfbf7] stroke-[2.5] shrink-0" />
                     )}
-                    <span>{opt}</span>
+                    <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] dark:text-[#f1f5f9] font-semibold'}>
+                      {opt}
+                    </span>
                     {isInner && (
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
@@ -873,8 +879,8 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }}
                     className={`min-h-[38px] px-2.5 py-1.5 flex items-center justify-center border-l transition-colors active:scale-90 touch-manipulation cursor-pointer ${
                       isSelected
-                        ? 'border-brand-500/80 bg-brand-700/80 hover:bg-brand-700 text-white'
-                        : 'border-inherit hover:bg-black/5 dark:hover:bg-white/10 text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                        ? 'border-brand-500/80 bg-brand-700/80 hover:bg-brand-700 text-[#fdfbf7]'
+                        : 'border-inherit hover:bg-black/5 dark:hover:bg-white/10 text-[#0b192c]/70 hover:text-[#0b192c] dark:hover:text-white'
                     }`}
                     title={
                       isSelected
@@ -938,9 +944,11 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   )}`}
                 >
                   {isSelected && (
-                    <Check className="w-4 h-4 text-white stroke-[2.5] shrink-0" />
+                    <Check className="w-4 h-4 text-[#fdfbf7] stroke-[2.5] shrink-0" />
                   )}
-                  <span>{opt}</span>
+                  <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] dark:text-[#f1f5f9] font-semibold'}>
+                    {opt}
+                  </span>
                   {isRecommended && (
                     <span
                       className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${

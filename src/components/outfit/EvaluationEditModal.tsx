@@ -309,10 +309,10 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                     onClick={() => setOuter(opt)}
                     className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
                       isSelected
-                        ? 'bg-brand-600 text-white border-brand-600 shadow-xs ring-2 ring-brand-400 font-bold'
+                        ? 'bg-brand-600 text-[#fdfbf7] border-brand-600 shadow-xs ring-2 ring-brand-400 font-bold'
                         : isRecommended
-                        ? 'bg-amber-50/50 text-slate-800 border-amber-300 hover:bg-amber-100/50'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        ? 'bg-amber-50/50 text-[#0b192c] border-amber-300 hover:bg-amber-100/50'
+                        : 'bg-white text-[#0b192c] border-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     <span>{opt}</span>
@@ -354,10 +354,10 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                     onClick={() => handleToggleTop(opt)}
                     className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
                       isSelected
-                        ? 'bg-brand-600 text-white border-brand-600 shadow-xs ring-2 ring-brand-400 font-bold'
+                        ? 'bg-brand-600 text-[#fdfbf7] border-brand-600 shadow-xs ring-2 ring-brand-400 font-bold'
                         : isRecommended
-                        ? 'bg-amber-50/50 text-slate-800 border-amber-300 hover:bg-amber-100/50'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        ? 'bg-amber-50/50 text-[#0b192c] border-amber-300 hover:bg-amber-100/50'
+                        : 'bg-white text-[#0b192c] border-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     {isSelected && <Check className="w-3 h-3" />}
@@ -398,10 +398,10 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                     onClick={() => handleToggleBottom(opt)}
                     className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
                       isSelected
-                        ? 'bg-brand-600 text-white border-brand-600 shadow-xs ring-2 ring-brand-400 font-bold'
+                        ? 'bg-brand-600 text-[#fdfbf7] border-brand-600 shadow-xs ring-2 ring-brand-400 font-bold'
                         : isRecommended
-                        ? 'bg-amber-50/50 text-slate-800 border-amber-300 hover:bg-amber-100/50'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        ? 'bg-amber-50/50 text-[#0b192c] border-amber-300 hover:bg-amber-100/50'
+                        : 'bg-white text-[#0b192c] border-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     {isSelected && <Check className="w-3 h-3" />}
@@ -442,10 +442,10 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                     onClick={() => handleToggleItem(opt)}
                     className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
                       isSelected
-                        ? 'bg-brand-600 text-white border-brand-600 shadow-xs ring-2 ring-brand-400 font-bold'
+                        ? 'bg-brand-600 text-[#fdfbf7] border-brand-600 shadow-xs ring-2 ring-brand-400 font-bold'
                         : isRecommended
-                        ? 'bg-amber-50/50 text-slate-800 border-amber-300 hover:bg-amber-100/50'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        ? 'bg-amber-50/50 text-[#0b192c] border-amber-300 hover:bg-amber-100/50'
+                        : 'bg-white text-[#0b192c] border-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     {isSelected && <Check className="w-3 h-3" />}
