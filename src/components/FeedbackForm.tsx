@@ -5,6 +5,7 @@ import { OutfitSelection } from '@/types/outfit';
 import { UserCondition, UserGender } from '@/types/database';
 import { createOutfitLog } from '@/lib/storage';
 import { formatScoreTemp } from '@/lib/matcher';
+import { calculateTotalInsulation } from '@/lib/insulation';
 import {
   MessageSquare,
   Send,
@@ -160,6 +161,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
     setFeedbackSuccess(null);
 
     const effectiveUserName = isGuest ? '게스트' : userName;
+    const totalInsulationScore = calculateTotalInsulation(currentOutfit);
 
     try {
       const res = await createOutfitLog({
@@ -176,6 +178,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
         condition: userCondition,
         memo: memo.trim() || undefined,
         gender,
+        total_insulation_score: totalInsulationScore,
       });
 
       setFeedbackSuccess({

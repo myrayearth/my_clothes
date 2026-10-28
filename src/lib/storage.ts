@@ -524,6 +524,7 @@ export async function createOutfitLog(input: NewOutfitLogInput): Promise<{
             condition: input.condition,
             memo: input.memo,
             gender: input.gender || 'male',
+            total_insulation_score: input.total_insulation_score ?? 0,
           },
         ])
         .select()
@@ -550,6 +551,7 @@ export async function createOutfitLog(input: NewOutfitLogInput): Promise<{
               condition: input.condition,
               memo: input.memo || null,
               gender: input.gender || 'male',
+              total_insulation_score: input.total_insulation_score ?? 0,
             },
           ]);
         } catch (syncErr) {
@@ -636,6 +638,7 @@ export async function updateTemperatureEvaluation(
       if (updates.selected_top !== undefined) outfitUpdates.selected_top = updates.selected_top;
       if (updates.selected_bottom !== undefined) outfitUpdates.selected_bottom = updates.selected_bottom;
       if (updates.selected_items !== undefined) outfitUpdates.selected_items = updates.selected_items;
+      if (updates.total_insulation_score !== undefined) outfitUpdates.total_insulation_score = updates.total_insulation_score;
 
       await supabase.from('outfit_logs').update(outfitUpdates).eq('id', id);
     } catch (logErr) {

@@ -8,8 +8,15 @@ import {
   calculateWeightedRecommendations,
 } from '@/lib/recommendation';
 import { filterItemsByGender } from '@/lib/gender';
+import {
+  calculateTotalInsulation,
+  getInsulationTargetRange,
+  getInsulationStatus,
+  getInsulationStatusMeta,
+  getItemInsulationScore,
+} from '@/lib/insulation';
 import { AllItemsModal } from '@/components/outfit/AllItemsModal';
-import { Shirt, RotateCcw, Check, Plus, ExternalLink, Sparkles } from 'lucide-react';
+import { Shirt, RotateCcw, Check, Plus, ExternalLink, Sparkles, Thermometer } from 'lucide-react';
 
 interface OutfitSelectorProps {
   temperature: number;
@@ -64,6 +71,38 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
   // 2. 평가 반영 버튼: 산출된 최적 추천 복장 적용
   const handleApplyAggregatedRecommendations = () => {
     onChangeSelection(dynamicDefaults);
+  };
+
+  // ==========================================
+  // 보온 수치 점수 (Insulation Score) 실시간 계산
+  // ==========================================
+  const totalInsulationScore = useMemo(() => {
+    return calculateTotalInsulation(selection);
+  }, [selection]);
+
+  const targetRange = useMemo(() => {
+    return getInsulationTargetRange(temperature);
+  }, [temperature]);
+
+  const insulationStatus = useMemo(() => {
+    return getInsulationStatus(totalInsulationScore, targetRange.min, targetRange.max);
+  }, [totalInsulationScore, targetRange]);
+
+  const statusMeta = useMemo(() => {
+    return getInsulationStatusMeta(insulationStatus);
+  }, [insulationStatus]);
+
+  // 게이지 바 퍼센트 계산 (0 ~ 350 기준)
+  const scaleMax = 350;
+  const targetMinPct = Math.min(100, Math.max(0, (targetRange.min / scaleMax) * 100));
+  const targetMaxPct = Math.min(100, Math.max(0, (targetRange.max / scaleMax) * 100));
+  const currentScorePct = Math.min(100, Math.max(0, (totalInsulationScore / scaleMax) * 100));
+
+  const formatScoreBadge = (item: string) => {
+    const score = getItemInsulationScore(item);
+    if (score > 0) return `(+${score})`;
+    if (score < 0) return `(${score})`;
+    return `(0)`;
   };
 
   // OUTER 단일 선택 변경 (클릭 시 선택, 이미 선택된 외투 클릭 시 '없음'으로 선택 해제 토글)
@@ -322,6 +361,80 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
         </div>
       </div>
 
+      {/* 보온 수치 지수 (Insulation Score) 게이지 및 실시간 분석 카드 */}
+      <div className="bg-gradient-to-br from-slate-50 to-slate-100/80 rounded-2xl p-4 border border-slate-200/90 shadow-2xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="p-1.5 bg-amber-100/80 text-amber-800 rounded-lg shrink-0">
+              <Thermometer className="w-4 h-4 text-amber-600" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-slate-800">
+                실시간 보온 지수 분석
+              </span>
+              <span className="text-xs text-slate-500 ml-2">
+                현재 <strong className="text-slate-900 font-bold">{totalInsulationScore}점</strong>
+                <span className="mx-1 text-slate-300">/</span>
+                권장 범위 <strong className="text-blue-700 font-bold">{targetRange.label}</strong>
+              </span>
+            </div>
+          </div>
+
+          {/* 상태 뱃지 */}
+          <div className="flex items-center gap-1.5 self-start sm:self-center">
+            <span
+              className={`text-xs font-bold px-2.5 py-0.5 rounded-full border shadow-2xs flex items-center gap-1 ${statusMeta.badgeStyle}`}
+            >
+              <span>{statusMeta.badgeText}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* 안내 설명 */}
+        <p className={`text-xs font-medium ${statusMeta.textColor} bg-white/70 px-3 py-1.5 rounded-xl border border-slate-200/60`}>
+          {statusMeta.description}
+        </p>
+
+        {/* 비주얼 게이지 프로그레스 바 */}
+        <div className="pt-1 pb-1">
+          <div className="relative h-4 w-full bg-slate-200/80 rounded-full overflow-hidden shadow-inner border border-slate-300/60">
+            {/* 권장 적정 범위 하이라이트 (에메랄드/그린 존) */}
+            <div
+              className="absolute top-0 bottom-0 bg-emerald-300/90 border-x border-emerald-500/60"
+              style={{
+                left: `${targetMinPct}%`,
+                width: `${Math.max(3, targetMaxPct - targetMinPct)}%`,
+              }}
+              title={`적정 보온 권장 범위: ${targetRange.label}`}
+            />
+
+            {/* 현재 보온 지수 게이지 채우기 */}
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${statusMeta.progressColor} opacity-70`}
+              style={{ width: `${currentScorePct}%` }}
+            />
+
+            {/* 현재 위치 마커 핀 */}
+            <div
+              className="absolute top-0 bottom-0 w-1.5 bg-slate-900 shadow-sm transition-all duration-300 transform -translate-x-1/2"
+              style={{ left: `${currentScorePct}%` }}
+            />
+          </div>
+
+          {/* 게이지 하단 눈금 표시 */}
+          <div className="relative mt-1.5 h-4 text-[10px] text-slate-500 font-medium select-none">
+            <span className="absolute left-0">0점 (시원)</span>
+            <span
+              className="absolute transform -translate-x-1/2 text-emerald-700 font-bold hidden sm:inline"
+              style={{ left: `${Math.max(15, Math.min(85, (targetMinPct + targetMaxPct) / 2))}%` }}
+            >
+              🎯 권장 적정 범위 ({targetRange.label})
+            </span>
+            <span className="absolute right-0">350점 (극강방한)</span>
+          </div>
+        </div>
+      </div>
+
       {/* 복장 선택 섹션 목록 */}
       <div className="space-y-4">
         {/* 1. OUTER (외투 - 단일 선택)
@@ -372,8 +485,15 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
-                  {/* + 표시 삭제, 선택 시 체크 표시도 삭제: 순수 [이름] 형태 */}
+                  {/* + 표시 삭제, 선택 시 체크 표시도 삭제: 순수 [이름] 형태 및 보온 점수 */}
                   <span>{opt}</span>
+                  <span
+                    className={`text-[10px] font-semibold shrink-0 ${
+                      isSelected ? 'text-amber-200' : 'text-slate-400'
+                    }`}
+                  >
+                    {formatScoreBadge(opt)}
+                  </span>
                   {isRecommended && (
                     <span
                       className={`text-[9px] font-bold px-1 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
@@ -485,6 +605,13 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }
                   >
                     <span>{opt}</span>
+                    <span
+                      className={`text-[10px] font-semibold shrink-0 ${
+                        isSelected ? 'text-amber-200' : 'text-slate-400'
+                      }`}
+                    >
+                      {formatScoreBadge(opt)}
+                    </span>
                     {isRecommended && (
                       <span
                         className={`text-[9px] font-bold px-1 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
@@ -597,6 +724,13 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }
                   >
                     <span>{opt}</span>
+                    <span
+                      className={`text-[10px] font-semibold shrink-0 ${
+                        isSelected ? 'text-amber-200' : 'text-slate-400'
+                      }`}
+                    >
+                      {formatScoreBadge(opt)}
+                    </span>
                     {isRecommended && (
                       <span
                         className={`text-[9px] font-bold px-1 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
@@ -673,6 +807,13 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                   )}
                   <span>{opt}</span>
+                  <span
+                    className={`text-[10px] font-semibold shrink-0 ${
+                      isSelected ? 'text-amber-200' : 'text-slate-400'
+                    }`}
+                  >
+                    {formatScoreBadge(opt)}
+                  </span>
                   {isRecommended && (
                     <span
                       className={`text-[9px] font-bold px-1 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
@@ -698,28 +839,36 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
       </div>
 
       {/* 실시간 선택 조합 요약 배너 */}
-      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs text-slate-600 flex items-center gap-2 flex-wrap">
-        <span className="font-bold text-slate-700 flex items-center gap-1">
-          <Shirt className="w-3.5 h-3.5 text-blue-600" />
-          현재 코디:
-        </span>
-        <span className="text-slate-800">
-          [외투] {selection.outer && selection.outer !== '없음' ? selection.outer : '없음'}
-        </span>
-        <span className="text-slate-400">•</span>
-        <span className="text-slate-800">
-          [상의] {selection.top.length > 0 ? selection.top.join(' + ') : '선택 없음'}
-        </span>
-        <span className="text-slate-400">•</span>
-        <span className="text-slate-800">
-          [하의] {selection.bottom.length > 0 ? selection.bottom.join(' + ') : '선택 없음'}
-        </span>
-        {selection.items.length > 0 && (
-          <>
-            <span className="text-slate-400">•</span>
-            <span className="text-slate-800">[소품] {selection.items.join(', ')}</span>
-          </>
-        )}
+      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs text-slate-600 flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-bold text-slate-700 flex items-center gap-1">
+            <Shirt className="w-3.5 h-3.5 text-blue-600" />
+            현재 코디:
+          </span>
+          <span className="text-slate-800">
+            [외투] {selection.outer && selection.outer !== '없음' ? selection.outer : '없음'}
+          </span>
+          <span className="text-slate-400">•</span>
+          <span className="text-slate-800">
+            [상의] {selection.top.length > 0 ? selection.top.join(' + ') : '선택 없음'}
+          </span>
+          <span className="text-slate-400">•</span>
+          <span className="text-slate-800">
+            [하의] {selection.bottom.length > 0 ? selection.bottom.join(' + ') : '선택 없음'}
+          </span>
+          {selection.items.length > 0 && (
+            <>
+              <span className="text-slate-400">•</span>
+              <span className="text-slate-800">[소품] {selection.items.join(', ')}</span>
+            </>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[11px] font-semibold text-slate-500">총 보온 지수:</span>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${statusMeta.badgeStyle}`}>
+            {totalInsulationScore}점 ({statusMeta.badgeText})
+          </span>
+        </div>
       </div>
 
       {/* 5. [모든 항목 보기] 카탈로그 모달 */}

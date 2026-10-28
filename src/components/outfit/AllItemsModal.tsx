@@ -5,6 +5,7 @@ import { OutfitCategory } from '@/types/outfit';
 import { UserGender } from '@/types/database';
 import { getAllUniqueCategoryItems } from '@/lib/outfit';
 import { filterItemsByGender } from '@/lib/gender';
+import { getItemInsulationScore } from '@/lib/insulation';
 import { X, Check, Shirt } from 'lucide-react';
 
 interface AllItemsModalProps {
@@ -100,6 +101,16 @@ export const AllItemsModal: React.FC<AllItemsModalProps> = ({
                 >
                   {isSelected && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
                   <span>{item}</span>
+                  <span
+                    className={`text-[10px] font-semibold shrink-0 ${
+                      isSelected ? 'text-blue-100' : 'text-slate-400'
+                    }`}
+                  >
+                    {(() => {
+                      const score = getItemInsulationScore(item);
+                      return score > 0 ? `(+${score})` : `(${score})`;
+                    })()}
+                  </span>
                 </button>
               );
             })}

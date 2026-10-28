@@ -30,6 +30,7 @@ export interface OutfitLog {
   condition: UserCondition;
   memo?: string;
   gender?: UserGender;
+  total_insulation_score?: number; // 의류 보온 수치 점수 (Insulation Score)
 }
 
 export type NewOutfitLogInput = Omit<OutfitLog, 'id' | 'created_at'>;
@@ -65,6 +66,7 @@ export interface TemperatureEvaluation {
   condition: UserCondition;
   memo?: string | null;
   gender?: UserGender;
+  total_insulation_score?: number;
 }
 
 export type NewTemperatureEvaluationInput = Omit<TemperatureEvaluation, 'id' | 'created_at'>;
