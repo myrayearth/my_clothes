@@ -92,8 +92,13 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
               </div>
 
               {/* 날씨 아이콘 & 기온 */}
-              <div className="flex items-center justify-center gap-1 my-1">
-                <WeatherIcon weatherCode={item.weatherCode} className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+              <div className="flex items-center justify-center gap-1.5 my-1">
+                <WeatherIcon
+                  weatherCode={item.weatherCode}
+                  isDay={slot === '19:00' ? false : slot === '08:00' || slot === '13:00' ? true : undefined}
+                  size={24}
+                  className="shrink-0"
+                />
                 <span className="text-lg sm:text-xl font-bold tracking-tight">
                   {item.temperature}°
                 </span>

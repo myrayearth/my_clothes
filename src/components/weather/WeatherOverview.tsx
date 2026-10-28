@@ -1,6 +1,6 @@
 import React from 'react';
 import { ProcessedWeatherData, TargetTimeSlot } from '@/types/weather';
-import { WeatherIcon } from '@/components/common/WeatherIcon';
+import { AnimatedWeatherIcon } from '@/components/AnimatedWeatherIcon';
 import { ArrowUp, ArrowDown, Sparkles, CheckCircle2, RotateCcw } from 'lucide-react';
 
 interface WeatherOverviewProps {
@@ -106,8 +106,12 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
           </div>
 
           <div className="flex flex-col items-center shrink-0 ml-2">
-            <div className="p-2 sm:p-2.5 bg-amber-50/60 rounded-2xl border border-amber-100/80 shadow-xs">
-              <WeatherIcon weatherCode={weather.currentWeatherCode} className="w-9 h-9 sm:w-11 sm:h-11" />
+            <div className="p-1 sm:p-2 bg-gradient-to-br from-amber-50/80 via-white to-sky-50/60 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-center">
+              <AnimatedWeatherIcon
+                weatherCode={weather.currentWeatherCode}
+                size={68}
+                className="drop-shadow-xs"
+              />
             </div>
           </div>
         </div>

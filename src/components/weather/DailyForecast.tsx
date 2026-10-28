@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { DailyForecastItem } from '@/types/weather';
-import { WeatherIcon } from '@/components/common/WeatherIcon';
+import { AnimatedWeatherIcon } from '@/components/AnimatedWeatherIcon';
 import { Check } from 'lucide-react';
 
 interface DailyForecastProps {
@@ -61,8 +61,13 @@ export const DailyForecast: React.FC<DailyForecastProps> = ({
               </div>
 
               {/* 날씨 아이콘 */}
-              <div className="my-1 sm:my-1.5">
-                <WeatherIcon weatherCode={day.weatherCode} className="w-5 h-5 sm:w-6 sm:h-6 mx-auto" />
+              <div className="my-1 sm:my-1.5 flex items-center justify-center">
+                <AnimatedWeatherIcon
+                  weatherCode={day.weatherCode}
+                  isDay={true}
+                  size={32}
+                  className="mx-auto"
+                />
               </div>
 
               {/* 날씨 요약 텍스트 */}
