@@ -1,22 +1,17 @@
 export interface OutfitRuleStep {
-  step: number;
-  minTemp: number;
-  maxTemp: number;
-  tempRange: string;
-  description: string;
-  tagColor: string;
-  defaults: {
+  min_temp: number;
+  max_temp: number;
+  label: string;
+  recommend: {
     outer: string;
-    top: string;
-    bottom: string;
-    items: string[];
-  };
-  options: {
-    outer: string[];
     top: string[];
     bottom: string[];
-    items: string[];
+    item: string[];
   };
+  outer: string[];
+  top: string[];
+  bottom: string[];
+  item: string[];
 }
 
 export interface OutfitSelection {

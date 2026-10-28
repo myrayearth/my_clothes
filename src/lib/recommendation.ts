@@ -3,7 +3,7 @@ import { OutfitRuleStep, OutfitSelection } from '@/types/outfit';
 
 export interface ItemScoreStat {
   name: string;
-  score: number; // 평균 적합도 점수 (0 ~ 2)
+  score: number; // 평균 적합도 점수 (0 ~ 5)
   count: number; // 평가 횟수
 }
 
@@ -43,7 +43,7 @@ export async function fetchAggregatedRecommendations(
 }
 
 /**
- * 기본 기온 룰셋과 누적 평가 집계 결과를 결합하여
+ * 기본 기온 룰셋(11단계)과 누적 평가 집계 결과를 결합하여
  * 가장 높은 평가를 받은 상위 아이템이 우선순위로 배치된 동적 추천 옵션 목록을 산출합니다.
  */
 export function getPrioritizedOutfitOptions(
@@ -60,10 +60,31 @@ export function getPrioritizedOutfitOptions(
   aggregatedCount: number;
 } {
   // 기본 외투 목록에서 '없음' 제거
-  const baseOuter = rule.options.outer.filter((item) => item !== '없음');
-  const baseTop = [...rule.options.top];
-  const baseBottom = [...rule.options.bottom];
-  const baseItems = [...rule.options.items];
+  const baseOuter = rule.outer.filter((item) => item !== '없음');
+  const baseTop = [...rule.top];
+  const baseBottom = [...rule.bottom];
+  const baseItems = [...rule.item];
+
+  // recommend 항목이 후보 리스트에 누락된 경우 선두에 포함 보장
+  if (rule.recommend.outer !== '없음' && !baseOuter.includes(rule.recommend.outer)) {
+    baseOuter.unshift(rule.recommend.outer);
+  }
+  rule.recommend.top.forEach((t) => {
+    if (!baseTop.includes(t)) baseTop.unshift(t);
+  });
+  rule.recommend.bottom.forEach((b) => {
+    if (!baseBottom.includes(b)) baseBottom.unshift(b);
+  });
+  rule.recommend.item.forEach((i) => {
+    if (!baseItems.includes(i)) baseItems.unshift(i);
+  });
+
+  const ruleDefaults: OutfitSelection = {
+    outer: rule.recommend.outer,
+    top: [...rule.recommend.top],
+    bottom: [...rule.recommend.bottom],
+    items: [...rule.recommend.item],
+  };
 
   if (!aggregated || aggregated.total_eval_count === 0) {
     return {
@@ -73,12 +94,7 @@ export function getPrioritizedOutfitOptions(
         bottom: baseBottom,
         items: baseItems,
       },
-      defaults: {
-        outer: rule.defaults.outer === '없음' ? '없음' : (baseOuter[0] || '없음'),
-        top: [rule.defaults.top],
-        bottom: [rule.defaults.bottom],
-        items: [...rule.defaults.items],
-      },
+      defaults: ruleDefaults,
       aggregatedCount: 0,
     };
   }
@@ -103,22 +119,22 @@ export function getPrioritizedOutfitOptions(
   const bestOuter =
     aggregated.outers.length > 0 && aggregated.outers[0].score >= 1.0
       ? aggregated.outers[0].name
-      : (rule.defaults.outer === '없음' ? '없음' : (prioritizedOuter[0] || '없음'));
+      : ruleDefaults.outer;
 
   const bestTop =
     aggregated.tops.length > 0 && aggregated.tops[0].score >= 1.0
       ? [aggregated.tops[0].name]
-      : [rule.defaults.top];
+      : ruleDefaults.top;
 
   const bestBottom =
     aggregated.bottoms.length > 0 && aggregated.bottoms[0].score >= 1.0
       ? [aggregated.bottoms[0].name]
-      : [rule.defaults.bottom];
+      : ruleDefaults.bottom;
 
   const bestItems =
     aggregated.items.length > 0 && aggregated.items[0].score >= 1.0
       ? [aggregated.items[0].name]
-      : [...rule.defaults.items];
+      : ruleDefaults.items;
 
   return {
     options: {

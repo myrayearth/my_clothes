@@ -35,7 +35,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     return getPrioritizedOutfitOptions(currentRule, aggregated || null);
   }, [currentRule, aggregated]);
 
-  // 1. 추천값 리셋 버튼: 평가가 반영되지 않은 최초 DB/규칙 기본 추천값으로 복원
+  // 1. 추천값 리셋 버튼: 평가가 반영되지 않은 최초 DB/규칙 기본 추천값(recommend)으로 복원
   const handleResetToRuleDefault = () => {
     const baseline = getDefaultOutfitSelection(currentRule);
     onChangeSelection(baseline);
@@ -181,9 +181,8 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
   };
 
   // =========================================================================
-  // 요구사항 4: '모든 항목 보기' 선택 병합 개선
-  // 기존 기본 추천 항목 목록을 100% 유지하면서,
-  // 모달에서 사용자가 추가 선택한 항목들을 뒤에 병합(Merge/Append)하여 노출
+  // '모든 항목 보기' 선택 병합 개선:
+  // 추천 후보 목록을 100% 유지하면서, 모달에서 선택한 아이템 병합
   // =========================================================================
 
   // 1. OUTER 가시 목록 (추천 목록 유지 + 직접 선택한 외투 병합)
@@ -249,6 +248,9 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-900 text-white shrink-0">
               {temperature}°C
             </span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+              {currentRule.label}
+            </span>
             {aggregatedCount > 0 ? (
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-emerald-600" />
@@ -256,23 +258,23 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
               </span>
             ) : (
               <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200">
-                기본 룰셋 적용
+                대표 룰셋 적용
               </span>
             )}
           </div>
           <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-            <strong className="text-blue-600 font-semibold">{currentRule.step}단계 ({currentRule.tempRange})</strong> : {currentRule.description}
+            <strong className="text-blue-600 font-semibold">{currentRule.label}</strong> : 대표 추천 복장 및 맞춤 후보 선택
           </p>
         </div>
 
-        {/* 요구사항 2: 복장 제안 제어 버튼 세트 */}
+        {/* 복장 제안 제어 버튼 세트 */}
         <div className="flex items-center gap-2 self-start sm:self-center flex-wrap">
           {/* 1. 추천값 리셋 버튼 */}
           <button
             type="button"
             onClick={handleResetToRuleDefault}
             className="flex items-center gap-1 text-xs text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-lg font-medium transition-all active:scale-95 touch-manipulation border border-slate-200"
-            title="누적 평가가 반영되지 않은 기본 설정 추천값으로 복원"
+            title="누적 평가가 반영되지 않은 기본 룰셋 추천값으로 복원"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>추천값 리셋</span>
@@ -340,6 +342,8 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             {visibleOuterOptions.map((opt) => {
               const isSelected = selection.outer === opt;
               const isCustom = !dynamicOptions.outer.includes(opt);
+              const isRecommended = opt === currentRule.recommend.outer;
+
               return (
                 <button
                   key={opt}
@@ -349,18 +353,31 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   className={`min-h-[38px] px-3 py-1.5 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${
                     isSelected
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                      : isRecommended
+                      ? 'bg-amber-50/40 text-slate-800 border-amber-300 hover:bg-amber-100/50'
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
-                  {/* 요구사항 3: [+ 이름] 및 [✓ 이름] 표기 통일 */}
                   {isSelected ? (
                     <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                   ) : (
                     <Plus className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   )}
                   <span>{opt}</span>
+                  {isRecommended && (
+                    <span
+                      className={`text-[9px] font-bold px-1 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
+                        isSelected
+                          ? 'text-amber-300 bg-amber-950/60 border-amber-400/40'
+                          : 'text-amber-700 bg-amber-50 border-amber-300'
+                      }`}
+                    >
+                      <Sparkles className="w-2.5 h-2.5 text-amber-500 shrink-0" />
+                      <span>추천</span>
+                    </span>
+                  )}
                   {isCustom && (
-                    <span className="text-[9px] font-semibold text-indigo-600 bg-indigo-50 px-1 py-0.2 rounded border border-indigo-200">
+                    <span className="text-[9px] font-semibold text-indigo-600 bg-indigo-50 px-1 py-0.2 rounded border border-indigo-200 shrink-0">
                       직접선택
                     </span>
                   )}
@@ -403,16 +420,20 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             {visibleTopOptions.map((opt) => {
               const isSelected = selection.top.includes(opt);
               const isCustom = !dynamicOptions.top.includes(opt);
+              const isRecommended = currentRule.recommend.top.includes(opt);
+
               return (
                 <div
                   key={opt}
                   className={`inline-flex items-center rounded-xl border text-xs font-medium transition-all duration-150 select-none ${
                     isSelected
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                      : isRecommended
+                      ? 'bg-amber-50/40 text-slate-800 border-amber-300 hover:bg-amber-100/50'
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
-                  {/* 요구사항 3: [+ 이름] 레이아웃 통일 - 좌측에 + / ✓ 아이콘 배치 */}
+                  {/* 좌측 아이콘 (다중 선택 토글) */}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -439,6 +460,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     )}
                   </button>
 
+                  {/* 우측 텍스트 (단일 선택 전환) */}
                   <button
                     type="button"
                     onClick={() => handleMultiSelectCardClick('top', opt)}
@@ -452,8 +474,20 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }
                   >
                     <span>{opt}</span>
+                    {isRecommended && (
+                      <span
+                        className={`text-[9px] font-bold px-1 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
+                          isSelected
+                            ? 'text-amber-300 bg-amber-950/60 border-amber-400/40'
+                            : 'text-amber-700 bg-amber-50 border-amber-300'
+                        }`}
+                      >
+                        <Sparkles className="w-2.5 h-2.5 text-amber-500 shrink-0" />
+                        <span>추천</span>
+                      </span>
+                    )}
                     {isCustom && (
-                      <span className="text-[9px] font-semibold text-indigo-400 bg-indigo-950/40 px-1 py-0.2 rounded border border-indigo-400/40">
+                      <span className="text-[9px] font-semibold text-indigo-400 bg-indigo-950/40 px-1 py-0.2 rounded border border-indigo-400/40 shrink-0">
                         직접선택
                       </span>
                     )}
@@ -497,16 +531,20 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             {visibleBottomOptions.map((opt) => {
               const isSelected = selection.bottom.includes(opt);
               const isCustom = !dynamicOptions.bottom.includes(opt);
+              const isRecommended = currentRule.recommend.bottom.includes(opt);
+
               return (
                 <div
                   key={opt}
                   className={`inline-flex items-center rounded-xl border text-xs font-medium transition-all duration-150 select-none ${
                     isSelected
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                      : isRecommended
+                      ? 'bg-amber-50/40 text-slate-800 border-amber-300 hover:bg-amber-100/50'
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
-                  {/* 요구사항 3: [+ 이름] 레이아웃 통일 - 좌측에 + / ✓ 아이콘 배치 */}
+                  {/* 좌측 아이콘 (다중 선택 토글) */}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -533,6 +571,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     )}
                   </button>
 
+                  {/* 우측 텍스트 (단일 선택 전환) */}
                   <button
                     type="button"
                     onClick={() => handleMultiSelectCardClick('bottom', opt)}
@@ -546,8 +585,20 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }
                   >
                     <span>{opt}</span>
+                    {isRecommended && (
+                      <span
+                        className={`text-[9px] font-bold px-1 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
+                          isSelected
+                            ? 'text-amber-300 bg-amber-950/60 border-amber-400/40'
+                            : 'text-amber-700 bg-amber-50 border-amber-300'
+                        }`}
+                      >
+                        <Sparkles className="w-2.5 h-2.5 text-amber-500 shrink-0" />
+                        <span>추천</span>
+                      </span>
+                    )}
                     {isCustom && (
-                      <span className="text-[9px] font-semibold text-indigo-400 bg-indigo-950/40 px-1 py-0.2 rounded border border-indigo-400/40">
+                      <span className="text-[9px] font-semibold text-indigo-400 bg-indigo-950/40 px-1 py-0.2 rounded border border-indigo-400/40 shrink-0">
                         직접선택
                       </span>
                     )}
@@ -589,6 +640,8 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             {visibleItemOptions.map((opt) => {
               const isSelected = selection.items.includes(opt);
               const isCustom = !dynamicOptions.items.includes(opt);
+              const isRecommended = currentRule.recommend.item.includes(opt);
+
               return (
                 <button
                   key={opt}
@@ -597,18 +650,31 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   className={`min-h-[38px] px-3 py-1.5 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${
                     isSelected
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                      : isRecommended
+                      ? 'bg-amber-50/40 text-slate-800 border-amber-300 hover:bg-amber-100/50'
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
-                  {/* 요구사항 3: [+ 이름] 및 [✓ 이름] 표기 통일 */}
                   {isSelected ? (
                     <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                   ) : (
                     <Plus className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   )}
                   <span>{opt}</span>
+                  {isRecommended && (
+                    <span
+                      className={`text-[9px] font-bold px-1 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
+                        isSelected
+                          ? 'text-amber-300 bg-amber-950/60 border-amber-400/40'
+                          : 'text-amber-700 bg-amber-50 border-amber-300'
+                      }`}
+                    >
+                      <Sparkles className="w-2.5 h-2.5 text-amber-500 shrink-0" />
+                      <span>추천</span>
+                    </span>
+                  )}
                   {isCustom && (
-                    <span className="text-[9px] font-semibold text-indigo-600 bg-indigo-50 px-1 py-0.2 rounded border border-indigo-200">
+                    <span className="text-[9px] font-semibold text-indigo-600 bg-indigo-50 px-1 py-0.2 rounded border border-indigo-200 shrink-0">
                       직접선택
                     </span>
                   )}
