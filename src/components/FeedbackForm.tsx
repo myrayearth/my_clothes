@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { OutfitSelection } from '@/types/outfit';
-import { UserCondition } from '@/types/database';
+import { UserCondition, UserGender } from '@/types/database';
 import { createOutfitLog } from '@/lib/storage';
 import { formatScoreTemp } from '@/lib/matcher';
 import {
@@ -29,6 +29,7 @@ interface FeedbackFormProps {
   onChangeUserCondition: (cond: UserCondition) => void;
   onRequireUserChange?: () => void;
   onKakaoLogin?: () => void;
+  gender?: UserGender;
 }
 
 const conditionOptions: {
@@ -58,7 +59,7 @@ const conditionOptions: {
   {
     value: '활동량많음',
     label: '활동량많음',
-    desc: '발열 고려 (+1.5°C)',
+    desc: '체감온도 +1.5°C',
     icon: <Activity className="w-3.5 h-3.5 text-rose-500 shrink-0" />,
   },
 ];
@@ -73,9 +74,11 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
   onLogSaved,
   userCondition,
   onChangeUserCondition,
+  onRequireUserChange,
   onKakaoLogin,
+  gender = 'male',
 }) => {
-  // 기본값: 0 (적정) / 확장 범위: -5 ~ +5
+  // 체감 온도 편차 점수 (-5 ~ +5)
   const [tempOffset, setTempOffset] = useState<number>(0);
   const [memo, setMemo] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -84,7 +87,6 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
     isFallback: boolean;
   } | null>(null);
 
-  // 게스트(비로그인) 여부
   const isGuest =
     !userName ||
     userName.trim() === '기본 사용자' ||
@@ -142,6 +144,16 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
 
   const offsetInfo = getOffsetInfo(tempOffset);
 
+  // 시간대 명칭 매핑 (아침, 낮, 저녁, 현재)
+  const getSlotName = (slot: string) => {
+    if (slot === '08:00') return '아침';
+    if (slot === '13:00') return '낮';
+    if (slot === '19:00') return '저녁';
+    return '현재';
+  };
+  const slotLabel = getSlotName(timeSlot);
+  const titleText = `오늘의 ${slotLabel}(${currentTemp}°C) 복장 체감 평가`;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -163,6 +175,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
         score: tempOffset, // -5 ~ +5 체감 평가 점수 저장
         condition: userCondition,
         memo: memo.trim() || undefined,
+        gender,
       });
 
       setFeedbackSuccess({
@@ -190,7 +203,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
 
   return (
     <div className="bg-white rounded-2xl shadow-xs border border-slate-200/90 p-4 sm:p-5 space-y-4">
-      {/* 폼 상단 헤더 */}
+      {/* 폼 상단 헤더 - 요구사항: '오늘의 xx 복장 체감 평가' */}
       <div className="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
@@ -198,7 +211,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-800">
-              오늘의 복장 체감 평가 (-5 ~ +5)
+              {titleText}
             </h3>
             <p className="text-[11px] text-slate-400">
               {isGuest
@@ -248,103 +261,100 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
               className="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 focus:outline-none touch-manipulation"
             />
             {/* 눈금 라벨 (-5 ~ +5) */}
-            <div className="flex items-center justify-between text-[11px] font-medium mt-2">
-              <span className="text-blue-600 font-bold">-5 : 매우 추움</span>
-              <span className="text-sky-600 hidden sm:inline">-3 : 쌀쌀</span>
-              <span className="text-emerald-600 font-bold">0 : 적정 (딱 맞음)</span>
-              <span className="text-amber-600 hidden sm:inline">+3 : 더움</span>
-              <span className="text-rose-600 font-bold">+5 : 매우 더움</span>
+            <div className="flex justify-between text-[11px] text-slate-400 mt-2 font-medium px-0.5">
+              <span className="text-blue-600 font-bold">-5°C (매우 추움)</span>
+              <span className="text-slate-400 hidden xs:inline">-2.5°C</span>
+              <span className="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                0°C (적정)
+              </span>
+              <span className="text-slate-400 hidden xs:inline">+2.5°C</span>
+              <span className="text-rose-600 font-bold">+5°C (매우 더움)</span>
             </div>
           </div>
         </div>
 
-        {/* 2. 컨디션 라디오 그룹 */}
-        <div className="space-y-2 pt-1">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-bold text-slate-700">
-              내 오늘의 컨디션
-            </label>
-            <span className="text-[10px] text-slate-400">
-              체감 보정
+        {/* 2. 오늘 내 몸 컨디션 선택 */}
+        <div className="space-y-2 pt-1 border-t border-slate-100">
+          <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+            <span>나의 현재 신체 컨디션</span>
+            <span className="text-[10px] text-slate-400 font-normal">
+              (체감 온도 보정 계수)
             </span>
-          </div>
+          </label>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {conditionOptions.map((opt) => {
-              const isSelected = userCondition === opt.value;
+            {conditionOptions.map((cond) => {
+              const isSelected = userCondition === cond.value;
               return (
                 <button
-                  key={opt.value}
+                  key={cond.value}
                   type="button"
-                  onClick={() => onChangeUserCondition(opt.value)}
-                  className={`min-h-[52px] p-2 sm:p-2.5 rounded-xl border text-left transition-all active:scale-95 touch-manipulation select-none ${
+                  onClick={() => onChangeUserCondition(cond.value)}
+                  className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all duration-150 touch-manipulation select-none ${
                     isSelected
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs ring-1 ring-slate-900'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                      ? 'bg-blue-50/80 border-blue-500 text-blue-900 shadow-2xs ring-1 ring-blue-500/30'
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
-                  <div className="flex items-center gap-1.5 font-bold text-xs">
-                    {opt.icon}
-                    <span>{opt.label}</span>
+                  <div className="flex items-center gap-1 font-semibold text-xs mb-0.5">
+                    {cond.icon}
+                    <span>{cond.label}</span>
                   </div>
-                  <div
-                    className={`text-[10px] mt-0.5 truncate ${
-                      isSelected ? 'text-slate-300' : 'text-slate-400'
-                    }`}
-                  >
-                    {opt.desc}
-                  </div>
+                  <span className="text-[10px] text-slate-400 font-normal">
+                    {cond.desc}
+                  </span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* 3. 한 줄 메모 입력창 */}
-        <div className="space-y-1.5 pt-1">
-          <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-            <MessageSquare className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>착용 메모 (선택사항)</span>
+        {/* 3. 간단한 착용 한줄 메모 */}
+        <div className="space-y-1.5 pt-1 border-t border-slate-100">
+          <label
+            htmlFor="feedback-memo"
+            className="text-xs font-bold text-slate-700 flex items-center gap-1"
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
+            <span>오늘의 코디 한줄 메모 (선택)</span>
           </label>
           <input
+            id="feedback-memo"
             type="text"
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
-            placeholder="바람이 많이 불었음, 지하철 안이 더웠음 등..."
+            placeholder="예: 바람이 불어서 목도리 하길 잘했음, 지하철에서는 다소 더웠음"
+            className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
             maxLength={100}
-            className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder-slate-400 touch-manipulation"
           />
         </div>
 
-        {/* 4. 저장 버튼 & 성공 안내 피드백 */}
-        <div className="pt-1">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full min-h-[46px] py-3 active:scale-[0.99] font-bold text-sm rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 touch-manipulation bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>평가 저장 중...</span>
-              </>
-            ) : (
-              <>
-                <Send className="w-4 h-4" />
-                <span>
-                  {isGuest
-                    ? '오늘 복장 체감 피드백 등록하기 (게스트)'
-                    : `오늘 복장 체감 저장하기 (${userName})`}
-                </span>
-              </>
-            )}
-          </button>
-        </div>
+        {/* 4. 제출 버튼 */}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-xs text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.99] transition-all shadow-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>피드백 저장 중...</span>
+            </>
+          ) : (
+            <>
+              <Send className="w-4 h-4" />
+              <span>{titleText} 저장하기</span>
+            </>
+          )}
+        </button>
 
+        {/* 성공 피드백 알림 배너 */}
         {feedbackSuccess && (
           <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-xs text-emerald-800 animate-in fade-in slide-in-from-top-1">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <div className="flex-1 font-medium">{feedbackSuccess.message}</div>
+            <div className="flex-1 font-medium">
+              <p>{feedbackSuccess.message}</p>
+            </div>
           </div>
         )}
       </form>

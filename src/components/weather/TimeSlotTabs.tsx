@@ -1,7 +1,7 @@
 import React from 'react';
 import { TargetTimeSlot, TimeSlotWeatherItem } from '@/types/weather';
 import { WeatherIcon } from '@/components/common/WeatherIcon';
-import { Clock, Briefcase, Sun, Home } from 'lucide-react';
+import { Clock, Briefcase, Sun, Home, Sparkles } from 'lucide-react';
 
 interface TimeSlotTabsProps {
   timeSlots: Record<TargetTimeSlot, TimeSlotWeatherItem>;
@@ -13,6 +13,11 @@ const slotMeta: Record<
   TargetTimeSlot,
   { label: string; icon: React.ReactNode; sub: string }
 > = {
+  'current': {
+    label: '현재',
+    sub: '실시간',
+    icon: <Sparkles className="w-3.5 h-3.5" />,
+  },
   '08:00': {
     label: '08시',
     sub: '아침',
@@ -35,7 +40,7 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
   selectedSlot,
   onSelectSlot,
 }) => {
-  const slots: TargetTimeSlot[] = ['08:00', '13:00', '19:00'];
+  const slots: TargetTimeSlot[] = ['current', '08:00', '13:00', '19:00'];
 
   return (
     <div className="w-full">
@@ -49,9 +54,10 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
         </span>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+      <div className="grid grid-cols-2 xs:grid-cols-4 sm:grid-cols-4 gap-2 sm:gap-2.5">
         {slots.map((slot) => {
           const item = timeSlots[slot];
+          if (!item) return null;
           const isSelected = selectedSlot === slot;
           const meta = slotMeta[slot];
 

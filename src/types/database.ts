@@ -2,6 +2,8 @@ export type UserCondition = '정상' | '피곤' | '감기' | '활동량많음';
 
 export type UserRole = 'admin' | 'user';
 
+export type UserGender = 'male' | 'female';
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -9,6 +11,7 @@ export interface UserProfile {
   avatar_url?: string | null;
   email?: string | null;
   role?: UserRole | null;
+  gender?: UserGender | null;
 }
 
 export interface OutfitLog {
@@ -18,7 +21,7 @@ export interface OutfitLog {
   location_name: string;
   target_temp: number;
   apparent_temp: number;
-  time_slot: string; // '08:00' | '13:00' | '19:00'
+  time_slot: string; // 'current' | '08:00' | '13:00' | '19:00'
   selected_outer: string;
   selected_top: string[]; // 다중 선택 (레이어드 지원)
   selected_bottom: string[]; // 다중 선택
@@ -26,6 +29,7 @@ export interface OutfitLog {
   score: number; // 체감 온도 편차: -5°C ~ 0°C ~ +5°C
   condition: UserCondition;
   memo?: string;
+  gender?: UserGender;
 }
 
 export type NewOutfitLogInput = Omit<OutfitLog, 'id' | 'created_at'>;
@@ -60,6 +64,7 @@ export interface TemperatureEvaluation {
   score: number;
   condition: UserCondition;
   memo?: string | null;
+  gender?: UserGender;
 }
 
 export type NewTemperatureEvaluationInput = Omit<TemperatureEvaluation, 'id' | 'created_at'>;

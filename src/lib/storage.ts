@@ -523,6 +523,7 @@ export async function createOutfitLog(input: NewOutfitLogInput): Promise<{
             score: input.score,
             condition: input.condition,
             memo: input.memo,
+            gender: input.gender || 'male',
           },
         ])
         .select()
@@ -548,6 +549,7 @@ export async function createOutfitLog(input: NewOutfitLogInput): Promise<{
               score: input.score,
               condition: input.condition,
               memo: input.memo || null,
+              gender: input.gender || 'male',
             },
           ]);
         } catch (syncErr) {

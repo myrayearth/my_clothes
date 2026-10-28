@@ -2,7 +2,9 @@
 
 import React from 'react';
 import { OutfitCategory } from '@/types/outfit';
+import { UserGender } from '@/types/database';
 import { getAllUniqueCategoryItems } from '@/lib/outfit';
+import { filterItemsByGender } from '@/lib/gender';
 import { X, Check, Shirt } from 'lucide-react';
 
 interface AllItemsModalProps {
@@ -13,6 +15,7 @@ interface AllItemsModalProps {
   selectedItems: string[]; // outer의 경우 단일 문자열이 1개 원소로 전달됨
   onToggleItem: (item: string) => void;
   isSingleSelect?: boolean;
+  gender?: UserGender;
 }
 
 export const AllItemsModal: React.FC<AllItemsModalProps> = ({
@@ -23,6 +26,7 @@ export const AllItemsModal: React.FC<AllItemsModalProps> = ({
   selectedItems,
   onToggleItem,
   isSingleSelect = false,
+  gender = 'male',
 }) => {
   if (!isOpen) return null;
 
@@ -30,6 +34,8 @@ export const AllItemsModal: React.FC<AllItemsModalProps> = ({
   const rawItems = allItemsMap[category] || [];
   // OUTER에서 '없음' 항목 제외
   const allCategoryItems = category === 'outer' ? rawItems.filter((i) => i !== '없음') : rawItems;
+  // 남성 선택 시 여성 전용 복장 필터링
+  const filteredItems = filterItemsByGender(allCategoryItems, gender);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
@@ -61,14 +67,14 @@ export const AllItemsModal: React.FC<AllItemsModalProps> = ({
         {/* 아이템 목록 그리드 */}
         <div className="p-4 sm:p-5 overflow-y-auto space-y-3 flex-1 scrollbar-thin">
           <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
-            <span>총 {allCategoryItems.length}개 의류 아이템</span>
+            <span>총 {filteredItems.length}개 의류 아이템 ({gender === 'male' ? '남성' : '여성'})</span>
             <span className="text-blue-600 font-semibold">
               현재 {selectedItems.filter((x) => x && x !== '없음').length}개 선택됨
             </span>
           </div>
 
           <div className="flex flex-wrap gap-2 pt-1">
-            {allCategoryItems.map((item) => {
+            {filteredItems.map((item) => {
               const isSelected = selectedItems.includes(item);
               return (
                 <button
@@ -101,13 +107,16 @@ export const AllItemsModal: React.FC<AllItemsModalProps> = ({
         </div>
 
         {/* 모달 푸터 */}
-        <div className="p-4 border-t border-slate-100 flex items-center justify-end bg-slate-50/50">
+        <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <span className="text-xs text-slate-500">
+            선택을 마친 후 닫기 버튼을 누르면 추천 화면에 반영됩니다.
+          </span>
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-xs"
+            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition-all shadow-xs"
           >
-            선택 완료
+            확인
           </button>
         </div>
       </div>

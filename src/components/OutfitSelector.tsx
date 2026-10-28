@@ -2,11 +2,12 @@
 
 import React, { useState, useMemo } from 'react';
 import { OutfitRuleStep, OutfitSelection, OutfitCategory } from '@/types/outfit';
+import { OutfitLog, UserGender } from '@/types/database';
 import { getOutfitRuleByTemperature, getDefaultOutfitSelection } from '@/lib/outfit';
 import {
-  TemperatureAggregatedResult,
-  getPrioritizedOutfitOptions,
+  calculateWeightedRecommendations,
 } from '@/lib/recommendation';
+import { filterItemsByGender } from '@/lib/gender';
 import { AllItemsModal } from '@/components/outfit/AllItemsModal';
 import { Shirt, RotateCcw, Check, Plus, ExternalLink, Sparkles } from 'lucide-react';
 
@@ -15,7 +16,10 @@ interface OutfitSelectorProps {
   timeSlotLabel: string;
   selection: OutfitSelection;
   onChangeSelection: (newSelection: OutfitSelection) => void;
-  aggregated?: TemperatureAggregatedResult | null;
+  allLogs?: OutfitLog[];
+  currentUser?: string;
+  isLoggedIn?: boolean;
+  gender?: UserGender;
 }
 
 export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
@@ -23,29 +27,43 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
   timeSlotLabel,
   selection,
   onChangeSelection,
-  aggregated,
+  allLogs = [],
+  currentUser = '게스트',
+  isLoggedIn = false,
+  gender = 'male',
 }) => {
   const currentRule: OutfitRuleStep = getOutfitRuleByTemperature(temperature);
 
   // [모든 항목 보기] 모달 상태 관리
   const [modalCategory, setModalCategory] = useState<OutfitCategory | null>(null);
 
-  // 기온 룰셋 및 실시간 누적 집계 데이터 결합 우선순위 옵션
-  const { options: dynamicOptions, defaults: dynamicDefaults, aggregatedCount } = useMemo(() => {
-    return getPrioritizedOutfitOptions(currentRule, aggregated || null);
-  }, [currentRule, aggregated]);
+  // 성별 필터링 및 개인화/게스트 누적 가중치가 반영된 옵션 산출
+  const { options: dynamicOptions, defaults: dynamicDefaults, weights } = useMemo(() => {
+    return calculateWeightedRecommendations(
+      currentRule,
+      allLogs,
+      temperature,
+      currentUser,
+      isLoggedIn,
+      gender
+    );
+  }, [currentRule, allLogs, temperature, currentUser, isLoggedIn, gender]);
 
-  // 1. 추천값 리셋 버튼: 평가가 반영되지 않은 최초 DB/규칙 기본 추천값(recommend)으로 복원
+  // 1. 추천값 리셋 버튼: 룰셋의 순수 기본 추천값으로 복원
   const handleResetToRuleDefault = () => {
-    const baseline = getDefaultOutfitSelection(currentRule);
-    onChangeSelection(baseline);
+    const rawDefaults = getDefaultOutfitSelection(currentRule);
+    const genderFilteredDefaults: OutfitSelection = {
+      outer: filterItemsByGender([rawDefaults.outer], gender)[0] || (dynamicOptions.outer[0] || '없음'),
+      top: filterItemsByGender(rawDefaults.top, gender),
+      bottom: filterItemsByGender(rawDefaults.bottom, gender),
+      items: filterItemsByGender(rawDefaults.items, gender),
+    };
+    onChangeSelection(genderFilteredDefaults);
   };
 
-  // 2. 평가 반영 버튼: 현재 온도 누적 평가 기반 동적 추천값 적용
+  // 2. 평가 반영 버튼: 산출된 최적 추천 복장 적용
   const handleApplyAggregatedRecommendations = () => {
-    if (aggregatedCount > 0) {
-      onChangeSelection(dynamicDefaults);
-    }
+    onChangeSelection(dynamicDefaults);
   };
 
   // OUTER 단일 선택 변경 (클릭 시 선택, 이미 선택된 외투 클릭 시 '없음'으로 선택 해제 토글)
@@ -181,8 +199,9 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
   };
 
   // =========================================================================
-  // '모든 항목 보기' 선택 병합 개선:
-  // 추천 후보 목록을 100% 유지하면서, 모달에서 선택한 아이템 병합
+  // '모든 항목 보기' 선택 병합:
+  // 기본 추천 후보 목록을 유지하면서, 사용자가 추가 선택한 항목 병합
+  // (성별 필터링 반영)
   // =========================================================================
 
   // 1. OUTER 가시 목록 (추천 목록 유지 + 직접 선택한 외투 병합)
@@ -192,7 +211,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
       !dynamicOptions.outer.includes(selection.outer)
   );
   const visibleOuterOptions = useMemo(() => {
-    const base = dynamicOptions.outer.filter((opt) => opt !== '없음');
+    const base = filterItemsByGender(dynamicOptions.outer.filter((opt) => opt !== '없음'), gender);
     if (
       selection.outer &&
       selection.outer !== '없음' &&
@@ -201,40 +220,43 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
       return [...base, selection.outer];
     }
     return base;
-  }, [selection.outer, dynamicOptions.outer]);
+  }, [selection.outer, dynamicOptions.outer, gender]);
 
   // 2. TOP 가시 목록 (추천 목록 유지 + 직접 선택한 상의 병합)
   const isTopCustomSelected = selection.top.some(
     (item) => item && !dynamicOptions.top.includes(item)
   );
   const visibleTopOptions = useMemo(() => {
+    const base = filterItemsByGender(dynamicOptions.top, gender);
     const customItems = selection.top.filter(
-      (item) => item && !dynamicOptions.top.includes(item)
+      (item) => item && !base.includes(item)
     );
-    return [...dynamicOptions.top, ...customItems];
-  }, [selection.top, dynamicOptions.top]);
+    return [...base, ...customItems];
+  }, [selection.top, dynamicOptions.top, gender]);
 
   // 3. BOTTOM 가시 목록 (추천 목록 유지 + 직접 선택한 하의 병합)
   const isBottomCustomSelected = selection.bottom.some(
     (item) => item && !dynamicOptions.bottom.includes(item)
   );
   const visibleBottomOptions = useMemo(() => {
+    const base = filterItemsByGender(dynamicOptions.bottom, gender);
     const customItems = selection.bottom.filter(
-      (item) => item && !dynamicOptions.bottom.includes(item)
+      (item) => item && !base.includes(item)
     );
-    return [...dynamicOptions.bottom, ...customItems];
-  }, [selection.bottom, dynamicOptions.bottom]);
+    return [...base, ...customItems];
+  }, [selection.bottom, dynamicOptions.bottom, gender]);
 
   // 4. ITEM 가시 목록 (추천 목록 유지 + 직접 선택한 소품 병합)
   const isItemCustomSelected = selection.items.some(
     (item) => item && !dynamicOptions.items.includes(item)
   );
   const visibleItemOptions = useMemo(() => {
+    const base = filterItemsByGender(dynamicOptions.items, gender);
     const customItems = selection.items.filter(
-      (item) => item && !dynamicOptions.items.includes(item)
+      (item) => item && !base.includes(item)
     );
-    return [...dynamicOptions.items, ...customItems];
-  }, [selection.items, dynamicOptions.items]);
+    return [...base, ...customItems];
+  }, [selection.items, dynamicOptions.items, gender]);
 
   return (
     <div className="bg-white rounded-2xl shadow-xs border border-slate-200/90 p-4 sm:p-5 space-y-4">
@@ -251,19 +273,26 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
               {currentRule.label}
             </span>
-            {aggregatedCount > 0 ? (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+
+            {/* 가중치 추천 모드 뱃지 */}
+            {weights.mode === 'personal_weighted' ? (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-indigo-600" />
+                <span>개인화 반영 (내 기록 {weights.personalCount}건 / 전체 {weights.totalCount}건)</span>
+              </span>
+            ) : weights.mode === 'guest_weighted' ? (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-emerald-600" />
-                <span>누적 평가 {aggregatedCount}건 반영 중</span>
+                <span>누적 평가 반영 ({weights.guestCount}건)</span>
               </span>
             ) : (
-              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200">
-                대표 룰셋 적용
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200">
+                {weights.description}
               </span>
             )}
           </div>
           <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-            <strong className="text-blue-600 font-semibold">{currentRule.label}</strong> : 대표 추천 복장 및 맞춤 후보 선택
+            <strong className="text-blue-600 font-semibold">{currentRule.label}</strong> : {weights.description}
           </p>
         </div>
 
@@ -280,38 +309,23 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             <span>추천값 리셋</span>
           </button>
 
-          {/* 2. 평가 반영(x건) 버튼 (0건 예외 처리 및 툴팁) */}
-          <div className="relative group">
-            <button
-              type="button"
-              onClick={handleApplyAggregatedRecommendations}
-              disabled={aggregatedCount === 0}
-              title={
-                aggregatedCount === 0
-                  ? '해당 온도의 누적 평가 데이터가 없습니다.'
-                  : `누적 평가 ${aggregatedCount}건을 반영한 추천 복장 적용`
-              }
-              className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all border touch-manipulation ${
-                aggregatedCount === 0
-                  ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
-                  : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 shadow-2xs active:scale-95 cursor-pointer font-semibold'
-              }`}
-            >
-              <Sparkles className={`w-3.5 h-3.5 ${aggregatedCount > 0 ? 'text-emerald-600' : 'text-slate-400'}`} />
-              <span>평가 반영({aggregatedCount}건)</span>
-            </button>
-            {aggregatedCount === 0 && (
-              <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block z-30 whitespace-nowrap bg-slate-900 text-white text-[11px] px-2.5 py-1 rounded-md shadow-lg border border-slate-700">
-                해당 온도의 누적 평가 데이터가 없습니다.
-              </div>
-            )}
-          </div>
+          {/* 2. 평가 반영 버튼 */}
+          <button
+            type="button"
+            onClick={handleApplyAggregatedRecommendations}
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all border touch-manipulation bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 shadow-2xs active:scale-95 cursor-pointer font-semibold"
+            title="가중치 추천 복장을 선택기에 즉시 적용"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+            <span>추천 복장 적용</span>
+          </button>
         </div>
       </div>
 
       {/* 복장 선택 섹션 목록 */}
       <div className="space-y-4">
-        {/* 1. OUTER (외투 - 단일 선택) */}
+        {/* 1. OUTER (외투 - 단일 선택)
+            요구사항: [+이름] -> [이름] 형태로 + 표시 삭제, 선택되었을 때의 체크(✓) 표시도 삭제 */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
@@ -350,7 +364,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   type="button"
                   onClick={() => handleOuterSelect(opt)}
                   title={isSelected ? '클릭하여 외투 선택 해제' : `${opt} 선택`}
-                  className={`min-h-[38px] px-3 py-1.5 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${
+                  className={`min-h-[38px] px-3.5 py-1.5 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${
                     isSelected
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                       : isRecommended
@@ -358,11 +372,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
-                  {isSelected ? (
-                    <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                  ) : (
-                    <Plus className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  )}
+                  {/* + 표시 삭제, 선택 시 체크 표시도 삭제: 순수 [이름] 형태 */}
                   <span>{opt}</span>
                   {isRecommended && (
                     <span
@@ -387,14 +397,15 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
         </div>
 
-        {/* 2. TOP (상의 - 다중 선택) */}
+        {/* 2. TOP (상의 - 다중 선택)
+            요구사항: 상의, 하의 '다중 선택' -> '+ 로 레이어드' */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <span>TOP (상의)</span>
                 <span className="text-[10px] text-blue-600 bg-blue-50 font-medium px-1.5 py-0.2 rounded">
-                  다중 선택
+                  + 로 레이어드
                 </span>
               </label>
               {isTopCustomSelected && (
@@ -433,7 +444,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
-                  {/* 좌측 아이콘 (다중 선택 토글) */}
+                  {/* 좌측 + / ✓ 아이콘 (레이어드 추가 및 해제) */}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -450,7 +461,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                         ? selection.top.length === 1
                           ? '최소 1개의 상의가 선택되어야 합니다.'
                           : '선택 해제'
-                        : `${opt} 추가 (다중 선택)`
+                        : `${opt} 레이어드 추가`
                     }
                   >
                     {isSelected ? (
@@ -498,14 +509,15 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
         </div>
 
-        {/* 3. BOTTOM (하의 - 다중 선택) */}
+        {/* 3. BOTTOM (하의 - 다중 선택)
+            요구사항: 상의, 하의 '다중 선택' -> '+ 로 레이어드' */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <span>BOTTOM (하의)</span>
                 <span className="text-[10px] text-blue-600 bg-blue-50 font-medium px-1.5 py-0.2 rounded">
-                  다중 선택
+                  + 로 레이어드
                 </span>
               </label>
               {isBottomCustomSelected && (
@@ -544,7 +556,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
-                  {/* 좌측 아이콘 (다중 선택 토글) */}
+                  {/* 좌측 + / ✓ 아이콘 (레이어드 추가 및 해제) */}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -561,7 +573,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                         ? selection.bottom.length === 1
                           ? '최소 1개의 하의가 선택되어야 합니다.'
                           : '선택 해제'
-                        : `${opt} 추가 (다중 선택)`
+                        : `${opt} 레이어드 추가`
                     }
                   >
                     {isSelected ? (
@@ -609,7 +621,8 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
         </div>
 
-        {/* 4. ITEM (소품 - 다중 선택) */}
+        {/* 4. ITEM (소품 - 다중 선택)
+            요구사항: [+이름] -> [이름] 형태로 + 표시 삭제, 선택 시 체크(✓) 표시는 유지 */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
@@ -647,7 +660,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   key={opt}
                   type="button"
                   onClick={() => handleItemToggle(opt)}
-                  className={`min-h-[38px] px-3 py-1.5 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${
+                  className={`min-h-[38px] px-3.5 py-1.5 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${
                     isSelected
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                       : isRecommended
@@ -655,10 +668,9 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
-                  {isSelected ? (
+                  {/* + 표시 삭제, 선택 시에만 체크(✓) 표시 유지 */}
+                  {isSelected && (
                     <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                  ) : (
-                    <Plus className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   )}
                   <span>{opt}</span>
                   {isRecommended && (
@@ -746,6 +758,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             }
           }}
           isSingleSelect={modalCategory === 'outer'}
+          gender={gender}
         />
       )}
     </div>

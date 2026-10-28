@@ -128,6 +128,16 @@ export function processWeatherData(raw: ForecastApiResponse): ProcessedWeatherDa
   );
   const currentWeatherCode = hourly.weather_code[currentHourlyIndex] ?? 0;
 
+  // 실시간 현재 시간 슬롯 추가
+  timeSlotsResult['current'] = {
+    slot: 'current',
+    timeString: '현재',
+    temperature: currentTemp,
+    apparentTemperature: currentApparentTemp,
+    weatherCode: currentWeatherCode,
+    weatherLabel: getWeatherInterpretation(currentWeatherCode).label,
+  };
+
   // 7일 일간 예보 생성
   const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
   const dailyForecast: DailyForecastItem[] = daily.time.map((dateStr, idx) => {

@@ -20,7 +20,7 @@ export interface ForecastApiResponse {
   daily: DailyWeather;
 }
 
-export type TargetTimeSlot = '08:00' | '13:00' | '19:00';
+export type TargetTimeSlot = 'current' | '08:00' | '13:00' | '19:00';
 
 export interface TimeSlotWeatherItem {
   slot: TargetTimeSlot;
