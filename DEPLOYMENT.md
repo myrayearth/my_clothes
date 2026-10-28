@@ -110,11 +110,11 @@ git push -u origin main
 3. **Build and Output Settings**: 기본값 유지 (`npm run build`)
 4. **Environment Variables** 아코디언 메뉴를 열고 아래 세 가지 환경 변수를 추가합니다:
 
-| KEY | VALUE 예시 | 설명 |
+| KEY | VALUE | 설명 |
 | :--- | :--- | :--- |
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://your-project-id.supabase.co` | 3단계에서 취득한 Supabase Project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6...` | 3단계에서 취득한 `anon` public key |
-| `NEXT_PUBLIC_APP_URL` | `https://your-domain.vercel.app` | Vercel 기본 부여 도메인 또는 커스텀 도메인 |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://fnrbqceinbksdfasdqvp.supabase.co` | 연동된 Supabase 프로젝트 URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZucmJxY2VpbmJrc2RmYXNkcXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxNDAzNDAsImV4cCI6MjEwODcxNjM0MH0.3e78J3L7GTK-ACSkoYj6NYYnJ0xmYH5O-gUPob2nXZM` | Supabase 클라이언트용 `anon` public key |
+| `NEXT_PUBLIC_APP_URL` | `https://your-domain.vercel.app` (또는 Vercel 기본 주소) | 배포 완료 후 발급되는 도메인 |
 
 5. 하단의 **`Deploy`** 버튼을 클릭합니다.
 
