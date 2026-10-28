@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
-import { OutfitRuleStep, OutfitSelection } from '@/types/outfit';
+import React, { useState } from 'react';
+import { OutfitRuleStep, OutfitSelection, OutfitCategory } from '@/types/outfit';
 import { getOutfitRuleByTemperature, getDefaultOutfitSelection } from '@/lib/outfit';
-import { Shirt, RotateCcw, Check, Layers, Plus } from 'lucide-react';
+import { AllItemsModal } from '@/components/outfit/AllItemsModal';
+import { Shirt, RotateCcw, Check, Layers, Plus, ExternalLink } from 'lucide-react';
 
 interface OutfitSelectorProps {
   temperature: number;
@@ -20,31 +21,55 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 }) => {
   const currentRule: OutfitRuleStep = getOutfitRuleByTemperature(temperature);
 
+  // [모든 항목 보기] 모달 상태 관리
+  const [modalCategory, setModalCategory] = useState<OutfitCategory | null>(null);
+
   const handleResetToDefault = () => {
     onChangeSelection(getDefaultOutfitSelection(currentRule));
   };
 
-  const handleOuterChange = (outerItem: string) => {
+  // OUTER 단일 선택 변경
+  const handleOuterSelect = (outerItem: string) => {
     onChangeSelection({
       ...selection,
       outer: outerItem,
     });
   };
 
-  const handleTopChange = (topItem: string) => {
+  // TOP 다중 토글 (있으면 제거, 없으면 추가. 최소 1개는 유지)
+  const handleTopToggle = (topItem: string) => {
+    const isSelected = selection.top.includes(topItem);
+    let newTop: string[];
+    if (isSelected) {
+      newTop = selection.top.filter((t) => t !== topItem);
+      // 최소 1개 유지 방어 (모두 해제 방지)
+      if (newTop.length === 0) newTop = [topItem];
+    } else {
+      newTop = [...selection.top, topItem];
+    }
     onChangeSelection({
       ...selection,
-      top: topItem,
+      top: newTop,
     });
   };
 
-  const handleBottomChange = (bottomItem: string) => {
+  // BOTTOM 다중 토글
+  const handleBottomToggle = (bottomItem: string) => {
+    const isSelected = selection.bottom.includes(bottomItem);
+    let newBottom: string[];
+    if (isSelected) {
+      newBottom = selection.bottom.filter((b) => b !== bottomItem);
+      if (newBottom.length === 0) newBottom = [bottomItem];
+    } else {
+      newBottom = [...selection.bottom, bottomItem];
+    }
     onChangeSelection({
       ...selection,
-      bottom: bottomItem,
+      bottom: newBottom,
     });
   };
 
+  // ITEM 다중 토글
   const handleItemToggle = (item: string) => {
     const isSelected = selection.items.includes(item);
     const newItems = isSelected
@@ -94,14 +119,25 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
         {/* 1. OUTER (외투 - 단일 선택) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
-            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-              <span>OUTER (외투)</span>
-              <span className="text-[10px] text-slate-400 font-normal">단일 선택</span>
-            </label>
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <span>OUTER (외투)</span>
+                <span className="text-[10px] text-slate-400 font-normal">단일 선택</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setModalCategory('outer')}
+                className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 underline underline-offset-2"
+              >
+                <span>[모든 항목 보기]</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
             <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md truncate max-w-[160px]">
               선택: {selection.outer}
             </span>
           </div>
+
           <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {currentRule.options.outer.map((opt) => {
               const isSelected = selection.outer === opt;
@@ -109,7 +145,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                 <button
                   key={opt}
                   type="button"
-                  onClick={() => handleOuterChange(opt)}
+                  onClick={() => handleOuterSelect(opt)}
                   className={`min-h-[38px] px-3 py-1.5 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${
                     isSelected
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
@@ -124,32 +160,49 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
         </div>
 
-        {/* 2. TOP (상의 - 단일 선택) */}
+        {/* 2. TOP (상의 - 다중 선택 토글) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
-            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-              <span>TOP (상의)</span>
-              <span className="text-[10px] text-slate-400 font-normal">단일 선택</span>
-            </label>
-            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md truncate max-w-[160px]">
-              선택: {selection.top}
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <span>TOP (상의)</span>
+                <span className="text-[10px] text-blue-600 bg-blue-50 font-medium px-1.5 py-0.2 rounded">
+                  다중 선택 가능 (레이어드)
+                </span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setModalCategory('top')}
+                className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 underline underline-offset-2"
+              >
+                <span>[모든 항목 보기]</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
+            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md truncate max-w-[180px]">
+              선택 ({selection.top.length}): {selection.top.join(' + ')}
             </span>
           </div>
+
           <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {currentRule.options.top.map((opt) => {
-              const isSelected = selection.top === opt;
+              const isSelected = selection.top.includes(opt);
               return (
                 <button
                   key={opt}
                   type="button"
-                  onClick={() => handleTopChange(opt)}
+                  onClick={() => handleTopToggle(opt)}
                   className={`min-h-[38px] px-3 py-1.5 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${
                     isSelected
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
-                  {isSelected && <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                  {isSelected ? (
+                    <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  ) : (
+                    <Plus className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  )}
                   <span>{opt}</span>
                 </button>
               );
@@ -157,32 +210,49 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
         </div>
 
-        {/* 3. BOTTOM (하의 - 단일 선택) */}
+        {/* 3. BOTTOM (하의 - 다중 선택 토글) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
-            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-              <span>BOTTOM (하의)</span>
-              <span className="text-[10px] text-slate-400 font-normal">단일 선택</span>
-            </label>
-            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md truncate max-w-[160px]">
-              선택: {selection.bottom}
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <span>BOTTOM (하의)</span>
+                <span className="text-[10px] text-blue-600 bg-blue-50 font-medium px-1.5 py-0.2 rounded">
+                  다중 선택 가능
+                </span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setModalCategory('bottom')}
+                className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 underline underline-offset-2"
+              >
+                <span>[모든 항목 보기]</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
+            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md truncate max-w-[180px]">
+              선택 ({selection.bottom.length}): {selection.bottom.join(' + ')}
             </span>
           </div>
+
           <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {currentRule.options.bottom.map((opt) => {
-              const isSelected = selection.bottom === opt;
+              const isSelected = selection.bottom.includes(opt);
               return (
                 <button
                   key={opt}
                   type="button"
-                  onClick={() => handleBottomChange(opt)}
+                  onClick={() => handleBottomToggle(opt)}
                   className={`min-h-[38px] px-3 py-1.5 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${
                     isSelected
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
-                  {isSelected && <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                  {isSelected ? (
+                    <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  ) : (
+                    <Plus className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  )}
                   <span>{opt}</span>
                 </button>
               );
@@ -193,16 +263,27 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
         {/* 4. ITEM (소품/기타 - 다중 토글 칩) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
-            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-              <span>ITEM (소품 및 방한/냉방 아이템)</span>
-              <span className="text-[10px] text-indigo-600 bg-indigo-50 font-medium px-1.5 py-0.2 rounded">
-                다중 선택
-              </span>
-            </label>
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <span>ITEM (소품 및 방한/냉방 아이템)</span>
+                <span className="text-[10px] text-indigo-600 bg-indigo-50 font-medium px-1.5 py-0.2 rounded">
+                  다중 선택
+                </span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setModalCategory('items')}
+                className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5 underline underline-offset-2"
+              >
+                <span>[모든 항목 보기]</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
             <span className="text-xs text-slate-400">
               {selection.items.length > 0 ? `${selection.items.length}개 선택` : '선택 없음'}
             </span>
           </div>
+
           <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {currentRule.options.items.map((opt) => {
               const isSelected = selection.items.includes(opt);
@@ -242,11 +323,11 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </span>
           <span className="text-slate-300">+</span>
           <span className="bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-slate-800 font-semibold shadow-2xs">
-            상의: {selection.top}
+            상의: {selection.top.join(' + ')}
           </span>
           <span className="text-slate-300">+</span>
           <span className="bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-slate-800 font-semibold shadow-2xs">
-            하의: {selection.bottom}
+            하의: {selection.bottom.join(' + ')}
           </span>
           {selection.items.length > 0 && (
             <>
@@ -258,6 +339,45 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           )}
         </div>
       </div>
+
+      {/* 전체 아이템 보기 모달 */}
+      {modalCategory && (
+        <AllItemsModal
+          isOpen={Boolean(modalCategory)}
+          onClose={() => setModalCategory(null)}
+          category={modalCategory}
+          categoryTitle={
+            modalCategory === 'outer'
+              ? '외투(OUTER)'
+              : modalCategory === 'top'
+              ? '상의(TOP)'
+              : modalCategory === 'bottom'
+              ? '하의(BOTTOM)'
+              : '소품(ITEM)'
+          }
+          selectedItems={
+            modalCategory === 'outer'
+              ? [selection.outer]
+              : modalCategory === 'top'
+              ? selection.top
+              : modalCategory === 'bottom'
+              ? selection.bottom
+              : selection.items
+          }
+          onToggleItem={(item) => {
+            if (modalCategory === 'outer') {
+              handleOuterSelect(item);
+            } else if (modalCategory === 'top') {
+              handleTopToggle(item);
+            } else if (modalCategory === 'bottom') {
+              handleBottomToggle(item);
+            } else if (modalCategory === 'items') {
+              handleItemToggle(item);
+            }
+          }}
+          isSingleSelect={modalCategory === 'outer'}
+        />
+      )}
     </div>
   );
 };

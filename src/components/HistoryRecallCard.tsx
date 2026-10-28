@@ -12,16 +12,19 @@ import {
   Calendar,
   Layers,
   CornerDownRight,
+  User,
 } from 'lucide-react';
 
 interface HistoryRecallCardProps {
   recalls: MatchedRecallRecord[];
   onApplyOutfit: (outfit: OutfitSelection) => void;
+  currentUserName: string;
 }
 
 export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
   recalls,
   onApplyOutfit,
+  currentUserName,
 }) => {
   if (!recalls || recalls.length === 0) {
     return null;
@@ -35,7 +38,7 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
         <div className="flex items-center gap-1.5 flex-wrap">
           <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
           <h3 className="text-sm font-bold text-slate-900">
-            과거 체감 기록 기반 지능형 리콜
+            {currentUserName} 님의 체감 기반 지능형 리콜
           </h3>
           <span className="text-[11px] font-semibold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200">
             {recalls.length}건 매칭 (±2°C)
@@ -75,10 +78,18 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
             };
           }
 
+          // 배열 및 단일 문자열 호환 처리
+          const topArray = Array.isArray(log.selected_top)
+            ? log.selected_top
+            : [log.selected_top];
+          const bottomArray = Array.isArray(log.selected_bottom)
+            ? log.selected_bottom
+            : [log.selected_bottom];
+
           const targetOutfit: OutfitSelection = {
             outer: log.selected_outer,
-            top: log.selected_top,
-            bottom: log.selected_bottom,
+            top: topArray,
+            bottom: bottomArray,
             items: log.selected_items || [],
           };
 
@@ -117,9 +128,15 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
                     <Layers className="w-3 h-3 text-slate-400 shrink-0" />
                     당시 착용 복장:
                   </span>
-                  <span className="text-[10px] bg-slate-100 text-slate-600 font-medium px-1.5 py-0.5 rounded">
-                    컨디션: {log.condition}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] bg-blue-50 text-blue-700 font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
+                      <User className="w-2.5 h-2.5" />
+                      {log.user_name}
+                    </span>
+                    <span className="text-[10px] bg-slate-100 text-slate-600 font-medium px-1.5 py-0.5 rounded">
+                      컨디션: {log.condition}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-1.5 font-medium leading-normal">
@@ -128,11 +145,11 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
                   </span>
                   <span className="text-slate-300">•</span>
                   <span className="bg-slate-100 px-2 py-0.5 rounded-md">
-                    상의: <strong>{log.selected_top}</strong>
+                    상의: <strong>{topArray.join(' + ')}</strong>
                   </span>
                   <span className="text-slate-300">•</span>
                   <span className="bg-slate-100 px-2 py-0.5 rounded-md">
-                    하의: <strong>{log.selected_bottom}</strong>
+                    하의: <strong>{bottomArray.join(' + ')}</strong>
                   </span>
                   {log.selected_items && log.selected_items.length > 0 && (
                     <>

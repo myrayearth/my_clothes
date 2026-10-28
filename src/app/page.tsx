@@ -4,11 +4,16 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { LocationInfo } from '@/types/location';
 import { ProcessedWeatherData, TargetTimeSlot } from '@/types/weather';
 import { OutfitSelection } from '@/types/outfit';
-import { OutfitLog, UserCondition } from '@/types/database';
+import { OutfitLog, UserCondition, UserProfile } from '@/types/database';
 import { DEFAULT_LOCATION, getSavedLocation, getCurrentLocation, saveLocation } from '@/lib/location';
 import { fetchWeatherData } from '@/lib/weather';
 import { getOutfitRuleByTemperature, getDefaultOutfitSelection } from '@/lib/outfit';
-import { fetchAllOutfitLogs } from '@/lib/storage';
+import {
+  fetchAllOutfitLogs,
+  fetchProfiles,
+  getSavedActiveUser,
+  saveActiveUser,
+} from '@/lib/storage';
 import { findMatchingRecallLogs } from '@/lib/matcher';
 import { LocationBar } from '@/components/layout/LocationBar';
 import { WeatherOverview } from '@/components/weather/WeatherOverview';
@@ -17,7 +22,8 @@ import { OutfitSelector } from '@/components/OutfitSelector';
 import { HistoryRecallCard } from '@/components/HistoryRecallCard';
 import { FeedbackForm } from '@/components/FeedbackForm';
 import { DailyForecast } from '@/components/weather/DailyForecast';
-import { RefreshCw, Shirt, AlertCircle, History } from 'lucide-react';
+import { UserProfileSelector } from '@/components/profile/UserProfileSelector';
+import { RefreshCw, Shirt, AlertCircle } from 'lucide-react';
 
 export default function Home() {
   const [location, setLocation] = useState<LocationInfo>(DEFAULT_LOCATION);
@@ -25,6 +31,10 @@ export default function Home() {
   const [selectedSlot, setSelectedSlot] = useState<TargetTimeSlot>('08:00');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 사용자 프로필 상태
+  const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [activeUser, setActiveUser] = useState<string>('기본 사용자');
 
   // 과거 복장 로그 데이터베이스 목록
   const [outfitLogs, setOutfitLogs] = useState<OutfitLog[]>([]);
@@ -34,9 +44,9 @@ export default function Home() {
 
   // 시간대별 사용자의 복장 선택 상태 (08:00, 13:00, 19:00)
   const [outfitSelections, setOutfitSelections] = useState<Record<TargetTimeSlot, OutfitSelection>>({
-    '08:00': { outer: '자켓', top: '니트', bottom: '청바지', items: [] },
-    '13:00': { outer: '없음', top: '반팔 티셔츠', bottom: '면바지', items: [] },
-    '19:00': { outer: '트렌치코트', top: '도톰한 니트', bottom: '기모바지', items: [] },
+    '08:00': { outer: '자켓', top: ['니트'], bottom: ['청바지'], items: [] },
+    '13:00': { outer: '없음', top: ['반팔 티셔츠'], bottom: ['면바지'], items: [] },
+    '19:00': { outer: '트렌치코트', top: ['도톰한 니트'], bottom: ['기모바지'], items: [] },
   });
 
   // 현재 시간에 따라 초기 타겟 시간대 결정
@@ -51,19 +61,51 @@ export default function Home() {
     }
   }, []);
 
-  // 과거 로그 데이터 로드 함수
-  const loadLogs = useCallback(async () => {
+  // 프로필 로드 함수
+  const loadProfiles = useCallback(async () => {
     try {
-      const logs = await fetchAllOutfitLogs();
+      const pList = await fetchProfiles();
+      setProfiles(pList);
+      const savedUser = getSavedActiveUser();
+      // 저장된 사용자가 유효한지 확인
+      if (pList.some((p) => p.name === savedUser)) {
+        setActiveUser(savedUser);
+      } else if (pList.length > 0) {
+        setActiveUser(pList[0].name);
+        saveActiveUser(pList[0].name);
+      }
+    } catch (err) {
+      console.error('프로필 로드 실패:', err);
+    }
+  }, []);
+
+  // 과거 로그 데이터 로드 함수 (현재 선택된 사용자 전용)
+  const loadLogs = useCallback(async (userName?: string) => {
+    const target = userName || activeUser;
+    try {
+      const logs = await fetchAllOutfitLogs(target);
       setOutfitLogs(logs);
     } catch (err) {
       console.error('과거 로그 불러오기 실패:', err);
     }
-  }, []);
+  }, [activeUser]);
 
   useEffect(() => {
-    loadLogs();
-  }, [loadLogs]);
+    loadProfiles();
+  }, [loadProfiles]);
+
+  useEffect(() => {
+    if (activeUser) {
+      loadLogs(activeUser);
+    }
+  }, [activeUser, loadLogs]);
+
+  // 사용자 전환 핸들러
+  const handleSelectUser = (userName: string) => {
+    setActiveUser(userName);
+    saveActiveUser(userName);
+    loadLogs(userName);
+  };
 
   // 날씨 데이터가 로드되면 각 시간대 기온에 맞는 8단계 추천 기본값 자동 세팅
   const initOutfitSelectionsForWeather = useCallback((data: ProcessedWeatherData) => {
@@ -136,15 +178,16 @@ export default function Home() {
   const currentSlotWeather = weather ? weather.timeSlots[selectedSlot] : null;
   const currentSlotSelection = outfitSelections[selectedSlot];
 
-  // 지능형 리콜: 현재 선택된 시간대 기온(±2°C) 및 컨디션 보정이 적용된 매칭 로그 계산
+  // 지능형 리콜: 현재 선택된 사용자의 기록만 필터링하여 매칭 계산
   const matchedRecalls = useMemo(() => {
     if (!currentSlotWeather) return [];
     return findMatchingRecallLogs(
       outfitLogs,
       currentSlotWeather.temperature,
-      userCondition
+      userCondition,
+      activeUser
     );
-  }, [outfitLogs, currentSlotWeather, userCondition]);
+  }, [outfitLogs, currentSlotWeather, userCondition, activeUser]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -157,8 +200,8 @@ export default function Home() {
 
       {/* 메인 콘텐츠 컨테이너 */}
       <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-5 space-y-5">
-        {/* 서비스 타이틀 & 새로고침 */}
-        <div className="flex items-center justify-between">
+        {/* 서비스 타이틀, 사용자 프로필 셀렉터 & 새로고침 */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-blue-600 text-white rounded-xl shadow-xs">
               <Shirt className="w-5 h-5" />
@@ -169,7 +212,7 @@ export default function Home() {
                   Weather Outfit
                 </h1>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                  v0.0.1
+                  v0.1.0
                 </span>
               </div>
               <p className="text-xs text-slate-500">
@@ -178,11 +221,19 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2 self-end sm:self-center">
+            {/* 사용자 프로필 선택 드롭다운 */}
+            <UserProfileSelector
+              currentUserName={activeUser}
+              profiles={profiles}
+              onSelectUser={handleSelectUser}
+              onProfileCreated={loadProfiles}
+            />
+
             <button
               onClick={() => {
                 loadWeather(location);
-                loadLogs();
+                loadLogs(activeUser);
               }}
               disabled={isLoading}
               className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-all disabled:opacity-50"
@@ -222,15 +273,16 @@ export default function Home() {
           />
         )}
 
-        {/* 4. 지능형 리콜 카드 (현재 기온 ±2°C 및 컨디션 보정 기록) */}
+        {/* 4. 지능형 리콜 카드 (현재 선택된 사용자 전용) */}
         {matchedRecalls.length > 0 && (
           <HistoryRecallCard
             recalls={matchedRecalls}
             onApplyOutfit={handleCurrentOutfitChange}
+            currentUserName={activeUser}
           />
         )}
 
-        {/* 5. 복장 추천 및 칩 커스터마이징 컴포넌트 */}
+        {/* 5. 복장 추천 및 칩 커스터마이징 컴포넌트 (다중 선택 & 모든 항목 보기 지원) */}
         {currentSlotWeather && currentSlotSelection && (
           <OutfitSelector
             temperature={currentSlotWeather.temperature}
@@ -249,12 +301,13 @@ export default function Home() {
         {/* 6. 오늘의 복장 체감 평가 & 피드백 폼 */}
         {currentSlotWeather && currentSlotSelection && (
           <FeedbackForm
+            userName={activeUser}
             currentTemp={currentSlotWeather.temperature}
             apparentTemp={currentSlotWeather.apparentTemperature}
             timeSlot={selectedSlot}
             locationName={location.name}
             currentOutfit={currentSlotSelection}
-            onLogSaved={loadLogs}
+            onLogSaved={() => loadLogs(activeUser)}
             userCondition={userCondition}
             onChangeUserCondition={setUserCondition}
           />
@@ -267,7 +320,7 @@ export default function Home() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.0.1</strong></p>
+        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.1.0</strong></p>
       </footer>
     </div>
   );

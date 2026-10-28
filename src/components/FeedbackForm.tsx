@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 
 interface FeedbackFormProps {
+  userName: string;
   currentTemp: number;
   apparentTemp: number;
   timeSlot: string;
@@ -62,6 +63,7 @@ const conditionOptions: {
 ];
 
 export const FeedbackForm: React.FC<FeedbackFormProps> = ({
+  userName,
   currentTemp,
   apparentTemp,
   timeSlot,
@@ -138,6 +140,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
 
     try {
       const res = await createOutfitLog({
+        user_name: userName,
         location_name: locationName,
         target_temp: currentTemp,
         apparent_temp: apparentTemp,

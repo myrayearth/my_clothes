@@ -1,17 +1,24 @@
 export type UserCondition = '정상' | '피곤' | '감기' | '활동량많음';
 
+export interface UserProfile {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
 export interface OutfitLog {
   id: string;
   created_at: string;
+  user_name: string; // 사용자 프로필명
   location_name: string;
   target_temp: number;
   apparent_temp: number;
-  time_slot: string; // '08:00' | '13:00' | '19:00' | 'morning' | 'noon' | 'evening'
+  time_slot: string; // '08:00' | '13:00' | '19:00'
   selected_outer: string;
-  selected_top: string;
-  selected_bottom: string;
+  selected_top: string[]; // 다중 선택 (레이어드 지원)
+  selected_bottom: string[]; // 다중 선택
   selected_items: string[];
-  score: number; // 체감 온도 편차: -5°C (매우 추움) ~ 0°C (적정) ~ +5°C (매우 더움)
+  score: number; // 체감 온도 편차: -5°C ~ 0°C ~ +5°C
   condition: UserCondition;
   memo?: string;
 }
@@ -26,5 +33,5 @@ export interface MatchedRecallRecord {
   categoryTitle: string;
   categoryBadge: string;
   guidanceMessage: string;
-  tempDiff: number; // 현재 기온과의 차이
+  tempDiff: number;
 }
