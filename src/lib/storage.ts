@@ -6,19 +6,32 @@ const LOCAL_PROFILES_KEY = 'weather_outfit_profiles_v1';
 const ACTIVE_USER_KEY = 'weather_outfit_active_user';
 const ACTIVE_USER_ID_KEY = 'weather_outfit_active_user_id';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const defaultSupabaseUrl = 'https://fnrbqceinbksdfasdqvp.supabase.co';
+const defaultSupabaseAnonKey =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZucmJxY2VpbmJrc2RmYXNkcXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxNDAzNDAsImV4cCI6MjEwODcxNjM0MH0.3e78J3L7GTK-ACSkoYj6NYYnJ0xmYH5O-gUPob2nXZM';
+
+const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const rawKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+// 이전 미활성화 프로젝트(pcrtjucvkxnpfzhkluje) 또는 누락 시 카카오 설정이 활성화된 현재 Supabase 프로젝트로 안전 보정
+const supabaseUrl =
+  !rawUrl || rawUrl.includes('pcrtjucvkxnpfzhkluje') || rawUrl.includes('dummy')
+    ? defaultSupabaseUrl
+    : rawUrl;
+
+const supabaseAnonKey =
+  !rawKey || rawKey.includes('dummy') || (rawUrl && rawUrl.includes('pcrtjucvkxnpfzhkluje'))
+    ? defaultSupabaseAnonKey
+    : rawKey;
 
 const isSupabaseConfigured = Boolean(
   supabaseUrl &&
     supabaseAnonKey &&
-    !supabaseUrl.includes('dummy') &&
-    !supabaseAnonKey.includes('dummy') &&
     supabaseUrl.startsWith('https://')
 );
 
 export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl!, supabaseAnonKey!)
+  ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
 /**

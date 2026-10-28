@@ -12,6 +12,22 @@
 
 ---
 
+## [v0.8.1] - 2026-10-28 (Patch Release)
+
+Vercel 환경 변수 바인딩 불일치 수정 및 Supabase 카카오 OAuth 400 validation_failed 에러 조치 릴리즈입니다. (+0.0.1 Patch 증가)
+
+### 🐛 버그 수정 및 개선 사항 (Bug Fixes & Improvements)
+- **Vercel 프로젝트 환경 변수 동기화**:
+  - Vercel 프로덕션에 카카오 로그인이 미설정된 구 Supabase 프로젝트(`pcrtjucvkxnpfzhkluje`) URL이 바인딩되어 발생하던 `400 Unsupported provider: provider is not enabled` 오류 완벽 조치
+  - Vercel의 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`를 현재 카카오 인증이 정상 활성화된 `https://fnrbqceinbksdfasdqvp.supabase.co`로 갱신 완료
+- **클라이언트 스토리지 프로젝트 안전 폴백 로직 추가 (`storage.ts`)**:
+  - 환경 변수 누락 또는 빌드 캐시 불일치 시에도 카카오 OAuth가 정상 활성화된 실서버 프로젝트로 자동 보정 연결되도록 안전망 구현
+- **Supabase Auth URL Configuration 및 Redirect URI 허용 목록 갱신**:
+  - Supabase `site_url`을 `https://my-clothes-nine.vercel.app`로 설정
+  - `uri_allow_list`에 `https://my-clothes-nine.vercel.app/**`, `https://*.vercel.app/**`, `http://localhost:3000/**` 등록 완료
+
+---
+
 ## [v0.8.0] - 2026-10-28 (Feature Release)
 
 의류 카테고리별 선택 해제 및 상/하의(TOP, BOTTOM) 최소 1개 필수 선택 유지 규칙 개편 릴리즈입니다. (+0.1.0 Minor 증가)
