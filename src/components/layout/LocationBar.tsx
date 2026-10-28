@@ -97,11 +97,13 @@ export const LocationBar: React.FC<LocationBarProps> = ({
       <div className="max-w-2xl mx-auto flex flex-col gap-2.5">
         {/* 상단: 현재 선택된 위치 라벨 및 현재 위치 가져오기 버튼 */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-slate-800 font-semibold text-sm">
+          <div className="flex items-center gap-1.5 text-slate-800 font-semibold text-sm min-w-0">
             <MapPin className="w-4 h-4 text-rose-500 shrink-0" />
-            <span className="truncate max-w-[200px] sm:max-w-xs">{currentLocation.name}</span>
-            {currentLocation.isCurrentLocation && (
-              <span className="text-[10px] bg-rose-50 text-rose-600 border border-rose-200 font-medium px-1.5 py-0.5 rounded-full">
+            <span className={`truncate max-w-[230px] sm:max-w-sm ${isLocating ? 'text-slate-400 animate-pulse' : ''}`}>
+              {isLocating ? '내 현재 위치 확인 중...' : currentLocation.name}
+            </span>
+            {currentLocation.isCurrentLocation && !currentLocation.name.startsWith('내 현재 위치') && (
+              <span className="text-[10px] bg-rose-50 text-rose-600 border border-rose-200 font-medium px-1.5 py-0.5 rounded-full shrink-0">
                 현재 위치
               </span>
             )}
@@ -110,7 +112,7 @@ export const LocationBar: React.FC<LocationBarProps> = ({
           <button
             onClick={handleGetCurrentLocation}
             disabled={isLocating || isLoadingWeather}
-            className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all px-2.5 py-1.5 rounded-lg font-medium disabled:opacity-50"
+            className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all px-2.5 py-1.5 rounded-lg font-medium disabled:opacity-50 shrink-0"
             title="GPS로 현재 위치 감지"
           >
             {isLocating ? (

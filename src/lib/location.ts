@@ -82,8 +82,91 @@ const KOREAN_CITY_MAP: Record<string, string> = {
   중구: 'Jung-gu',
 };
 
+export interface PlaceNameResult {
+  country: string;
+  city: string;
+  fullName: string;
+  displayName: string;
+}
+
 /**
- * 브라우저 Geolocation API를 통해 사용자의 현재 위/경도를 획득합니다.
+ * 위도(lat), 경도(lon) 좌표를 기반으로 무료 역지오코딩(Reverse Geocoding)을 수행하여
+ * 국가명과 도시/지역명을 반환합니다.
+ * (1차: BigDataCloud 무료 클라이언트 API -> 2차: OpenStreetMap Nominatim Fallback)
+ */
+export async function getPlaceNameFromCoords(
+  lat: number,
+  lon: number
+): Promise<PlaceNameResult> {
+  // 1차 시도: BigDataCloud Reverse Geocoding API (Key 불필요, 빠르고 정확함)
+  try {
+    const endpoint = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=ko`;
+    const res = await fetch(endpoint);
+    if (res.ok) {
+      const data = await res.json();
+      const country = data.countryName || '대한민국';
+      let rawCity = data.city || data.locality || data.principalSubdivision || '';
+      if (!rawCity && data.principalSubdivision) {
+        rawCity = data.principalSubdivision;
+      }
+      const city = rawCity ? rawCity.replace(/특별시$|광역시$/g, '') : '';
+      if (city) {
+        const fullName = `내 현재 위치 (${country}, ${city})`;
+        return {
+          country,
+          city,
+          fullName,
+          displayName: fullName,
+        };
+      }
+    }
+  } catch (e) {
+    console.warn('BigDataCloud reverse geocode failed, trying Nominatim fallback:', e);
+  }
+
+  // 2차 시도: OpenStreetMap Nominatim Fallback
+  try {
+    const endpoint = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ko`;
+    const res = await fetch(endpoint, {
+      headers: { 'User-Agent': 'WeatherOutfitApp/1.0' },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const addr = data.address || {};
+      const country = addr.country || '대한민국';
+      const rawCity =
+        addr.city ||
+        addr.borough ||
+        addr.town ||
+        addr.county ||
+        addr.province ||
+        addr.state ||
+        '';
+      const city = rawCity ? rawCity.replace(/특별시$|광역시$/g, '') : '';
+      const fullName = city ? `내 현재 위치 (${country}, ${city})` : `내 현재 위치 (${country})`;
+      return {
+        country,
+        city: city || country,
+        fullName,
+        displayName: fullName,
+      };
+    }
+  } catch (e) {
+    console.warn('Nominatim reverse geocode failed:', e);
+  }
+
+  // 3차 폴백: 기본 명칭
+  return {
+    country: '대한민국',
+    city: '현재 위치',
+    fullName: '내 현재 위치',
+    displayName: '내 현재 위치',
+  };
+}
+
+/**
+ * 브라우저 Geolocation API를 통해 사용자의 현재 위/경도를 획득하고,
+ * 역지오코딩을 거쳐 '내 현재 위치 (국가, 도시)' 형태로 상세 지명을 반환합니다.
  */
 export async function getCurrentLocation(): Promise<LocationInfo> {
   if (typeof window === 'undefined' || !navigator.geolocation) {
@@ -92,13 +175,28 @@ export async function getCurrentLocation(): Promise<LocationInfo> {
 
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          name: '내 현재 위치',
-          latitude: Number(position.coords.latitude.toFixed(4)),
-          longitude: Number(position.coords.longitude.toFixed(4)),
-          isCurrentLocation: true,
-        });
+      async (position) => {
+        const lat = Number(position.coords.latitude.toFixed(4));
+        const lon = Number(position.coords.longitude.toFixed(4));
+
+        try {
+          const place = await getPlaceNameFromCoords(lat, lon);
+          resolve({
+            name: place.fullName,
+            latitude: lat,
+            longitude: lon,
+            country: place.country,
+            admin1: place.city,
+            isCurrentLocation: true,
+          });
+        } catch {
+          resolve({
+            name: '내 현재 위치',
+            latitude: lat,
+            longitude: lon,
+            isCurrentLocation: true,
+          });
+        }
       },
       (error) => {
         let msg = '위치 정보를 가져올 수 없습니다.';
