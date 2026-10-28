@@ -171,7 +171,9 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
         target_temp: currentTemp,
         apparent_temp: apparentTemp,
         time_slot: timeSlot,
-        selected_outer: currentOutfit.outer,
+        selected_outer: Array.isArray(currentOutfit.outer)
+          ? currentOutfit.outer.filter((o) => o && o !== '없음').join(', ') || '없음'
+          : (currentOutfit.outer || '없음'),
         selected_top: currentOutfit.top,
         selected_bottom: currentOutfit.bottom,
         selected_items: currentOutfit.items,

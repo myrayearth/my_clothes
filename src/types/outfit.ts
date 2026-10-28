@@ -15,7 +15,7 @@ export interface OutfitRuleStep {
 }
 
 export interface OutfitSelection {
-  outer: string; // 단일 선택 ('없음' 포함)
+  outer: string[]; // 다중 선택 (레이어드 착용 지원)
   top: string[]; // 다중 선택 (레이어드 착용 지원)
   bottom: string[]; // 다중 선택
   items: string[]; // 다중 선택

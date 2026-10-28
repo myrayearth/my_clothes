@@ -72,13 +72,18 @@ export function clampUserOffset(userOffset: number): number {
  * 2. 총 보온 지수 하한값 설정: Math.max(0, ...) 적용하여 음수 점수 방지
  */
 export function calculateTotalInsulation(selected: {
-  outer: string;
+  outer: string | string[];
   top: string[];
   bottom: string[];
   items?: string[];
   item?: string[];
 }): number {
-  const outerScore = getItemInsulationScore(selected.outer);
+  let outerScore = 0;
+  if (Array.isArray(selected.outer)) {
+    outerScore = selected.outer.reduce((sum, item) => sum + getItemInsulationScore(item), 0);
+  } else if (selected.outer) {
+    outerScore = getItemInsulationScore(selected.outer);
+  }
 
   const topArr = selected.top || [];
   const topScore = topArr.reduce((sum, item) => sum + getItemInsulationScore(item), 0);

@@ -243,8 +243,14 @@ export function migrateItemList(items: string[]): string[] {
  * 복장 선택 객체 치환 함수
  */
 export function migrateOutfitSelection(selection: OutfitSelection): OutfitSelection {
+  const outerList = Array.isArray(selection.outer)
+    ? selection.outer
+    : selection.outer && (selection.outer as any) !== '없음'
+    ? [(selection.outer as any)]
+    : [];
+
   return {
-    outer: selection.outer ? migrateItemName(selection.outer) : '없음',
+    outer: migrateItemList(outerList),
     top: migrateItemList(selection.top),
     bottom: migrateItemList(selection.bottom),
     items: migrateItemList(selection.items),
@@ -255,13 +261,22 @@ export function migrateOutfitSelection(selection: OutfitSelection): OutfitSelect
  * 복장 로그(OutfitLog 또는 TemperatureEvaluation) 레코드 치환 함수
  */
 export function migrateOutfitLog<T extends OutfitLog | TemperatureEvaluation>(log: T): T {
+  const outerStr = log.selected_outer || '';
+  const outerList = outerStr.includes(',')
+    ? outerStr.split(',').map((s) => s.trim()).filter(Boolean)
+    : outerStr && outerStr !== '없음'
+    ? [outerStr]
+    : [];
+  const migratedOuterList = migrateItemList(outerList);
+  const finalOuterStr = migratedOuterList.length > 0 ? migratedOuterList.join(', ') : '없음';
+
   const topList = Array.isArray(log.selected_top) ? log.selected_top : (log.selected_top ? [log.selected_top] : []);
   const bottomList = Array.isArray(log.selected_bottom) ? log.selected_bottom : (log.selected_bottom ? [log.selected_bottom] : []);
   const itemsList = Array.isArray(log.selected_items) ? log.selected_items : [];
 
   return {
     ...log,
-    selected_outer: log.selected_outer ? migrateItemName(log.selected_outer) : '없음',
+    selected_outer: finalOuterStr,
     selected_top: migrateItemList(topList),
     selected_bottom: migrateItemList(bottomList),
     selected_items: migrateItemList(itemsList),

@@ -65,15 +65,15 @@ export default function HomePage() {
 
   // 시간대별 사용자의 복장 선택 상태 ('current', '08:00', '13:00', '19:00')
   const [outfitSelections, setOutfitSelections] = useState<Record<TargetTimeSlot, OutfitSelection>>({
-    'current': { outer: '없음', top: ['기본 반팔'], bottom: ['기본 긴바지'], items: [] },
-    '08:00': { outer: '없음', top: ['기본 반팔'], bottom: ['기본 긴바지'], items: [] },
-    '13:00': { outer: '없음', top: ['기본 반팔'], bottom: ['기본 긴바지'], items: [] },
-    '19:00': { outer: '없음', top: ['기본 반팔'], bottom: ['기본 긴바지'], items: [] },
+    'current': { outer: [], top: ['기본 반팔'], bottom: ['기본 긴바지'], items: [] },
+    '08:00': { outer: [], top: ['기본 반팔'], bottom: ['기본 긴바지'], items: [] },
+    '13:00': { outer: [], top: ['기본 반팔'], bottom: ['기본 긴바지'], items: [] },
+    '19:00': { outer: [], top: ['기본 반팔'], bottom: ['기본 긴바지'], items: [] },
   });
 
   // 수동 점검 복장 선택 상태
   const [manualSelection, setManualSelection] = useState<OutfitSelection>({
-    outer: '없음',
+    outer: [],
     top: ['기본 반팔'],
     bottom: ['기본 긴바지'],
     items: [],
@@ -81,9 +81,9 @@ export default function HomePage() {
 
   // 예보 복장 선택 상태 (08:00, 13:00, 19:00)
   const [forecastSelections, setForecastSelections] = useState<Record<string, OutfitSelection>>({
-    '08:00': { outer: '없음', top: ['기본 반팔'], bottom: ['기본 긴바지'], items: [] },
-    '13:00': { outer: '없음', top: ['기본 반팔'], bottom: ['기본 긴바지'], items: [] },
-    '19:00': { outer: '없음', top: ['기본 반팔'], bottom: ['기본 긴바지'], items: [] },
+    '08:00': { outer: [], top: ['기본 반팔'], bottom: ['기본 긴바지'], items: [] },
+    '13:00': { outer: [], top: ['기본 반팔'], bottom: ['기본 긴바지'], items: [] },
+    '19:00': { outer: [], top: ['기본 반팔'], bottom: ['기본 긴바지'], items: [] },
   });
 
   // 로컬 성별 설정 불러오기
@@ -473,7 +473,7 @@ export default function HomePage() {
         timeSlotLabel: `${selectedForecastItem.dayName} ${subLabel}`,
         slotKey: slot,
         selection:
-          forecastSelections[slot] || { outer: '없음', top: ['티셔츠'], bottom: ['바지'], items: [] },
+          forecastSelections[slot] || { outer: [], top: ['티셔츠'], bottom: ['바지'], items: [] },
       };
     }
 
@@ -496,7 +496,7 @@ export default function HomePage() {
       timeSlotLabel: label,
       slotKey: selectedSlot,
       selection:
-        outfitSelections[selectedSlot] || { outer: '없음', top: ['티셔츠'], bottom: ['바지'], items: [] },
+        outfitSelections[selectedSlot] || { outer: [], top: ['티셔츠'], bottom: ['바지'], items: [] },
     };
   }, [
     recommendationMode,
@@ -549,7 +549,7 @@ export default function HomePage() {
                   Ondo Fit
                 </h1>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
-                  v0.30.5
+                  v0.31.0
                 </span>
               </div>
               {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
@@ -777,7 +777,7 @@ export default function HomePage() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.30.5</strong></p>
+        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.31.0</strong></p>
       </footer>
     </div>
   );

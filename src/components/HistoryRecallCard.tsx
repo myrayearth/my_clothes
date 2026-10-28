@@ -79,15 +79,24 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
   }
 
   // 대표 코디 객체 구성
+  const parseOuterArray = (rawOuter?: string): string[] => {
+    if (!rawOuter || rawOuter === '없음' || rawOuter === '미착용' || !rawOuter.trim()) return [];
+    if (rawOuter.includes(',')) {
+      return rawOuter.split(',').map((s) => s.trim()).filter((s) => s && s !== '없음');
+    }
+    return [rawOuter.trim()];
+  };
+
   const bestTop = Array.isArray(bestRecall.log.selected_top)
     ? bestRecall.log.selected_top
     : [bestRecall.log.selected_top];
   const bestBottom = Array.isArray(bestRecall.log.selected_bottom)
     ? bestRecall.log.selected_bottom
     : [bestRecall.log.selected_bottom];
+  const bestOuter = parseOuterArray(bestRecall.log.selected_outer);
 
   const bestOutfit: OutfitSelection = {
-    outer: bestRecall.log.selected_outer,
+    outer: bestOuter,
     top: bestTop,
     bottom: bestBottom,
     items: bestRecall.log.selected_items || [],
@@ -121,14 +130,14 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
     log: OutfitLog,
     discontinued: { category: any; oldItem: string; replacement: string }[]
   ) => {
-    let newOuter = log.selected_outer;
+    let outerList = parseOuterArray(log.selected_outer);
     let newTop = Array.isArray(log.selected_top) ? [...log.selected_top] : [log.selected_top];
     let newBottom = Array.isArray(log.selected_bottom) ? [...log.selected_bottom] : [log.selected_bottom];
     let newItems = Array.isArray(log.selected_items) ? [...log.selected_items] : [];
 
     for (const d of discontinued) {
       if (d.category === 'outer') {
-        newOuter = d.replacement;
+        outerList = outerList.map((o) => (o === d.oldItem ? d.replacement : o));
       } else if (d.category === 'top') {
         newTop = newTop.map((t) => (t === d.oldItem ? d.replacement : t));
       } else if (d.category === 'bottom') {
@@ -139,7 +148,7 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
     }
 
     const replacedOutfit: OutfitSelection = {
-      outer: newOuter,
+      outer: outerList,
       top: newTop,
       bottom: newBottom,
       items: newItems,
@@ -149,7 +158,7 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
 
     if (log.id) {
       await updateOutfitLog(log.id, {
-        selected_outer: newOuter,
+        selected_outer: outerList.join(', ') || '없음',
         selected_top: newTop,
         selected_bottom: newBottom,
         selected_items: newItems,
@@ -227,7 +236,7 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
               </span>
               <span className="text-slate-400 font-normal">|</span>
               <span className="font-medium text-slate-800 truncate max-w-full flex items-center gap-1 flex-wrap">
-                <span>외투: <strong>{renderItemWithBadge(bestRecall.log.selected_outer)}</strong></span>
+                <span>외투: <strong>{bestOuter.length > 0 ? bestOuter.map((o, i) => <React.Fragment key={i}>{i > 0 && ' + '}{renderItemWithBadge(o)}</React.Fragment>) : '없음'}</strong></span>
                 <span>• 상의: <strong>{bestTop.map((t, i) => <React.Fragment key={i}>{i > 0 && ' + '}{renderItemWithBadge(t)}</React.Fragment>)}</strong></span>
                 <span>• 하의: <strong>{bestBottom.map((b, i) => <React.Fragment key={i}>{i > 0 && ' + '}{renderItemWithBadge(b)}</React.Fragment>)}</strong></span>
                 {bestRecall.log.selected_items && bestRecall.log.selected_items.length > 0 && (
@@ -368,9 +377,10 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
                 const bottomArray = Array.isArray(log.selected_bottom)
                   ? log.selected_bottom
                   : [log.selected_bottom];
+                const outerArray = parseOuterArray(log.selected_outer);
 
                 const targetOutfit: OutfitSelection = {
-                  outer: log.selected_outer,
+                  outer: outerArray,
                   top: topArray,
                   bottom: bottomArray,
                   items: log.selected_items || [],
@@ -424,7 +434,7 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
 
                       <div className="flex flex-wrap items-center gap-1.5 font-medium leading-normal text-slate-800">
                         <span className="bg-slate-100 px-2 py-0.5 rounded-md">
-                          외투: <strong>{renderItemWithBadge(log.selected_outer)}</strong>
+                          외투: <strong>{outerArray.length > 0 ? outerArray.map((o, i) => <React.Fragment key={i}>{i > 0 && ' + '}{renderItemWithBadge(o)}</React.Fragment>) : '없음'}</strong>
                         </span>
                         <span className="text-slate-300">•</span>
                         <span className="bg-slate-100 px-2 py-0.5 rounded-md">

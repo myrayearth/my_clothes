@@ -60,7 +60,7 @@ export function getDefaultOutfitSelection(rule: OutfitRuleStep, targetTemp?: num
   }
 
   return {
-    outer: rule.recommend.outer,
+    outer: rule.recommend.outer && rule.recommend.outer !== '없음' ? [rule.recommend.outer] : [],
     top: selectedTop,
     bottom: selectedBottom,
     items: [...rule.recommend.item],

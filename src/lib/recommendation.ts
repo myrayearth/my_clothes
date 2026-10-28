@@ -122,7 +122,7 @@ export function calculateWeightedRecommendations(
   }
 
   const fallbackDefaults: OutfitSelection = {
-    outer: filteredRecOuter,
+    outer: filteredRecOuter && filteredRecOuter !== '없음' ? [filteredRecOuter] : [],
     top: fallbackTop,
     bottom: fallbackBottom,
     items: filteredRecItems,
@@ -323,7 +323,7 @@ export function calculateWeightedRecommendations(
       items: mergeRankedWithSpectrum(itemResult.rankedOptions, rawItems),
     },
     defaults: {
-      outer: bestOuter,
+      outer: bestOuter && bestOuter !== '없음' ? [bestOuter] : [],
       top: finalTop,
       bottom: finalBottom,
       items: bestItems,
