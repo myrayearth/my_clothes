@@ -238,16 +238,16 @@ export const AllItemsModal: React.FC<AllItemsModalProps> = ({
                 category === 'outer' ? 'col-span-1' : ''
               } ${
                 activeTab === 'winter'
-                  ? 'bg-white text-indigo-600 shadow-xs'
+                  ? 'bg-white text-brand-600 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
               }`}
             >
-              <Snowflake className="w-3.5 h-3.5 text-indigo-500" />
+              <Snowflake className="w-3.5 h-3.5 text-brand-500" />
               <span>겨울</span>
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
                   activeTab === 'winter'
-                    ? 'bg-indigo-50 text-indigo-600'
+                    ? 'bg-brand-50 text-brand-600'
                     : 'bg-slate-300/80 text-slate-600'
                 }`}
               >
@@ -308,19 +308,12 @@ export const AllItemsModal: React.FC<AllItemsModalProps> = ({
                     }
                     className={`min-h-[38px] px-3.5 py-1.5 text-xs font-semibold rounded-xl border transition-all active:scale-95 touch-manipulation select-none flex items-center gap-1.5 cursor-pointer ${
                       isSelected
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                        ? 'bg-brand-600 text-white border-brand-600 shadow-xs ring-1 ring-brand-400/50'
                         : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                     }`}
                   >
                     {isSelected && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
                     <span>{item}</span>
-                    <span
-                      className={`text-[10px] font-semibold shrink-0 ${
-                        isSelected ? 'text-blue-100' : 'text-slate-400'
-                      }`}
-                    >
-                      ({scoreBadge})
-                    </span>
                   </button>
                 );
               })}

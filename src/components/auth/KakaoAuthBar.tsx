@@ -51,10 +51,10 @@ export const KakaoAuthBar: React.FC<KakaoAuthBarProps> = ({
           {(currentProfile.role === 'admin' || isUserAdmin(currentProfile)) && (
             <Link
               href="/admin/evaluations"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200 transition-all active:scale-95 shadow-2xs"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold rounded-xl border border-brand-200 transition-all active:scale-95 shadow-2xs"
               title="온도별 평가 데이터 관리 (관리자 전용)"
             >
-              <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
+              <BarChart3 className="w-3.5 h-3.5 text-brand-600" />
               <span className="hidden sm:inline">평가 관리</span>
             </Link>
           )}
@@ -97,7 +97,7 @@ export const KakaoAuthBar: React.FC<KakaoAuthBarProps> = ({
                   카카오
                 </span>
                 {(currentProfile.role === 'admin' || isUserAdmin(currentProfile)) && (
-                  <span className="text-[9px] font-bold px-1 py-0.2 bg-indigo-100 text-indigo-700 rounded border border-indigo-200">
+                  <span className="text-[9px] font-bold px-1 py-0.2 bg-brand-100 text-brand-700 rounded border border-brand-200">
                     Admin
                   </span>
                 )}

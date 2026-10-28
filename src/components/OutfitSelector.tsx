@@ -19,7 +19,7 @@ import {
   getRelativeCoverStatus,
 } from '@/lib/insulation';
 import { AllItemsModal } from '@/components/outfit/AllItemsModal';
-import { isPinnedInnerItem } from '@/lib/itemPicker';
+import { isPinnedInnerItem, isInnerClothingItem } from '@/lib/itemPicker';
 import { Shirt, RotateCcw, Check, Plus, ExternalLink, Sparkles, Thermometer, Zap } from 'lucide-react';
 
 interface OutfitSelectorProps {
@@ -131,12 +131,87 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     return getInsulationStatusMeta(insulationStatus);
   }, [insulationStatus]);
 
-  const formatScoreBadge = (item: string) => {
-    if (!item || item === '없음' || item === '미착용') return '';
-    const score = getItemInsulationScore(item);
-    const itemCoverTemp = scoreToCoverTemperature(score);
-    const delta = Math.round(itemCoverTemp - temperature);
-    return delta > 0 ? `(+${delta}도)` : `(${delta}도)`;
+  // 각 카테고리별 기준 아이템의 보온 점수 (선택된 아이템 기준, 없으면 추천 아이템 기준)
+  const baseScores = useMemo(() => {
+    // 1. 외투
+    const baseOuterItem =
+      selection.outer && selection.outer !== '없음'
+        ? selection.outer
+        : currentRule.recommend.outer !== '없음'
+        ? currentRule.recommend.outer
+        : null;
+    const outerScore = baseOuterItem ? getItemInsulationScore(baseOuterItem) : 0;
+
+    // 2. 상의 (일반 상의 기준, 없으면 첫 번째 상의 또는 대표 추천 상의)
+    const nonInnerTops = selection.top.filter((x) => !isInnerClothingItem(x));
+    const baseTopItem =
+      nonInnerTops[0] ||
+      selection.top[0] ||
+      currentRule.recommend.top[0] ||
+      '긴팔 티셔츠';
+    const topScore = getItemInsulationScore(baseTopItem);
+
+    // 3. 하의 (일반 하의 기준, 없으면 첫 번째 하의 또는 대표 추천 하의)
+    const nonInnerBottoms = selection.bottom.filter((x) => !isInnerClothingItem(x));
+    const baseBottomItem =
+      nonInnerBottoms[0] ||
+      selection.bottom[0] ||
+      currentRule.recommend.bottom[0] ||
+      '기본 데님';
+    const bottomScore = getItemInsulationScore(baseBottomItem);
+
+    return {
+      outer: outerScore,
+      top: topScore,
+      bottom: bottomScore,
+    };
+  }, [selection, currentRule]);
+
+  /**
+   * 선택된 아이템 대비 상대 보온력(diff)에 따른 배경 틴트 및 테두리 스타일 산출
+   * - 선택된 아이템: 브랜드 하이라이트 (짙은 톤온톤 배경 + 링)
+   * - 더 따뜻한 아이템: 붉은색 계열 점진적 틴트 (bg-rose-500/5 ~ bg-rose-500/20)
+   * - 더 얇은 아이템: 푸른색 계열 점진적 틴트 (bg-blue-500/5 ~ bg-blue-500/20)
+   */
+  const getWarmthGradientClasses = (
+    diff: number,
+    category: 'outer' | 'top' | 'bottom',
+    isSelected: boolean,
+    isRecommended: boolean
+  ) => {
+    if (isSelected) {
+      return 'bg-slate-900 text-white border-slate-900 shadow-xs ring-1 ring-brand-400/50 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100';
+    }
+
+    if (diff > 0) {
+      const t1 = category === 'outer' ? 12 : 5;
+      const t2 = category === 'outer' ? 26 : 10;
+      if (diff <= t1) {
+        return 'bg-rose-500/5 hover:bg-rose-500/10 text-slate-800 border-rose-200/60 dark:bg-rose-500/10 dark:text-slate-200 dark:border-rose-900/40';
+      } else if (diff <= t2) {
+        return 'bg-rose-500/10 hover:bg-rose-500/15 text-rose-950 border-rose-300/80 dark:bg-rose-500/20 dark:text-rose-100 dark:border-rose-800/60';
+      } else {
+        return 'bg-rose-500/20 hover:bg-rose-500/25 text-rose-950 border-rose-400/80 font-medium dark:bg-rose-500/30 dark:text-rose-50 dark:border-rose-700/80';
+      }
+    }
+
+    if (diff < 0) {
+      const absDiff = Math.abs(diff);
+      const t1 = category === 'outer' ? 12 : 5;
+      const t2 = category === 'outer' ? 26 : 10;
+      if (absDiff <= t1) {
+        return 'bg-blue-500/5 hover:bg-blue-500/10 text-slate-800 border-blue-200/60 dark:bg-blue-500/10 dark:text-slate-200 dark:border-blue-900/40';
+      } else if (absDiff <= t2) {
+        return 'bg-blue-500/10 hover:bg-blue-500/15 text-blue-950 border-blue-300/80 dark:bg-blue-500/20 dark:text-blue-100 dark:border-blue-800/60';
+      } else {
+        return 'bg-blue-500/20 hover:bg-blue-500/25 text-blue-950 border-blue-400/80 font-medium dark:bg-blue-500/30 dark:text-blue-50 dark:border-blue-700/80';
+      }
+    }
+
+    if (isRecommended) {
+      return 'bg-brand-50/70 hover:bg-brand-100/70 text-brand-950 border-brand-300/80 dark:bg-brand-950/40 dark:text-brand-100 dark:border-brand-800/60';
+    }
+    return 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300 dark:bg-slate-800/60 dark:border-slate-700';
   };
 
   // OUTER 단일 선택 변경 (클릭 시 선택, 이미 선택된 외투 클릭 시 '없음'으로 선택 해제 토글)
@@ -150,7 +225,12 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
   /**
    * 다중 선택 카드의 이름(텍스트) 영역 클릭 핸들러
-   * (TOP, BOTTOM은 최소 1개 유지 원칙)
+   * - 일반 옷: 1개 선택 상태에서 다른 일반 옷 클릭 시 단일 교체
+   * - [예외 규칙] 이너(히트텍/발열내의 등):
+   *   1) 일반 옷 1개 상태에서 이너 클릭 시 기존 옷 유지 + 이너 추가 (레이어드)
+   *   2) 이너 1개 상태에서 일반 옷 클릭 시 이너 유지 + 일반 옷 추가
+   *   3) 이미 선택된 이너 클릭 시 토글 해제 (선택 취소)
+   *   4) 일반 옷 + 이너 상태에서 다른 일반 옷 클릭 시 일반 옷만 교체되고 이너는 유지
    */
   const handleMultiSelectCardClick = (
     category: 'top' | 'bottom',
@@ -158,8 +238,36 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
   ) => {
     const currentList = selection[category];
     const isSelected = currentList.includes(item);
+    const isTargetInner = isInnerClothingItem(item);
 
-    // 1. 현재 0개 선택 상태
+    // 1. 이미 선택된 아이템을 클릭한 경우
+    if (isSelected) {
+      // 이너 아이템이면 토글 해제 (선택 취소)
+      if (isTargetInner) {
+        if (currentList.length > 1) {
+          onChangeSelection({
+            ...selection,
+            [category]: currentList.filter((x) => x !== item),
+          });
+          return;
+        }
+        return;
+      }
+
+      // 일반 옷이고 2개 이상 선택되어 있는 경우 해제 가능
+      if (currentList.length > 1) {
+        onChangeSelection({
+          ...selection,
+          [category]: currentList.filter((x) => x !== item),
+        });
+        return;
+      }
+
+      // 1개만 남은 일반 옷은 최소 1개 유지
+      return;
+    }
+
+    // 2. 선택되지 않은 아이템을 클릭한 경우
     if (currentList.length === 0) {
       onChangeSelection({
         ...selection,
@@ -168,28 +276,59 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
       return;
     }
 
-    // 2. 현재 1개만 선택된 상태 (단일 전환 이동으로 1개 유지)
+    // 현재 1개만 선택되어 있는 상태
     if (currentList.length === 1) {
-      if (isSelected) {
-        // 이미 1개 선택된 카드 클릭 시: 최소 1개 유지 원칙에 따라 해제 불가
-        return;
-      } else {
-        // 다른 카드의 텍스트 클릭: 교체 (단일 선택 이동)
+      const currentSingle = currentList[0];
+      const isCurrentInner = isInnerClothingItem(currentSingle);
+
+      // [예외 규칙 1]: 현재 일반 옷 1개인데 '이너' 클릭 -> 기존 옷 유지 + 이너 추가 (레이어드)
+      if (!isCurrentInner && isTargetInner) {
         onChangeSelection({
           ...selection,
-          [category]: [item],
+          [category]: [...currentList, item],
         });
+        return;
       }
+
+      // [예외 규칙 2]: 현재 이너 1개인데 일반 겉옷 클릭 -> 이너 유지 + 겉옷 추가 (레이어드)
+      if (isCurrentInner && !isTargetInner) {
+        onChangeSelection({
+          ...selection,
+          [category]: [...currentList, item],
+        });
+        return;
+      }
+
+      // 일반 옷 -> 다른 일반 옷, 또는 이너 -> 다른 이너: 단일 교체
+      onChangeSelection({
+        ...selection,
+        [category]: [item],
+      });
       return;
     }
 
-    // 3. 현재 2개 이상 선택된 상태
-    if (isSelected) {
+    // 현재 2개 이상 선택되어 있는 상태
+    const innerItems = currentList.filter(isInnerClothingItem);
+    const nonInnerItems = currentList.filter((x) => !isInnerClothingItem(x));
+
+    if (isTargetInner) {
+      // 새 이너 클릭: 기존 이너 교체 또는 추가
+      const nextList = [...nonInnerItems, item];
       onChangeSelection({
         ...selection,
-        [category]: currentList.filter((x) => x !== item),
+        [category]: nextList,
       });
+      return;
     } else {
+      // 새 일반 옷 클릭: 기존 일반 옷이 1개였으면 일반 옷만 교체하고 이너 유지!
+      if (nonInnerItems.length === 1 && innerItems.length > 0) {
+        onChangeSelection({
+          ...selection,
+          [category]: [item, ...innerItems],
+        });
+        return;
+      }
+
       onChangeSelection({
         ...selection,
         [category]: [...currentList, item],
@@ -198,7 +337,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
   };
 
   /**
-   * 다중 선택 카드의 '+ (아이콘)' 영역 클릭 핸들러
+   * 다중 선택 카드의 '+ (아이콘)' 영역 클릭 핸들러 (레이어드 토글)
    */
   const handleMultiSelectIconClick = (
     category: 'top' | 'bottom',
@@ -215,30 +354,21 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
       return;
     }
 
-    if (currentList.length === 1) {
-      if (isSelected) {
-        return; // 최소 1개 유지
-      } else {
-        // 다른 카드의 '+' 아이콘 클릭: 기존 선택 유지한 채 추가 (다중 선택 시작)
+    if (isSelected) {
+      if (currentList.length > 1) {
         onChangeSelection({
           ...selection,
-          [category]: [...currentList, item],
+          [category]: currentList.filter((x) => x !== item),
         });
       }
       return;
     }
 
-    if (isSelected) {
-      onChangeSelection({
-        ...selection,
-        [category]: currentList.filter((x) => x !== item),
-      });
-    } else {
-      onChangeSelection({
-        ...selection,
-        [category]: [...currentList, item],
-      });
-    }
+    // '+' 클릭 시 기존 선택 유지한 채 추가 (다중 선택/레이어드)
+    onChangeSelection({
+      ...selection,
+      [category]: [...currentList, item],
+    });
   };
 
   // 모달용 토글
@@ -343,14 +473,14 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-900 text-white shrink-0">
               {temperature}°C
             </span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
               {currentRule.label}
             </span>
 
             {/* 가중치 추천 모드 뱃지 */}
             {weights.mode === 'personal_weighted' ? (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-indigo-600" />
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-brand-600" />
                 <span>개인화 반영 (내 기록 {weights.personalCount}건 / 전체 {weights.totalCount}건)</span>
               </span>
             ) : weights.mode === 'guest_weighted' ? (
@@ -365,7 +495,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             )}
           </div>
           <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-            <strong className="text-blue-600 font-semibold">{currentRule.label}</strong> : {weights.description}
+            <strong className="text-brand-600 font-semibold">{currentRule.label}</strong> : {weights.description}
           </p>
         </div>
 
@@ -401,8 +531,8 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
         <div className="space-y-1.5 border-b border-slate-200/60 dark:border-slate-700/60 pb-2.5">
           {/* 첫 번째 줄: 헤더 타이틀 */}
           <div className="flex items-center gap-1.5">
-            <div className="p-1 bg-blue-100/80 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-lg shrink-0">
-              <Thermometer className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            <div className="p-1 bg-brand-100/80 dark:bg-brand-900/40 text-brand-800 dark:text-brand-300 rounded-lg shrink-0">
+              <Thermometer className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
             </div>
             <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
               적정 체감 복장 분석
@@ -417,7 +547,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
             <div className="flex items-center gap-2 self-start sm:self-center">
               <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                (기준 기온: <strong className="text-blue-700 dark:text-blue-400 font-bold">{temperature}°C</strong>)
+                (기준 기온: <strong className="text-brand-700 dark:text-brand-400 font-bold">{temperature}°C</strong>)
               </span>
 
               {/* 3색 상태 뱃지: [적정] 초록 / [과보온] 빨강 / [보온 필요] 파랑 */}
@@ -509,8 +639,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
       {/* 복장 선택 섹션 목록 */}
       <div className="space-y-4">
-        {/* 1. OUTER (외투 - 단일 선택)
-            요구사항: [+이름] -> [이름] 형태로 + 표시 삭제, 선택되었을 때의 체크(✓) 표시도 삭제 */}
+        {/* 1. OUTER (외투 - 단일 선택) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
@@ -519,20 +648,20 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                 <span className="text-[10px] text-slate-400 font-normal">단일 선택</span>
               </label>
               {isOuterCustomSelected && (
-                <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200">
+                <span className="text-[10px] font-semibold text-brand-700 bg-brand-50 px-1.5 py-0.2 rounded border border-brand-200">
                   직접 선택
                 </span>
               )}
               <button
                 type="button"
                 onClick={() => setModalCategory('outer')}
-                className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 underline underline-offset-2"
+                className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-0.5 underline underline-offset-2"
               >
                 <span>[모든 항목 보기]</span>
                 <ExternalLink className="w-3 h-3" />
               </button>
             </div>
-            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md truncate max-w-[160px]">
+            <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded-md truncate max-w-[160px]">
               {selection.outer && selection.outer !== '없음' ? '1개 선택' : '0개 선택'}
             </span>
           </div>
@@ -542,6 +671,8 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
               const isSelected = selection.outer === opt;
               const isCustom = !dynamicOptions.outer.includes(opt);
               const isRecommended = opt === currentRule.recommend.outer;
+              const itemScore = getItemInsulationScore(opt);
+              const diff = itemScore - baseScores.outer;
 
               return (
                 <button
@@ -549,23 +680,17 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   type="button"
                   onClick={() => handleOuterSelect(opt)}
                   title={isSelected ? '클릭하여 외투 선택 해제' : `${opt} 선택`}
-                  className={`min-h-[38px] px-3.5 py-1.5 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${
-                    isSelected
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                      : isRecommended
-                      ? 'bg-amber-50/40 text-slate-800 border-amber-300 hover:bg-amber-100/50'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
-                  }`}
+                  className={`min-h-[38px] px-3.5 py-1.5 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${getWarmthGradientClasses(
+                    diff,
+                    'outer',
+                    isSelected,
+                    isRecommended
+                  )}`}
                 >
-                  {/* + 표시 삭제, 선택 시 체크 표시도 삭제: 순수 [이름] 형태 및 보온 점수 */}
+                  {isSelected && (
+                    <Check className="w-3.5 h-3.5 text-brand-300 shrink-0" />
+                  )}
                   <span>{opt}</span>
-                  <span
-                    className={`text-[10px] font-semibold shrink-0 ${
-                      isSelected ? 'text-amber-200' : 'text-slate-400'
-                    }`}
-                  >
-                    {formatScoreBadge(opt)}
-                  </span>
                   {isRecommended && (
                     <span
                       className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
@@ -579,7 +704,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     </span>
                   )}
                   {isCustom && (
-                    <span className="text-[9px] font-semibold text-indigo-600 bg-indigo-50 px-1 py-0.2 rounded border border-indigo-200 shrink-0">
+                    <span className="text-[9px] font-semibold text-brand-700 bg-brand-50 px-1 py-0.2 rounded border border-brand-200 shrink-0">
                       직접선택
                     </span>
                   )}
@@ -589,32 +714,31 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
         </div>
 
-        {/* 2. TOP (상의 - 다중 선택)
-            요구사항: 상의, 하의 '다중 선택' -> '+ 로 레이어드' */}
+        {/* 2. TOP (상의 - 다중 선택 및 이너 예외) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <span>TOP (상의)</span>
-                <span className="text-[10px] text-blue-600 bg-blue-50 font-medium px-1.5 py-0.2 rounded">
+                <span className="text-[10px] text-brand-700 bg-brand-50 border border-brand-200/60 font-medium px-1.5 py-0.2 rounded">
                   + 로 레이어드
                 </span>
               </label>
               {isTopCustomSelected && (
-                <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200">
+                <span className="text-[10px] font-semibold text-brand-700 bg-brand-50 px-1.5 py-0.2 rounded border border-brand-200">
                   직접 선택
                 </span>
               )}
               <button
                 type="button"
                 onClick={() => setModalCategory('top')}
-                className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 underline underline-offset-2"
+                className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-0.5 underline underline-offset-2"
               >
                 <span>[모든 항목 보기]</span>
                 <ExternalLink className="w-3 h-3" />
               </button>
             </div>
-            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md truncate max-w-[190px]">
+            <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded-md truncate max-w-[190px]">
               {selection.top.length}개 선택
             </span>
           </div>
@@ -623,68 +747,38 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             {visibleTopOptions.map((opt) => {
               const isSelected = selection.top.includes(opt);
               const isCustom = !dynamicOptions.top.includes(opt);
-              const isInner = isPinnedInnerItem(opt, 'top', temperature);
+              const isInner = isPinnedInnerItem(opt, 'top', temperature) || isInnerClothingItem(opt);
               const isRecommended = currentRule.recommend.top.includes(opt);
+              const itemScore = getItemInsulationScore(opt);
+              const diff = itemScore - baseScores.top;
 
               return (
                 <div
                   key={opt}
-                  className={`inline-flex items-center rounded-xl border text-xs font-medium transition-all duration-150 select-none ${
-                    isSelected
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                      : isRecommended
-                      ? 'bg-amber-50/40 text-slate-800 border-amber-300 hover:bg-amber-100/50'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
-                  }`}
+                  className={`inline-flex items-center rounded-xl border text-xs font-medium transition-all duration-150 select-none overflow-hidden ${getWarmthGradientClasses(
+                    diff,
+                    'top',
+                    isSelected,
+                    isRecommended
+                  )}`}
                 >
-                  {/* 좌측 + / ✓ 아이콘 (레이어드 추가 및 해제) */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleMultiSelectIconClick('top', opt);
-                    }}
-                    className={`min-h-[38px] pl-2.5 pr-2 py-1.5 flex items-center justify-center border-r transition-colors active:scale-90 touch-manipulation cursor-pointer ${
-                      isSelected
-                        ? 'border-slate-700 hover:bg-slate-800 text-blue-400'
-                        : 'border-slate-200 hover:bg-slate-200/70 text-slate-400 hover:text-slate-700'
-                    }`}
-                    title={
-                      isSelected
-                        ? selection.top.length === 1
-                          ? '최소 1개의 상의가 선택되어야 합니다.'
-                          : '선택 해제'
-                        : `${opt} 레이어드 추가`
-                    }
-                  >
-                    {isSelected ? (
-                      <Check className="w-3.5 h-3.5" />
-                    ) : (
-                      <Plus className="w-3.5 h-3.5" />
-                    )}
-                  </button>
-
-                  {/* 우측 텍스트 (단일 선택 전환) */}
+                  {/* 좌측 텍스트 (단일 선택 전환, 이너 중복 예외 처리) */}
                   <button
                     type="button"
                     onClick={() => handleMultiSelectCardClick('top', opt)}
-                    className="min-h-[38px] pl-2 pr-3 py-1.5 flex items-center gap-1.5 active:opacity-80 touch-manipulation cursor-pointer"
+                    className="min-h-[38px] pl-3 pr-2 py-1.5 flex items-center gap-1.5 active:opacity-80 touch-manipulation cursor-pointer flex-1"
                     title={
                       isSelected
-                        ? selection.top.length === 1
+                        ? selection.top.length === 1 && !isInnerClothingItem(opt)
                           ? '최소 1개의 상의가 선택되어야 합니다.'
                           : '클릭하여 선택 해제'
-                        : `${opt} 단일 선택 (교체)`
+                        : `${opt} 선택`
                     }
                   >
+                    {isSelected && (
+                      <Check className="w-3.5 h-3.5 text-brand-300 shrink-0" />
+                    )}
                     <span>{opt}</span>
-                    <span
-                      className={`text-[10px] font-semibold shrink-0 ${
-                        isSelected ? 'text-amber-200' : 'text-slate-400'
-                      }`}
-                    >
-                      {formatScoreBadge(opt)}
-                    </span>
                     {isInner && (
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
@@ -710,10 +804,33 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                       </span>
                     )}
                     {isCustom && (
-                      <span className="text-[9px] font-semibold text-indigo-400 bg-indigo-950/40 px-1 py-0.2 rounded border border-indigo-400/40 shrink-0">
+                      <span className="text-[9px] font-semibold text-brand-700 bg-brand-50 px-1 py-0.2 rounded border border-brand-200 shrink-0">
                         직접선택
                       </span>
                     )}
+                  </button>
+
+                  {/* 우측 + 버튼 (레이어드/다중선택 추가 및 해제) */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMultiSelectIconClick('top', opt);
+                    }}
+                    className={`min-h-[38px] px-2.5 py-1.5 flex items-center justify-center border-l transition-colors active:scale-90 touch-manipulation cursor-pointer ${
+                      isSelected
+                        ? 'border-slate-700/80 hover:bg-slate-800 text-brand-300'
+                        : 'border-inherit hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                    }`}
+                    title={
+                      isSelected
+                        ? selection.top.length === 1
+                          ? '최소 1개의 상의가 선택되어야 합니다.'
+                          : '선택 해제'
+                        : `${opt} 레이어드 추가`
+                    }
+                  >
+                    <Plus className={`w-3.5 h-3.5 transition-transform ${isSelected ? 'rotate-45' : ''}`} />
                   </button>
                 </div>
               );
@@ -721,32 +838,31 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
         </div>
 
-        {/* 3. BOTTOM (하의 - 다중 선택)
-            요구사항: 상의, 하의 '다중 선택' -> '+ 로 레이어드' */}
+        {/* 3. BOTTOM (하의 - 다중 선택 및 이너 예외) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <span>BOTTOM (하의)</span>
-                <span className="text-[10px] text-blue-600 bg-blue-50 font-medium px-1.5 py-0.2 rounded">
+                <span className="text-[10px] text-brand-700 bg-brand-50 border border-brand-200/60 font-medium px-1.5 py-0.2 rounded">
                   + 로 레이어드
                 </span>
               </label>
               {isBottomCustomSelected && (
-                <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200">
+                <span className="text-[10px] font-semibold text-brand-700 bg-brand-50 px-1.5 py-0.2 rounded border border-brand-200">
                   직접 선택
                 </span>
               )}
               <button
                 type="button"
                 onClick={() => setModalCategory('bottom')}
-                className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 underline underline-offset-2"
+                className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-0.5 underline underline-offset-2"
               >
                 <span>[모든 항목 보기]</span>
                 <ExternalLink className="w-3 h-3" />
               </button>
             </div>
-            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md truncate max-w-[190px]">
+            <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded-md truncate max-w-[190px]">
               {selection.bottom.length}개 선택
             </span>
           </div>
@@ -755,68 +871,38 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             {visibleBottomOptions.map((opt) => {
               const isSelected = selection.bottom.includes(opt);
               const isCustom = !dynamicOptions.bottom.includes(opt);
-              const isInner = isPinnedInnerItem(opt, 'bottom', temperature);
+              const isInner = isPinnedInnerItem(opt, 'bottom', temperature) || isInnerClothingItem(opt);
               const isRecommended = currentRule.recommend.bottom.includes(opt);
+              const itemScore = getItemInsulationScore(opt);
+              const diff = itemScore - baseScores.bottom;
 
               return (
                 <div
                   key={opt}
-                  className={`inline-flex items-center rounded-xl border text-xs font-medium transition-all duration-150 select-none ${
-                    isSelected
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                      : isRecommended
-                      ? 'bg-amber-50/40 text-slate-800 border-amber-300 hover:bg-amber-100/50'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
-                  }`}
+                  className={`inline-flex items-center rounded-xl border text-xs font-medium transition-all duration-150 select-none overflow-hidden ${getWarmthGradientClasses(
+                    diff,
+                    'bottom',
+                    isSelected,
+                    isRecommended
+                  )}`}
                 >
-                  {/* 좌측 + / ✓ 아이콘 (레이어드 추가 및 해제) */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleMultiSelectIconClick('bottom', opt);
-                    }}
-                    className={`min-h-[38px] pl-2.5 pr-2 py-1.5 flex items-center justify-center border-r transition-colors active:scale-90 touch-manipulation cursor-pointer ${
-                      isSelected
-                        ? 'border-slate-700 hover:bg-slate-800 text-blue-400'
-                        : 'border-slate-200 hover:bg-slate-200/70 text-slate-400 hover:text-slate-700'
-                    }`}
-                    title={
-                      isSelected
-                        ? selection.bottom.length === 1
-                          ? '최소 1개의 하의가 선택되어야 합니다.'
-                          : '선택 해제'
-                        : `${opt} 레이어드 추가`
-                    }
-                  >
-                    {isSelected ? (
-                      <Check className="w-3.5 h-3.5" />
-                    ) : (
-                      <Plus className="w-3.5 h-3.5" />
-                    )}
-                  </button>
-
-                  {/* 우측 텍스트 (단일 선택 전환) */}
+                  {/* 좌측 텍스트 (단일 선택 전환, 이너 중복 예외 처리) */}
                   <button
                     type="button"
                     onClick={() => handleMultiSelectCardClick('bottom', opt)}
-                    className="min-h-[38px] pl-2 pr-3 py-1.5 flex items-center gap-1.5 active:opacity-80 touch-manipulation cursor-pointer"
+                    className="min-h-[38px] pl-3 pr-2 py-1.5 flex items-center gap-1.5 active:opacity-80 touch-manipulation cursor-pointer flex-1"
                     title={
                       isSelected
-                        ? selection.bottom.length === 1
+                        ? selection.bottom.length === 1 && !isInnerClothingItem(opt)
                           ? '최소 1개의 하의가 선택되어야 합니다.'
                           : '클릭하여 선택 해제'
-                        : `${opt} 단일 선택 (교체)`
+                        : `${opt} 선택`
                     }
                   >
+                    {isSelected && (
+                      <Check className="w-3.5 h-3.5 text-brand-300 shrink-0" />
+                    )}
                     <span>{opt}</span>
-                    <span
-                      className={`text-[10px] font-semibold shrink-0 ${
-                        isSelected ? 'text-amber-200' : 'text-slate-400'
-                      }`}
-                    >
-                      {formatScoreBadge(opt)}
-                    </span>
                     {isInner && (
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
@@ -842,10 +928,33 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                       </span>
                     )}
                     {isCustom && (
-                      <span className="text-[9px] font-semibold text-indigo-400 bg-indigo-950/40 px-1 py-0.2 rounded border border-indigo-400/40 shrink-0">
+                      <span className="text-[9px] font-semibold text-brand-700 bg-brand-50 px-1 py-0.2 rounded border border-brand-200 shrink-0">
                         직접선택
                       </span>
                     )}
+                  </button>
+
+                  {/* 우측 + 버튼 (레이어드/다중선택 추가 및 해제) */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMultiSelectIconClick('bottom', opt);
+                    }}
+                    className={`min-h-[38px] px-2.5 py-1.5 flex items-center justify-center border-l transition-colors active:scale-90 touch-manipulation cursor-pointer ${
+                      isSelected
+                        ? 'border-slate-700/80 hover:bg-slate-800 text-brand-300'
+                        : 'border-inherit hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                    }`}
+                    title={
+                      isSelected
+                        ? selection.bottom.length === 1
+                          ? '최소 1개의 하의가 선택되어야 합니다.'
+                          : '선택 해제'
+                        : `${opt} 레이어드 추가`
+                    }
+                  >
+                    <Plus className={`w-3.5 h-3.5 transition-transform ${isSelected ? 'rotate-45' : ''}`} />
                   </button>
                 </div>
               );
@@ -853,8 +962,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
         </div>
 
-        {/* 4. ITEM (소품 - 다중 선택)
-            요구사항: [+이름] -> [이름] 형태로 + 표시 삭제, 선택 시 체크(✓) 표시는 유지 */}
+        {/* 4. ITEM (소품 - 다중 선택) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
@@ -863,20 +971,20 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                 <span className="text-[10px] text-slate-400 font-normal">다중 선택</span>
               </label>
               {isItemCustomSelected && (
-                <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200">
+                <span className="text-[10px] font-semibold text-brand-700 bg-brand-50 px-1.5 py-0.2 rounded border border-brand-200">
                   직접 선택
                 </span>
               )}
               <button
                 type="button"
                 onClick={() => setModalCategory('items')}
-                className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 underline underline-offset-2"
+                className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-0.5 underline underline-offset-2"
               >
                 <span>[모든 항목 보기]</span>
                 <ExternalLink className="w-3 h-3" />
               </button>
             </div>
-            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md truncate max-w-[160px]">
+            <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded-md truncate max-w-[160px]">
               {selection.items.length > 0 ? `${selection.items.length}개 선택` : '선택 없음'}
             </span>
           </div>
@@ -894,24 +1002,16 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   onClick={() => handleItemToggle(opt)}
                   className={`min-h-[38px] px-3.5 py-1.5 text-xs font-medium rounded-xl border transition-all duration-150 flex items-center gap-1.5 active:scale-95 touch-manipulation select-none ${
                     isSelected
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs ring-1 ring-brand-400/50 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100'
                       : isRecommended
-                      ? 'bg-amber-50/40 text-slate-800 border-amber-300 hover:bg-amber-100/50'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                      ? 'bg-brand-50/70 text-brand-950 border-brand-300/80 hover:bg-brand-100/70'
+                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300 dark:bg-slate-800/60 dark:border-slate-700'
                   }`}
                 >
-                  {/* + 표시 삭제, 선택 시에만 체크(✓) 표시 유지 */}
                   {isSelected && (
-                    <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                    <Check className="w-3.5 h-3.5 text-brand-300 shrink-0" />
                   )}
                   <span>{opt}</span>
-                  <span
-                    className={`text-[10px] font-semibold shrink-0 ${
-                      isSelected ? 'text-amber-200' : 'text-slate-400'
-                    }`}
-                  >
-                    {formatScoreBadge(opt)}
-                  </span>
                   {isRecommended && (
                     <span
                       className={`text-[9px] font-bold px-1 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
@@ -925,7 +1025,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     </span>
                   )}
                   {isCustom && (
-                    <span className="text-[9px] font-semibold text-indigo-600 bg-indigo-50 px-1 py-0.2 rounded border border-indigo-200 shrink-0">
+                    <span className="text-[9px] font-semibold text-brand-700 bg-brand-50 px-1 py-0.2 rounded border border-brand-200 shrink-0">
                       직접선택
                     </span>
                   )}
@@ -941,7 +1041,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
         {/* 첫 번째 줄: 현재 코디: 복장 커버 기온 약 XX.X°C (상태 라벨) */}
         <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-slate-200/60">
           <div className="flex items-center gap-1.5 font-bold text-slate-800">
-            <Shirt className="w-4 h-4 text-blue-600 shrink-0" />
+            <Shirt className="w-4 h-4 text-brand-600 shrink-0" />
             <span>현재 코디: 복장 커버 기온 약 {coverTemp}°C ({relativeStatus.diff > 0 ? `+${relativeStatus.diff}` : relativeStatus.diff}°C)</span>
             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border shadow-2xs ${relativeStatus.badgeStyle}`}>
               {relativeStatus.badgeText}

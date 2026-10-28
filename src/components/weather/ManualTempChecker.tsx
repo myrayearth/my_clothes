@@ -48,10 +48,10 @@ export const ManualTempChecker: React.FC<ManualTempCheckerProps> = ({
         }
       }}
       className={`w-full rounded-2xl p-4 sm:p-5 border transition-all duration-200 select-none flex flex-col justify-between ${
-        !isActive ? 'cursor-pointer hover:border-indigo-300 hover:shadow-xs' : ''
+        !isActive ? 'cursor-pointer hover:border-brand-300 hover:shadow-xs' : ''
       } ${
         isActive
-          ? 'bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/60 border-indigo-400 ring-2 ring-indigo-500/20 shadow-md'
+          ? 'bg-gradient-to-br from-brand-50/80 via-white to-sky-50/50 border-brand-300 ring-2 ring-brand-400/20 shadow-md'
           : 'bg-gradient-to-br from-white to-slate-50/80 border-slate-200/80 shadow-2xs'
       }`}
       title={!isActive ? '클릭하여 수동 기온 점검 모드 활성화' : undefined}
@@ -60,7 +60,7 @@ export const ManualTempChecker: React.FC<ManualTempCheckerProps> = ({
         {/* 상단 라벨 및 활성화 뱃지 */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-1.5">
-            <span className="p-1 bg-indigo-100 text-indigo-700 rounded-lg shrink-0">
+            <span className="p-1 bg-brand-100 text-brand-700 rounded-lg shrink-0">
               <Sliders className="w-3.5 h-3.5" />
             </span>
             <span className="text-xs font-bold text-slate-800">
@@ -70,13 +70,13 @@ export const ManualTempChecker: React.FC<ManualTempCheckerProps> = ({
 
           <div>
             {isActive ? (
-              <span className="text-[11px] font-bold text-white bg-indigo-600 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs animate-in fade-in">
+              <span className="text-[11px] font-bold text-white bg-brand-600 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs animate-in fade-in">
                 <CheckCircle2 className="w-3 h-3" />
                 <span>수동 점검 활성</span>
               </span>
             ) : (
-              <span className="text-[11px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-md border border-indigo-200 transition-colors flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-indigo-500" />
+              <span className="text-[11px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 px-2 py-0.5 rounded-md border border-brand-200 transition-colors flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-brand-500" />
                 <span>클릭하여 활성화</span>
               </span>
             )}
@@ -88,7 +88,7 @@ export const ManualTempChecker: React.FC<ManualTempCheckerProps> = ({
           <div className="flex items-baseline select-none">
             <span
               className={`text-4xl sm:text-5xl font-black tracking-tight ${
-                isActive ? 'text-indigo-950' : 'text-slate-800'
+                isActive ? 'text-brand-950' : 'text-slate-800'
               }`}
             >
               {temperature}
@@ -103,7 +103,7 @@ export const ManualTempChecker: React.FC<ManualTempCheckerProps> = ({
             <button
               type="button"
               onClick={() => handleStep(1)}
-              className="p-2 sm:p-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 transition-all active:scale-90 shadow-2xs hover:shadow-xs flex items-center justify-center cursor-pointer"
+              className="p-2 sm:p-2.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-xl border border-brand-200 transition-all active:scale-90 shadow-2xs hover:shadow-xs flex items-center justify-center cursor-pointer"
               title="1°C 올리기 (▲)"
             >
               <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
@@ -111,7 +111,7 @@ export const ManualTempChecker: React.FC<ManualTempCheckerProps> = ({
             <button
               type="button"
               onClick={() => handleStep(-1)}
-              className="p-2 sm:p-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 transition-all active:scale-90 shadow-2xs hover:shadow-xs flex items-center justify-center cursor-pointer"
+              className="p-2 sm:p-2.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-xl border border-brand-200 transition-all active:scale-90 shadow-2xs hover:shadow-xs flex items-center justify-center cursor-pointer"
               title="1°C 내리기 (▼)"
             >
               <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
@@ -137,8 +137,8 @@ export const ManualTempChecker: React.FC<ManualTempCheckerProps> = ({
               onClick={(e) => handlePresetClick(t, e)}
               className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold border transition-all active:scale-95 ${
                 temperature === t && isActive
-                  ? 'bg-indigo-600 text-white border-indigo-600'
-                  : 'bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 border-slate-200'
+                  ? 'bg-brand-600 text-white border-brand-600'
+                  : 'bg-slate-100 hover:bg-brand-50 text-slate-600 hover:text-brand-700 border-slate-200'
               }`}
             >
               {t}°

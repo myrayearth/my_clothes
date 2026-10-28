@@ -75,6 +75,20 @@ export function isPinnedInnerItem(
 }
 
 /**
+ * 아이템 이름 기반 이너/발열내의/방한내의/타이즈 판별 함수
+ */
+export function isInnerClothingItem(item: string): boolean {
+  if (!item) return false;
+  return (
+    item.includes('히트텍') ||
+    item.includes('발열내의') ||
+    item.includes('방한내의') ||
+    item.includes('타이즈') ||
+    item.includes('내의')
+  );
+}
+
+/**
  * 단일 카테고리에 대한 8~10개 스펙트럼 기반 선택지 추출
  *
  * [슬롯 구성 룰 - 총 9개 기본 배치]:

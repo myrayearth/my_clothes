@@ -442,7 +442,7 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                     onClick={() => handleToggleItem(opt)}
                     className={`px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
                       isSelected
-                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                        ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
                         : isRecommended
                         ? 'bg-amber-50/50 text-slate-800 border-amber-300 hover:bg-amber-100/50'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -450,11 +450,11 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                   >
                     {isSelected && <Check className="w-3 h-3" />}
                     <span>{opt}</span>
-                    <span className={`text-[10px] ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}>
+                    <span className={`text-[10px] ${isSelected ? 'text-brand-200' : 'text-slate-400'}`}>
                       {diffStr}
                     </span>
                     {isRecommended && (
-                      <span className={`text-[9px] font-bold px-1 rounded ${isSelected ? 'bg-indigo-800/80 text-amber-200' : 'bg-amber-100 text-amber-800'}`}>
+                      <span className={`text-[9px] font-bold px-1 rounded ${isSelected ? 'bg-brand-800/80 text-amber-200' : 'bg-amber-100 text-amber-800'}`}>
                         추천
                       </span>
                     )}

@@ -547,8 +547,8 @@ export default function HomePage() {
                 <h1 className="text-lg font-bold text-slate-900 leading-tight">
                   Ondo Fit
                 </h1>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                  v0.23.5
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
+                  v0.24.0
                 </span>
               </div>
               {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
@@ -566,7 +566,7 @@ export default function HomePage() {
                 onClick={() => handleGenderChange('male')}
                 className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all active:scale-95 touch-manipulation ${
                   selectedGender === 'male'
-                    ? 'bg-blue-600 text-white shadow-xs'
+                    ? 'bg-brand-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
                 title="남성 전용 추천 (여성 전용 복장 제외)"
@@ -772,7 +772,7 @@ export default function HomePage() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.23.5</strong></p>
+        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.24.0</strong></p>
       </footer>
     </div>
   );

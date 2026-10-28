@@ -201,21 +201,21 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
           - 가장 좋은 평가를 받은 대표 항목 및 평균값 노출
           - 클릭 시 상세 이력 팝업 오픈
          ========================================================================= */}
-      <div className="bg-gradient-to-r from-indigo-50/90 via-sky-50/80 to-slate-50 border border-indigo-100/90 rounded-2xl p-4 sm:p-5 shadow-xs transition-all hover:border-indigo-300">
+      <div className="bg-gradient-to-r from-brand-50/90 via-sky-50/80 to-slate-50 border border-brand-100/90 rounded-2xl p-4 sm:p-5 shadow-xs transition-all hover:border-brand-300">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* 좌측 정보 영역 */}
           <div className="space-y-1.5 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <div className="p-1 rounded-lg bg-indigo-600 text-white shrink-0">
+              <div className="p-1 rounded-lg bg-brand-600 text-white shrink-0">
                 <Sparkles className="w-3.5 h-3.5" />
               </div>
               <h3 className="text-xs sm:text-sm font-bold text-slate-900">
                 {currentUserName} 님의 체감 기반 리콜 요약
               </h3>
-              <span className="text-[11px] font-semibold bg-white text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200">
+              <span className="text-[11px] font-semibold bg-white text-brand-700 px-2 py-0.5 rounded-full border border-brand-200">
                 총 {recalls.length}건 매칭 (±2°C)
               </span>
-              <span className="text-[11px] font-semibold bg-indigo-100/80 text-indigo-800 px-2 py-0.5 rounded-full">
+              <span className="text-[11px] font-semibold bg-brand-100/80 text-brand-800 px-2 py-0.5 rounded-full">
                 평균 체감 {avgScoreFormatted}
               </span>
             </div>
@@ -244,7 +244,7 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
             <button
               type="button"
               onClick={() => handleApply(bestOutfit, '대표 추천 코디가 적용되었습니다.')}
-              className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-xs active:scale-95 touch-manipulation flex items-center gap-1"
+              className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-700 text-white transition-all shadow-xs active:scale-95 touch-manipulation flex items-center gap-1"
               title="가장 만족도 높았던 대표 코디 바로 적용"
             >
               <CornerDownRight className="w-3.5 h-3.5" />
@@ -308,7 +308,7 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
             {/* 모달 헤더 */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/80">
               <div className="flex items-center gap-2">
-                <History className="w-4 h-4 text-indigo-600" />
+                <History className="w-4 h-4 text-brand-600" />
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">
                     {currentUserName} 님의 과거 착용 및 체감 이력
@@ -437,7 +437,7 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
                         {log.selected_items && log.selected_items.length > 0 && (
                           <>
                             <span className="text-slate-300">•</span>
-                            <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md">
+                            <span className="bg-brand-50 text-brand-700 px-2 py-0.5 rounded-md">
                               소품: {log.selected_items.map((it, i) => <React.Fragment key={i}>{i > 0 && ', '}{renderItemWithBadge(it)}</React.Fragment>)}
                             </span>
                           </>
