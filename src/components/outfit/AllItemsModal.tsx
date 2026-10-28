@@ -6,6 +6,7 @@ import { UserGender } from '@/types/database';
 import { getAllUniqueCategoryItems } from '@/lib/outfit';
 import { filterItemsByGender } from '@/lib/gender';
 import { getItemInsulationScore } from '@/lib/insulation';
+import { ITEM_SEASONS } from '@/data/itemScores';
 import { X, Check, Shirt, Sun, CloudSun, Snowflake } from 'lucide-react';
 
 export type SeasonTab = 'summer' | 'spring_autumn' | 'winter';
@@ -26,6 +27,10 @@ interface AllItemsModalProps {
  * 아이템의 계절 분류 헬퍼 함수
  */
 export function getItemSeason(category: OutfitCategory, item: string): SeasonTab {
+  if (ITEM_SEASONS[item]) {
+    return ITEM_SEASONS[item];
+  }
+
   // 1. 외투 (Outer)
   if (category === 'outer') {
     const winterOuterKeywords = [
@@ -61,9 +66,9 @@ export function getItemSeason(category: OutfitCategory, item: string): SeasonTab
 
   // 4. 소품 (Item)
   if (category === 'items') {
-    const summerItemKeywords = ['손풍기', '양산', '쿨링', '쿨토시', '부채', '선글라스', '손수건', '캡모자'];
+    const summerItemKeywords = ['손풍기', '양산', '쿨링', '쿨토시', '부채', '선글라스', '손수건', '캡모자', '우산'];
     const winterItemKeywords = [
-      '장갑', '목도리', '핫팩', '머플러', '비니', '귀마개', '워머', '어그', '방풍', '바라클라바', '스노우', '마스크', '방한'
+      '장갑', '목도리', '핫팩', '머플러', '비니', '귀마개', '워머', '어그', '방풍', '바라클라바', '스노우', '마스크', '방한', '양말'
     ];
     if (summerItemKeywords.some((kw) => item.includes(kw))) return 'summer';
     if (winterItemKeywords.some((kw) => item.includes(kw))) return 'winter';
@@ -168,7 +173,11 @@ export const AllItemsModal: React.FC<AllItemsModalProps> = ({
 
         {/* 상단 계절별 탭 (Outer: 봄·가을 / 겨울 2개, Top/Bottom/Item: 여름 / 봄·가을 / 겨울 3개) */}
         <div className="px-4 sm:px-5 pt-3 pb-2 border-b border-slate-100 bg-slate-50/70">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 bg-slate-200/80 p-1 rounded-2xl">
+          <div
+            className={`grid gap-1.5 bg-slate-200/80 p-1 rounded-2xl ${
+              category === 'outer' ? 'grid-cols-2' : 'grid-cols-3'
+            }`}
+          >
             {/* 외투가 아닐 때만 [여름] 탭 노출 */}
             {category !== 'outer' && (
               <button

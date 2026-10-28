@@ -41,6 +41,7 @@ import {
 
 import outfitRulesData from '@/data/outfitRules.json';
 import { OutfitRuleStep } from '@/types/outfit';
+import { isDiscontinuedItem } from '@/lib/dataMigration';
 
 // outfitRules.json 11단계 룰셋 데이터로부터 동적 매핑 생성 (하드코딩 제거 및 일원화)
 const outfitRules = outfitRulesData as OutfitRuleStep[];
@@ -718,6 +719,11 @@ function EvaluationsDashboardContent() {
                               <span className="text-slate-400 mr-1">[외투]</span>
                               <span className="font-medium text-slate-800">
                                 {item.selected_outer}
+                                {isDiscontinuedItem(item.selected_outer) && (
+                                  <span className="ml-1 text-[9px] text-slate-500 bg-slate-200 px-1 py-0.2 rounded">
+                                    [단종/구버전]
+                                  </span>
+                                )}
                               </span>
                             </div>
                           )}
@@ -725,7 +731,17 @@ function EvaluationsDashboardContent() {
                             <div>
                               <span className="text-slate-400 mr-1">[상의]</span>
                               <span className="text-slate-700">
-                                {item.selected_top.join(', ')}
+                                {item.selected_top.map((t, idx) => (
+                                  <span key={idx}>
+                                    {idx > 0 && ', '}
+                                    {t}
+                                    {isDiscontinuedItem(t) && (
+                                      <span className="ml-0.5 text-[9px] text-slate-500 bg-slate-200 px-1 py-0.2 rounded">
+                                        [단종]
+                                      </span>
+                                    )}
+                                  </span>
+                                ))}
                               </span>
                             </div>
                           )}
@@ -733,14 +749,36 @@ function EvaluationsDashboardContent() {
                             <div>
                               <span className="text-slate-400 mr-1">[하의]</span>
                               <span className="text-slate-700">
-                                {item.selected_bottom.join(', ')}
+                                {item.selected_bottom.map((b, idx) => (
+                                  <span key={idx}>
+                                    {idx > 0 && ', '}
+                                    {b}
+                                    {isDiscontinuedItem(b) && (
+                                      <span className="ml-0.5 text-[9px] text-slate-500 bg-slate-200 px-1 py-0.2 rounded">
+                                        [단종]
+                                      </span>
+                                    )}
+                                  </span>
+                                ))}
                               </span>
                             </div>
                           )}
                           {item.selected_items && item.selected_items.length > 0 && (
                             <div className="text-slate-500">
                               <span className="text-slate-400 mr-1">[소품]</span>
-                              <span>{item.selected_items.join(', ')}</span>
+                              <span>
+                                {item.selected_items.map((it, idx) => (
+                                  <span key={idx}>
+                                    {idx > 0 && ', '}
+                                    {it}
+                                    {isDiscontinuedItem(it) && (
+                                      <span className="ml-0.5 text-[9px] text-slate-500 bg-slate-200 px-1 py-0.2 rounded">
+                                        [단종]
+                                      </span>
+                                    )}
+                                  </span>
+                                ))}
+                              </span>
                             </div>
                           )}
                         </div>

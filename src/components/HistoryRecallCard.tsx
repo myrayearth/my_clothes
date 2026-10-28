@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { MatchedRecallRecord } from '@/types/database';
 import { OutfitSelection } from '@/types/outfit';
 import { formatScoreTemp } from '@/lib/matcher';
+import { isDiscontinuedItem, migrateOutfitSelection } from '@/lib/dataMigration';
 import {
   Sparkles,
   Snowflake,
@@ -76,8 +77,24 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
     items: bestRecall.log.selected_items || [],
   };
 
+  const renderItemWithBadge = (item: string) => {
+    if (!item || item === '없음' || item === '미착용' || item.trim() === '') return <span>없음</span>;
+    const discontinued = isDiscontinuedItem(item);
+    return (
+      <span className="inline-flex items-center gap-1">
+        <span>{item}</span>
+        {discontinued && (
+          <span className="text-[10px] font-normal text-slate-500 bg-slate-200/90 px-1 py-0.2 rounded border border-slate-300">
+            [단종/구버전]
+          </span>
+        )}
+      </span>
+    );
+  };
+
   const handleApply = (outfit: OutfitSelection, label?: string) => {
-    onApplyOutfit(outfit);
+    const migrated = migrateOutfitSelection(outfit);
+    onApplyOutfit(migrated);
     setAppliedFeedback(label || '코디가 복장 선택기에 적용되었습니다.');
     setTimeout(() => {
       setAppliedFeedback(null);
@@ -117,10 +134,14 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
                 최고만족 (체감 {formatScoreTemp(bestRecall.log.score)})
               </span>
               <span className="text-slate-400 font-normal">|</span>
-              <span className="font-medium text-slate-800 truncate max-w-full">
-                외투: <strong>{bestRecall.log.selected_outer}</strong> • 상의: <strong>{bestTop.join(' + ')}</strong> • 하의: <strong>{bestBottom.join(' + ')}</strong>
+              <span className="font-medium text-slate-800 truncate max-w-full flex items-center gap-1 flex-wrap">
+                <span>외투: <strong>{renderItemWithBadge(bestRecall.log.selected_outer)}</strong></span>
+                <span>• 상의: <strong>{bestTop.map((t, i) => <React.Fragment key={i}>{i > 0 && ' + '}{renderItemWithBadge(t)}</React.Fragment>)}</strong></span>
+                <span>• 하의: <strong>{bestBottom.map((b, i) => <React.Fragment key={i}>{i > 0 && ' + '}{renderItemWithBadge(b)}</React.Fragment>)}</strong></span>
                 {bestRecall.log.selected_items && bestRecall.log.selected_items.length > 0 && (
-                  <span> • 소품: {bestRecall.log.selected_items.join(', ')}</span>
+                  <span>
+                    • 소품: {bestRecall.log.selected_items.map((it, i) => <React.Fragment key={i}>{i > 0 && ', '}{renderItemWithBadge(it)}</React.Fragment>)}
+                  </span>
                 )}
               </span>
             </div>
@@ -292,21 +313,21 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
 
                       <div className="flex flex-wrap items-center gap-1.5 font-medium leading-normal text-slate-800">
                         <span className="bg-slate-100 px-2 py-0.5 rounded-md">
-                          외투: <strong>{log.selected_outer}</strong>
+                          외투: <strong>{renderItemWithBadge(log.selected_outer)}</strong>
                         </span>
                         <span className="text-slate-300">•</span>
                         <span className="bg-slate-100 px-2 py-0.5 rounded-md">
-                          상의: <strong>{topArray.join(' + ')}</strong>
+                          상의: <strong>{topArray.map((t, i) => <React.Fragment key={i}>{i > 0 && ' + '}{renderItemWithBadge(t)}</React.Fragment>)}</strong>
                         </span>
                         <span className="text-slate-300">•</span>
                         <span className="bg-slate-100 px-2 py-0.5 rounded-md">
-                          하의: <strong>{bottomArray.join(' + ')}</strong>
+                          하의: <strong>{bottomArray.map((b, i) => <React.Fragment key={i}>{i > 0 && ' + '}{renderItemWithBadge(b)}</React.Fragment>)}</strong>
                         </span>
                         {log.selected_items && log.selected_items.length > 0 && (
                           <>
                             <span className="text-slate-300">•</span>
                             <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md">
-                              소품: {log.selected_items.join(', ')}
+                              소품: {log.selected_items.map((it, i) => <React.Fragment key={i}>{i > 0 && ', '}{renderItemWithBadge(it)}</React.Fragment>)}
                             </span>
                           </>
                         )}

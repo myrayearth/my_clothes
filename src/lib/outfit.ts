@@ -1,4 +1,5 @@
 import outfitRulesData from '@/data/outfitRules.json';
+import { STANDARD_ITEMS_BY_CATEGORY } from '@/data/itemScores';
 import { OutfitRuleStep, OutfitSelection } from '@/types/outfit';
 
 const outfitRules: OutfitRuleStep[] = outfitRulesData as OutfitRuleStep[];
@@ -38,7 +39,7 @@ export function getDefaultOutfitSelection(rule: OutfitRuleStep): OutfitSelection
 }
 
 /**
- * 11단계 전체 기온 룰셋에 존재하는 모든 카테고리별 의류 아이템 목록을 중복 없이 추출합니다.
+ * 11단계 전체 기온 룰셋 및 표준 카탈로그에 존재하는 모든 카테고리별 의류 아이템 목록을 중복 없이 추출합니다.
  */
 export function getAllUniqueCategoryItems(): {
   outer: string[];
@@ -46,13 +47,15 @@ export function getAllUniqueCategoryItems(): {
   bottom: string[];
   items: string[];
 } {
-  const outerSet = new Set<string>();
-  const topSet = new Set<string>();
-  const bottomSet = new Set<string>();
-  const itemsSet = new Set<string>();
+  const outerSet = new Set<string>(STANDARD_ITEMS_BY_CATEGORY.outer.map((i) => i.name));
+  const topSet = new Set<string>(STANDARD_ITEMS_BY_CATEGORY.top.map((i) => i.name));
+  const bottomSet = new Set<string>(STANDARD_ITEMS_BY_CATEGORY.bottom.map((i) => i.name));
+  const itemsSet = new Set<string>(STANDARD_ITEMS_BY_CATEGORY.items.map((i) => i.name));
 
   outfitRules.forEach((rule) => {
-    rule.outer.forEach((i) => outerSet.add(i));
+    rule.outer.forEach((i) => {
+      if (i && i !== '없음') outerSet.add(i);
+    });
     rule.top.forEach((i) => topSet.add(i));
     rule.bottom.forEach((i) => bottomSet.add(i));
     rule.item.forEach((i) => itemsSet.add(i));

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { OutfitLog, NewOutfitLogInput, UserProfile, TemperatureEvaluation, NewTemperatureEvaluationInput } from '@/types/database';
+import { migrateOutfitLog } from '@/lib/dataMigration';
 
 const LOCAL_LOGS_KEY = 'weather_outfit_logs_v3';
 const LOCAL_PROFILES_KEY = 'weather_outfit_profiles_v1';
@@ -58,9 +59,9 @@ const DEFAULT_SEED_LOGS: OutfitLog[] = [
     apparent_temp: 14,
     time_slot: '13:00',
     selected_outer: '자켓',
-    selected_top: ['니트'],
-    selected_bottom: ['청바지'],
-    selected_items: ['로퍼'],
+    selected_top: ['기본 스웨터'],
+    selected_bottom: ['기본 데님'],
+    selected_items: [],
     score: 0,
     condition: '정상',
     memo: '낮 햇살 아래서 걷기에 체감이 딱 맞고 아주 쾌적했음!',
@@ -73,9 +74,9 @@ const DEFAULT_SEED_LOGS: OutfitLog[] = [
     target_temp: 14,
     apparent_temp: 12,
     time_slot: '08:00',
-    selected_outer: '없음',
+    selected_outer: '',
     selected_top: ['맨투맨'],
-    selected_bottom: ['슬랙스'],
+    selected_bottom: ['기본 슬랙스'],
     selected_items: [],
     score: -4,
     condition: '피곤',
@@ -89,10 +90,10 @@ const DEFAULT_SEED_LOGS: OutfitLog[] = [
     target_temp: 16,
     apparent_temp: 17,
     time_slot: '13:00',
-    selected_outer: '두꺼운 코트',
-    selected_top: ['기모 니트'],
-    selected_bottom: ['청바지'],
-    selected_items: ['머플러'],
+    selected_outer: '두꺼운 롱코트',
+    selected_top: ['헤비 울 스웨터'],
+    selected_bottom: ['기본 데님'],
+    selected_items: ['울 머플러'],
     score: 4,
     condition: '활동량많음',
     memo: '지하철 타고 이동하는데 체감이 4도 이상 더워서 코트 벗고 다님',
@@ -106,9 +107,9 @@ const DEFAULT_SEED_LOGS: OutfitLog[] = [
     apparent_temp: 9,
     time_slot: '19:00',
     selected_outer: '트렌치코트',
-    selected_top: ['도톰한 니트'],
-    selected_bottom: ['기모바지'],
-    selected_items: ['보온 양말'],
+    selected_top: ['도톰한 울 스웨터'],
+    selected_bottom: ['기모 슬랙스'],
+    selected_items: ['도톰한 양말'],
     score: 0,
     condition: '정상',
     memo: '퇴근길 찬바람 막아줘서 체감 편차 없이 딱 좋았음',
@@ -121,9 +122,9 @@ const DEFAULT_SEED_LOGS: OutfitLog[] = [
     target_temp: 10,
     apparent_temp: 8,
     time_slot: '08:00',
-    selected_outer: '가디건',
-    selected_top: ['셔츠'],
-    selected_bottom: ['면바지'],
+    selected_outer: '얇은 가디건',
+    selected_top: ['일반 셔츠'],
+    selected_bottom: ['면바지 / 치노 팬츠'],
     selected_items: [],
     score: -5,
     condition: '감기',
@@ -411,7 +412,8 @@ function getLocalLogs(): OutfitLog[] {
       localStorage.setItem(LOCAL_LOGS_KEY, JSON.stringify(DEFAULT_SEED_LOGS));
       return DEFAULT_SEED_LOGS;
     }
-    return JSON.parse(raw);
+    const parsed: OutfitLog[] = JSON.parse(raw);
+    return parsed.map((l) => migrateOutfitLog(l));
   } catch {
     return DEFAULT_SEED_LOGS;
   }
@@ -473,7 +475,7 @@ export async function fetchAllOutfitLogs(userName?: string): Promise<OutfitLog[]
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (!error && data) {
-        return data as OutfitLog[];
+        return (data as OutfitLog[]).map((l) => migrateOutfitLog(l));
       }
       if (error) {
         console.warn('Supabase fetch logs failed, falling back to LocalStorage:', error.message);
@@ -598,7 +600,9 @@ export async function fetchTemperatureEvaluations(): Promise<{
       return { data: [], error: error.message };
     }
 
-    return { data: (data || []) as TemperatureEvaluation[] };
+    return {
+      data: ((data || []) as TemperatureEvaluation[]).map((l) => migrateOutfitLog(l)),
+    };
   } catch (err: any) {
     console.error('fetchTemperatureEvaluations exception:', err);
     return { data: [], error: err.message || '데이터를 불러오는 중 오류가 발생했습니다.' };
