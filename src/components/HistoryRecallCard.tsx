@@ -9,7 +9,7 @@ import {
   migrateOutfitSelection,
   getDiscontinuedItemsInLog,
 } from '@/lib/dataMigration';
-import { updateOutfitLog } from '@/lib/storage';
+import { updateOutfitLog, deleteTemperatureEvaluation } from '@/lib/storage';
 import { EvaluationEditModal } from '@/components/outfit/EvaluationEditModal';
 import {
   Sparkles,
@@ -24,23 +24,30 @@ import {
   ChevronRight,
   History,
   Edit2,
+  Trash2,
   AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 
 interface HistoryRecallCardProps {
   recalls: MatchedRecallRecord[];
   onApplyOutfit: (outfit: OutfitSelection) => void;
   currentUserName: string;
+  isAdmin?: boolean;
+  onLogDeleted?: () => void;
 }
 
 export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
   recalls,
   onApplyOutfit,
   currentUserName,
+  isAdmin = false,
+  onLogDeleted,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [appliedFeedback, setAppliedFeedback] = useState<string | null>(null);
   const [editingRecord, setEditingRecord] = useState<OutfitLog | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // 1. 대표 리콜 항목 선정 (체감 편차 |score|가 0에 가장 가까운 최적 평가 항목)
   const { bestRecall, avgScore, avgScoreFormatted } = useMemo(() => {
@@ -155,6 +162,33 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
     setTimeout(() => {
       setAppliedFeedback(null);
     }, 3500);
+  };
+
+  const handleDelete = async (log: OutfitLog) => {
+    if (!isAdmin) {
+      alert('관리자 계정만 기록을 삭제할 수 있습니다.');
+      return;
+    }
+    const confirmMsg = `'${log.user_name}' 님의 ${log.target_temp}°C 착용 평가 기록을 정말 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`;
+    if (!window.confirm(confirmMsg)) {
+      return;
+    }
+
+    setDeletingId(log.id);
+    try {
+      const res = await deleteTemperatureEvaluation(log);
+      if (res.success) {
+        setAppliedFeedback('착용 평가 기록이 안전하게 삭제되었습니다.');
+        setTimeout(() => setAppliedFeedback(null), 3000);
+        onLogDeleted?.();
+      } else {
+        alert(res.error || '삭제 중 오류가 발생했습니다.');
+      }
+    } catch (e: any) {
+      alert(e.message || '삭제 처리 중 오류가 발생했습니다.');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const bestDiscontinued = bestRecall ? getDiscontinuedItemsInLog(bestRecall.log) : [];
@@ -440,17 +474,35 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
                       );
                     })()}
 
-                    {/* 수정 및 적용 버튼 영역 */}
+                    {/* 수정 및 적용 버튼 영역 (수정 및 삭제는 관리자 전용) */}
                     <div className="mt-2.5 flex items-center justify-end gap-2 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => setEditingRecord(log)}
-                        className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 transition-all shadow-2xs active:scale-95 touch-manipulation cursor-pointer"
-                        title="이 착용 평가 기록 수정"
-                      >
-                        <Edit2 className="w-3.5 h-3.5 text-slate-500" />
-                        <span>수정</span>
-                      </button>
+                      {isAdmin && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setEditingRecord(log)}
+                            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 transition-all shadow-2xs active:scale-95 touch-manipulation cursor-pointer"
+                            title="이 착용 평가 기록 수정 (관리자 전용)"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                            <span>수정</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(log)}
+                            disabled={deletingId === log.id}
+                            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 hover:border-rose-300 transition-all shadow-2xs active:scale-95 touch-manipulation cursor-pointer disabled:opacity-50"
+                            title="이 착용 평가 기록 삭제 (관리자 전용)"
+                          >
+                            {deletingId === log.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-500" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                            )}
+                            <span>삭제</span>
+                          </button>
+                        </>
+                      )}
                       <button
                         type="button"
                         onClick={() => {
@@ -484,15 +536,17 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
         </div>
       )}
 
-      {/* 과거 평가 기록 수정 모달 */}
+      {/* 과거 평가 기록 수정 모달 (관리자 전용) */}
       {editingRecord && (
         <EvaluationEditModal
           isOpen={true}
           onClose={() => setEditingRecord(null)}
           record={editingRecord}
+          isAdmin={isAdmin}
           onSuccess={() => {
             setAppliedFeedback('착용 평가 기록이 성공적으로 수정되었습니다.');
             setTimeout(() => setAppliedFeedback(null), 3000);
+            onLogDeleted?.();
           }}
         />
       )}

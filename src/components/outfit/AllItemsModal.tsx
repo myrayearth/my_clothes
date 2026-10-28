@@ -285,8 +285,8 @@ export const AllItemsModal: React.FC<AllItemsModalProps> = ({
                 const score = getItemInsulationScore(item);
                 const itemCoverTemp = Math.round(scoreToCoverTemperature(score));
                 const baseTemp = currentTemp !== undefined ? currentTemp : 20;
-                const diff = Math.round(itemCoverTemp - baseTemp);
-                const scoreBadge = `현재 대비 ${diff > 0 ? `+${diff}` : diff}도`;
+                const delta = Math.round(itemCoverTemp - baseTemp);
+                const scoreBadge = delta > 0 ? `+${delta}도` : `${delta}도`;
 
                 return (
                   <button

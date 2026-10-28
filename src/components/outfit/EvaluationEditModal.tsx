@@ -22,6 +22,7 @@ interface EvaluationEditModalProps {
   record: OutfitLog | TemperatureEvaluation | null;
   onSuccess?: () => void;
   gender?: UserGender;
+  isAdmin?: boolean;
 }
 
 export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
@@ -30,8 +31,40 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
   record,
   onSuccess,
   gender = 'male',
+  isAdmin = true,
 }) => {
   if (!isOpen || !record) return null;
+
+  if (!isAdmin) {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200"
+        onClick={onClose}
+      >
+        <div
+          className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 text-center space-y-3"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900">관리자 전용 기능</h3>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            과거 착용 평가 데이터 수정은 관리자 계정으로 로그인한 경우에만 이용할 수 있습니다.
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs rounded-xl transition-all"
+          >
+            확인
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // 초기 폼 상태 초기화
   const initialTop = Array.isArray(record.selected_top)

@@ -14,7 +14,7 @@ import {
   supabase,
 } from '@/lib/storage';
 import { getSavedLocation, saveLocation, getCurrentLocation, getPlaceNameFromCoords, DEFAULT_LOCATION } from '@/lib/location';
-import { syncKakaoUserProfile, signInWithKakao } from '@/lib/auth';
+import { syncKakaoUserProfile, signInWithKakao, isUserAdmin, ADMIN_EMAIL } from '@/lib/auth';
 import { findMatchingRecallLogs } from '@/lib/matcher';
 
 import { LocationBar } from '@/components/layout/LocationBar';
@@ -509,6 +509,12 @@ export default function HomePage() {
     outfitSelections,
   ]);
 
+  // 관리자 여부 확인
+  const isAdmin = useMemo(() => {
+    if (!isAuthenticated || !authProfile) return false;
+    return authProfile.role === 'admin' || isUserAdmin(authProfile) || authProfile.email === ADMIN_EMAIL;
+  }, [isAuthenticated, authProfile]);
+
   // 지능형 리콜: 현재 모드의 기준 기온을 바탕으로 매칭 계산
   const matchedRecalls = useMemo(() => {
     return findMatchingRecallLogs(
@@ -542,7 +548,7 @@ export default function HomePage() {
                   Ondo Fit
                 </h1>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                  v0.23.3
+                  v0.23.4
                 </span>
               </div>
               {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
@@ -719,6 +725,10 @@ export default function HomePage() {
             recalls={matchedRecalls}
             onApplyOutfit={handleCurrentOutfitChange}
             currentUserName={activeUser}
+            isAdmin={isAdmin}
+            onLogDeleted={() => {
+              loadLogs();
+            }}
           />
         )}
 
@@ -762,7 +772,7 @@ export default function HomePage() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.23.3</strong></p>
+        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.23.4</strong></p>
       </footer>
     </div>
   );

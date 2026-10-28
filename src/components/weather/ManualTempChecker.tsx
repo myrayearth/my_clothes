@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Sliders, ChevronUp, ChevronDown, CheckCircle2, Sparkles, RefreshCw } from 'lucide-react';
+import React from 'react';
+import { Sliders, ChevronUp, ChevronDown, CheckCircle2, Sparkles } from 'lucide-react';
 
 interface ManualTempCheckerProps {
   temperature: number;
@@ -20,38 +20,9 @@ export const ManualTempChecker: React.FC<ManualTempCheckerProps> = ({
   onActivate,
   defaultTemp = 15,
 }) => {
-  const [inputValue, setInputValue] = useState<string>(temperature.toString());
-
-  // 외부 temperature prop 변경 시 동기화
-  useEffect(() => {
-    setInputValue(temperature.toString());
-  }, [temperature]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setInputValue(val);
-    const parsed = parseInt(val, 10);
-    if (!isNaN(parsed) && parsed >= -40 && parsed <= 50) {
-      onChangeTemp(parsed);
-      if (!isActive) {
-        onActivate();
-      }
-    }
-  };
-
-  const handleBlur = () => {
-    const parsed = parseInt(inputValue, 10);
-    if (isNaN(parsed) || parsed < -40 || parsed > 50) {
-      setInputValue(temperature.toString());
-    } else {
-      onChangeTemp(parsed);
-    }
-  };
-
   const handleStep = (step: number) => {
     const next = Math.max(-40, Math.min(50, temperature + step));
     onChangeTemp(next);
-    setInputValue(next.toString());
     if (!isActive) {
       onActivate();
     }
@@ -60,7 +31,6 @@ export const ManualTempChecker: React.FC<ManualTempCheckerProps> = ({
   const handlePresetClick = (preset: number, e: React.MouseEvent) => {
     e.stopPropagation();
     onChangeTemp(preset);
-    setInputValue(preset.toString());
     if (!isActive) {
       onActivate();
     }
@@ -113,33 +83,22 @@ export const ManualTempChecker: React.FC<ManualTempCheckerProps> = ({
           </div>
         </div>
 
-        {/* 온도 조절 메인 인터페이스 (숫자 입력 & ▲/▼ 1°C 증감 버튼) */}
+        {/* 온도 조절 메인 인터페이스 (숫자 표시 - 직접 입력 불가 & ▲/▼ 1°C 증감 버튼) */}
         <div className="flex items-center justify-between gap-3 mt-3">
-          <div className="flex items-baseline">
-            <input
-              type="number"
-              value={inputValue}
-              onChange={handleInputChange}
-              onBlur={handleBlur}
-              onFocus={() => {
-                if (!isActive) onActivate();
-              }}
-              onClick={(e) => e.stopPropagation()}
-              min={-40}
-              max={50}
-              className={`w-20 sm:w-24 text-4xl sm:text-5xl font-black tracking-tight bg-transparent text-left border-b-2 transition-colors focus:outline-none ${
-                isActive
-                  ? 'text-indigo-950 border-indigo-500'
-                  : 'text-slate-800 border-slate-300 focus:border-indigo-400'
+          <div className="flex items-baseline select-none">
+            <span
+              className={`text-4xl sm:text-5xl font-black tracking-tight ${
+                isActive ? 'text-indigo-950' : 'text-slate-800'
               }`}
-              aria-label="점검할 수동 기온 입력"
-            />
+            >
+              {temperature}
+            </span>
             <span className="text-2xl sm:text-3xl font-black text-slate-700 ml-1">
               °C
             </span>
           </div>
 
-          {/* 1°C 증감 버튼 */}
+          {/* 1°C 증감 버튼 (화살표 아이콘으로만 기온 변경 가능) */}
           <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
@@ -162,7 +121,7 @@ export const ManualTempChecker: React.FC<ManualTempCheckerProps> = ({
 
         <p className="text-xs text-slate-500 mt-1">
           {isActive
-            ? '원하는 기온을 맞추면 대표 추천 복장과 보온 지수가 실시간 갱신됩니다.'
+            ? '화살표를 눌러 기온을 조절하면 대표 추천 복장과 보온 지수가 실시간 갱신됩니다.'
             : '클릭하여 원하는 기온에서의 코디와 보온 적정성을 테스트하세요.'}
         </p>
       </div>

@@ -134,8 +134,8 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     if (!item || item === '없음' || item === '미착용') return '';
     const score = getItemInsulationScore(item);
     const itemCoverTemp = scoreToCoverTemperature(score);
-    const diff = Math.round(itemCoverTemp - temperature);
-    return `(현재 대비 ${diff > 0 ? `+${diff}` : diff}도)`;
+    const delta = Math.round(itemCoverTemp - temperature);
+    return delta > 0 ? `(+${delta}도)` : `(${delta}도)`;
   };
 
   // OUTER 단일 선택 변경 (클릭 시 선택, 이미 선택된 외투 클릭 시 '없음'으로 선택 해제 토글)
