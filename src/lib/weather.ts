@@ -80,6 +80,27 @@ export async function fetchWeatherData(
 }
 
 /**
+ * Open-Meteo API 응답의 hourly.time 배열에서 정확한 날짜+시각(0~23시) 인덱스를 탐색
+ * (새벽 02:00 롤오버 시 전일 08/13/19시 날씨를 타임스탬프 접두사로 안전하게 역추적)
+ */
+export const findHourlyIndex = (times: string[], targetDateStr: string, hour: number): number => {
+  const formattedHour = String(hour).padStart(2, '0');
+  const targetIsoPrefix = `${targetDateStr}T${formattedHour}:00`;
+  const index = times.findIndex((t) => t.startsWith(targetIsoPrefix));
+  if (index !== -1) return index;
+
+  // 1차 폴백: 동일 날짜의 첫 시간 기준 오프셋 탐색
+  const datePrefix = `${targetDateStr}T`;
+  const dateFirstIndex = times.findIndex((t) => t.startsWith(datePrefix));
+  if (dateFirstIndex !== -1) {
+    return Math.min(dateFirstIndex + hour, times.length - 1);
+  }
+
+  // 2차 폴백: 배열 범위 내 안전한 인덱스
+  return 0;
+};
+
+/**
  * Open-Meteo Raw 응답에서 새벽 02:00 롤오버 기준 D-day의 08시, 13시, 19시 및 미래(D+1 ~ D+6) 일별 예보 추출
  */
 export function processWeatherData(raw: ForecastApiResponse): ProcessedWeatherData {
@@ -94,14 +115,8 @@ export function processWeatherData(raw: ForecastApiResponse): ProcessedWeatherDa
   const timeSlotsResult: Partial<Record<TargetTimeSlot, TimeSlotWeatherItem>> = {};
 
   targetSlots.forEach((slot) => {
-    const targetISO = `${todayStr}T${slot}`;
-    let matchedIndex = hourly.time.findIndex((t) => t.startsWith(targetISO));
-
-    // 혹시 정확한 매칭이 없으면 가장 가까운 인덱스 탐색
-    if (matchedIndex === -1) {
-      const hourNumber = parseInt(slot.split(':')[0], 10);
-      matchedIndex = Math.min(hourNumber, hourly.time.length - 1);
-    }
+    const hourNumber = parseInt(slot.split(':')[0], 10);
+    const matchedIndex = findHourlyIndex(hourly.time, todayStr, hourNumber);
 
     const temp = Math.round(hourly.temperature_2m[matchedIndex] ?? 15);
     const appTemp = Math.round(hourly.apparent_temperature[matchedIndex] ?? temp);
@@ -118,12 +133,8 @@ export function processWeatherData(raw: ForecastApiResponse): ProcessedWeatherDa
   });
 
   // 현재 시간(실시간)과 가장 일치하는 기온 계산
-  const currentISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:00`;
-  let currentHourlyIndex = hourly.time.findIndex((t) => t.startsWith(currentISO));
-  if (currentHourlyIndex === -1) {
-    const currentHour = now.getHours();
-    currentHourlyIndex = Math.min(Math.max(0, currentHour), hourly.time.length - 1);
-  }
+  const actualTodayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const currentHourlyIndex = findHourlyIndex(hourly.time, actualTodayStr, now.getHours());
 
   const currentTemp = Math.round(hourly.temperature_2m[currentHourlyIndex] ?? 16);
   const currentApparentTemp = Math.round(

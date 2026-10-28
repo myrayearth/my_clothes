@@ -103,15 +103,17 @@ export default function HomePage() {
     }
   };
 
-  // 과거 로그 데이터 로드 함수 (전체 로그 로드 후 메모리에서 개인화/게스트 분리 계산)
-  const loadLogs = useCallback(async (_userName?: string) => {
+  // 과거 로그 데이터 로드 함수 (게스트 모드 시 100% 로컬 격리, 로그인 시 사용자 ID 바인딩 조회)
+  const loadLogs = useCallback(async (overrideUserName?: string, overrideUserId?: string) => {
     try {
-      const logs = await fetchAllOutfitLogs();
+      const targetUser = overrideUserName || (isAuthenticated && authProfile ? authProfile.name : '게스트');
+      const targetUserId = overrideUserId || (isAuthenticated && authProfile ? authProfile.id : undefined);
+      const logs = await fetchAllOutfitLogs(targetUser, targetUserId);
       setOutfitLogs(logs);
     } catch (err) {
       console.error('과거 로그 불러오기 실패:', err);
     }
-  }, []);
+  }, [isAuthenticated, authProfile]);
 
   // 기온별 커뮤니티 누적 집계 데이터 로드 및 추천값 동적 반영
   const loadAggregatedData = useCallback(
@@ -506,7 +508,7 @@ export default function HomePage() {
                   Weather Outfit
                 </h1>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                  v0.22.0
+                  v0.23.0
                 </span>
               </div>
               {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
@@ -702,6 +704,8 @@ export default function HomePage() {
         {recommendationMode !== 'DAILY_FORECAST_MODE' && (
           <FeedbackForm
             userName={isAuthenticated && authProfile ? authProfile.name : '게스트'}
+            userId={isAuthenticated && authProfile ? authProfile.id : undefined}
+            isAuthenticated={isAuthenticated}
             currentTemp={effectiveData.temperature}
             apparentTemp={effectiveData.apparentTemperature}
             timeSlot={effectiveData.slotKey}
@@ -724,7 +728,7 @@ export default function HomePage() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.22.0</strong></p>
+        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.23.0</strong></p>
       </footer>
     </div>
   );

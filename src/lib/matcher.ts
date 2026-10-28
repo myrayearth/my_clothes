@@ -21,29 +21,50 @@ export function formatScoreTemp(score: number): string {
 
 /**
  * 과거 로그 중 현재 선택된 사용자의 기록만 필터링하고,
- * 현재 기온(±2°C) 및 컨디션 보정이 적용된 유사 기록들을 분류합니다.
+ * 현재 기온(1단계: ±2.5°C -> 0건 시 2단계: ±3.5°C 확장) 및 컨디션 보정이 적용된
+ * 유사 기록들을 최신순으로 정렬하여 최대 5건(limit) 슬라이스 반환합니다.
  */
 export function findMatchingRecallLogs(
   logs: OutfitLog[],
   currentTemp: number,
   condition: UserCondition,
-  userName: string
+  userName: string,
+  limit: number = 5
 ): MatchedRecallRecord[] {
   const offset = getConditionOffset(condition);
   const effectiveTemp = currentTemp + offset;
-  const TEMP_TOLERANCE = 2.0;
 
-  const minTemp = effectiveTemp - TEMP_TOLERANCE;
-  const maxTemp = effectiveTemp + TEMP_TOLERANCE;
-
-  // 1. 현재 사용자 필터링 및 기온 윈도우 필터링
-  const filtered = logs.filter((log) => {
+  // 1단계: ±2.5°C 윈도우 필터링
+  let tolerance = 2.5;
+  let candidateLogs = logs.filter((log) => {
     const isUserMatch = !userName || log.user_name === userName;
-    return isUserMatch && log.target_temp >= minTemp && log.target_temp <= maxTemp;
+    return (
+      isUserMatch &&
+      log.target_temp >= effectiveTemp - tolerance &&
+      log.target_temp <= effectiveTemp + tolerance
+    );
   });
 
-  // 2. 체감 편차(-5 ~ +5)별 카테고리 매핑 및 사용자 맥락 안내 메시지 생성
-  const matchedRecords: MatchedRecallRecord[] = filtered.map((log) => {
+  // 2단계: 1단계 결과가 0건일 때만 범위를 ±3.5°C로 1회 확장 조회
+  if (candidateLogs.length === 0) {
+    tolerance = 3.5;
+    candidateLogs = logs.filter((log) => {
+      const isUserMatch = !userName || log.user_name === userName;
+      return (
+        isUserMatch &&
+        log.target_temp >= effectiveTemp - tolerance &&
+        log.target_temp <= effectiveTemp + tolerance
+      );
+    });
+  }
+
+  // 최신순 정렬 후 최대 5건으로 슬라이스하여 메모리 및 렌더링 부하 제어
+  const sortedAndLimited = [...candidateLogs]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, limit);
+
+  // 체감 편차(-5 ~ +5)별 카테고리 매핑 및 사용자 맥락 안내 메시지 생성
+  const matchedRecords: MatchedRecallRecord[] = sortedAndLimited.map((log) => {
     const formattedDev = formatScoreTemp(log.score);
     let category: RecallCategory = 'recommended';
     let categoryTitle = '추천 조합';
@@ -89,7 +110,5 @@ export function findMatchingRecallLogs(
     };
   });
 
-  return matchedRecords.sort((a, b) => {
-    return new Date(b.log.created_at).getTime() - new Date(a.log.created_at).getTime();
-  });
+  return matchedRecords;
 }

@@ -17,6 +17,7 @@ export interface UserProfile {
 export interface OutfitLog {
   id: string;
   created_at: string;
+  user_id?: string; // 인증된 카카오 사용자 고유 ID (게스트 모드 시 undefined)
   user_name: string; // 사용자 프로필명
   location_name: string;
   target_temp: number;

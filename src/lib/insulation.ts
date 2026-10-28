@@ -194,16 +194,21 @@ export const ANCHOR_POINTS = [
 /**
  * 보온 점수 -> 복장 적정 커버 기온(-20°C ~ +35°C) 역산 함수
  * - 단순 1차 선형 비례식의 왜곡을 방지하기 위해 '구간 선형 보간(Piecewise Linear Interpolation)' 적용
- * - 점수가 86점(10~14°C 추천 복장)일 때 정확히 12.0°C로 환산되어 ±2.5°C 적정 존 중앙(50%)에 안착합니다.
+ * - 입력 점수 정수 클램핑, 분모 0 방지, 출력 기온(-20°C ~ +35°C) 절대 범위 클램프로 수식 예외 원천 차단
  */
 export function scoreToCoverTemperature(score: number): number {
-  const maxScore = ANCHOR_POINTS[ANCHOR_POINTS.length - 1].score;
-  const s = Math.max(0, Math.min(maxScore, score));
+  if (typeof score !== 'number' || isNaN(score)) {
+    return 20.0;
+  }
+
+  const maxAnchorScore = ANCHOR_POINTS[ANCHOR_POINTS.length - 1].score; // 320
+  // 입력 점수 정수 클램프 (0점 미만 음수 및 과도한 점수 방어)
+  const s = Math.max(0, Math.min(maxAnchorScore, Math.round(score)));
 
   if (s <= ANCHOR_POINTS[0].score) {
     return ANCHOR_POINTS[0].temp;
   }
-  if (s >= maxScore) {
+  if (s >= maxAnchorScore) {
     return ANCHOR_POINTS[ANCHOR_POINTS.length - 1].temp;
   }
 
@@ -213,13 +218,21 @@ export function scoreToCoverTemperature(score: number): number {
     const p2 = ANCHOR_POINTS[i + 1];
 
     if (s >= p1.score && s <= p2.score) {
-      const ratio = (s - p1.score) / (p2.score - p1.score);
-      const temp = p1.temp + ratio * (p2.temp - p1.temp);
-      return Math.round(temp * 10) / 10;
+      const scoreDiff = p2.score - p1.score;
+      // 분모가 0인 극단 케이스 예외 방어
+      if (scoreDiff === 0) {
+        return Math.max(-20, Math.min(35, Math.round(p1.temp * 10) / 10));
+      }
+      const ratio = (s - p1.score) / scoreDiff;
+      const rawTemp = p1.temp + ratio * (p2.temp - p1.temp);
+      // 결과 기온이 -20°C ~ +35°C 범위를 절대 벗어나지 않도록 클램프
+      const clampedTemp = Math.max(-20, Math.min(35, rawTemp));
+      return Math.round(clampedTemp * 10) / 10;
     }
   }
 
-  return s <= 0 ? 35 : -20;
+  const fallbackTemp = s <= 0 ? 35 : -20;
+  return Math.max(-20, Math.min(35, fallbackTemp));
 }
 
 export type RelativeCoverStatus = 'OPTIMAL' | 'OVERHEATED' | 'COLD_NEED_WARMTH';

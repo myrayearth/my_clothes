@@ -89,15 +89,53 @@ export interface PlaceNameResult {
   displayName: string;
 }
 
+const GEO_CACHE_TTL_MS = 3 * 60 * 60 * 1000; // 3시간 캐시 유효 기간
+
+interface GeoCacheEntry {
+  timestamp: number;
+  data: PlaceNameResult;
+}
+
 /**
  * 위도(lat), 경도(lon) 좌표를 기반으로 무료 역지오코딩(Reverse Geocoding)을 수행하여
  * 국가명과 도시/지역명을 반환합니다.
- * (1차: BigDataCloud 무료 클라이언트 API -> 2차: OpenStreetMap Nominatim Fallback)
+ * (Rate Limit 방지를 위해 sessionStorage 기반 3시간 TTL 캐싱 적용)
  */
 export async function getPlaceNameFromCoords(
   lat: number,
   lon: number
 ): Promise<PlaceNameResult> {
+  const cacheKey = `geo_cache_${lat.toFixed(2)}_${lon.toFixed(2)}`;
+
+  // 1. 브라우저 sessionStorage 캐시 확인
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const entry: GeoCacheEntry = JSON.parse(cached);
+        if (Date.now() - entry.timestamp < GEO_CACHE_TTL_MS && entry.data) {
+          return entry.data;
+        }
+      }
+    } catch (e) {
+      // 캐시 파싱 에러 시 무시하고 외부 API 재조회
+    }
+  }
+
+  const saveCache = (data: PlaceNameResult) => {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      try {
+        const entry: GeoCacheEntry = {
+          timestamp: Date.now(),
+          data,
+        };
+        sessionStorage.setItem(cacheKey, JSON.stringify(entry));
+      } catch (e) {
+        // quota exceeded 등 안전 무시
+      }
+    }
+  };
+
   // 1차 시도: BigDataCloud Reverse Geocoding API (Key 불필요, 빠르고 정확함)
   try {
     const endpoint = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=ko`;
@@ -112,12 +150,14 @@ export async function getPlaceNameFromCoords(
       const city = rawCity ? rawCity.replace(/특별시$|광역시$/g, '') : '';
       if (city) {
         const fullName = `내 현재 위치 (${country}, ${city})`;
-        return {
+        const result: PlaceNameResult = {
           country,
           city,
           fullName,
           displayName: fullName,
         };
+        saveCache(result);
+        return result;
       }
     }
   } catch (e) {
@@ -144,24 +184,27 @@ export async function getPlaceNameFromCoords(
         '';
       const city = rawCity ? rawCity.replace(/특별시$|광역시$/g, '') : '';
       const fullName = city ? `내 현재 위치 (${country}, ${city})` : `내 현재 위치 (${country})`;
-      return {
+      const result: PlaceNameResult = {
         country,
         city: city || country,
         fullName,
         displayName: fullName,
       };
+      saveCache(result);
+      return result;
     }
   } catch (e) {
     console.warn('Nominatim reverse geocode failed:', e);
   }
 
-  // 3차 폴백: 기본 명칭
-  return {
+  // 3차 폴백: API 실패 또는 429 시 안전한 기본 명칭 즉시 반환
+  const fallbackResult: PlaceNameResult = {
     country: '대한민국',
     city: '현재 위치',
     fullName: '내 현재 위치',
     displayName: '내 현재 위치',
   };
+  return fallbackResult;
 }
 
 /**

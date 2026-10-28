@@ -21,6 +21,8 @@ import {
 
 interface FeedbackFormProps {
   userName: string;
+  userId?: string;
+  isAuthenticated?: boolean;
   currentTemp: number;
   apparentTemp: number;
   timeSlot: string;
@@ -68,6 +70,8 @@ const conditionOptions: {
 
 export const FeedbackForm: React.FC<FeedbackFormProps> = ({
   userName,
+  userId,
+  isAuthenticated,
   currentTemp,
   apparentTemp,
   timeSlot,
@@ -170,6 +174,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
 
     try {
       const res = await createOutfitLog({
+        user_id: isGuest ? undefined : userId,
         user_name: effectiveUserName,
         location_name: locationName,
         target_temp: currentTemp,
@@ -188,12 +193,10 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
       });
 
       setFeedbackSuccess({
-        message: res.isFallback
-          ? '체감 피드백이 로컬에 안전하게 기록되었습니다.'
-          : isGuest
-          ? '게스트 피드백이 DB에 저장되어 전체 추천 집계에 반영되었습니다!'
+        message: isGuest || res.isFallback
+          ? '체감 피드백이 브라우저 로컬에 안전하게 기록되었습니다.'
           : '내 체감 피드백이 Supabase DB에 성공적으로 저장되었습니다!',
-        isFallback: res.isFallback,
+        isFallback: isGuest || res.isFallback,
       });
 
       setMemo('');
