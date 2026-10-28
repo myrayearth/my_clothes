@@ -11,6 +11,7 @@ export interface RecommendationWeights {
   personalCount: number;
   guestCount: number;
   totalCount: number;
+  includeGuestData: boolean;
   description: string;
 }
 
@@ -80,7 +81,8 @@ export function calculateWeightedRecommendations(
   targetTemp: number,
   currentUser: string,
   isLoggedIn: boolean,
-  gender: UserGender = 'male'
+  gender: UserGender = 'male',
+  includeGuestData: boolean = false
 ): CalculatedOutfitOptions {
   // 1. 스펙트럼 기반 기본 후보 목록 (각 카테고리별 10~14개 스펙트럼 배치 및 10°C 미만 이너 핀 고정)
   const spectrumOptions = getSpectrumOutfitOptions(targetTemp, gender, 14);
@@ -150,45 +152,60 @@ export function calculateWeightedRecommendations(
   const guestCount = guestLogs.length;
   const totalCount = matchedLogs.length;
 
-  // 4. 가중치 결정 (5건 기준 선형 비례식: 1건당 20% 단위 비례 반영, 5건 이상 시 최대 반영치 도달)
+  // 4. 가중치 결정
+  // - 개인화 데이터: 최대 10개(80%)까지 증가, 그 이후로는 반영율 고정 (1개: 10% ~ 10개: 80%)
+  // - 게스트 데이터 반영 버튼 활성화 시:
+  //   * 개인화 0개일 때: 게스트 40%, 기본 추천 60%
+  //   * 개인화 10개 이상일 때: 개인화 60%, 게스트 20%, 기본 추천 20%
+  //   * 개인화가 늘어날수록 게스트 데이터는 순차적으로 2%씩 감소 (40% -> 20%)
   let w_personal = 0;
   let w_guest = 0;
   let w_rule = 1.0;
   let mode: RecommendationWeights['mode'] = 'rule_only';
   let description = '기본 룰셋 100% 적용';
 
-  // 5건 기준 선형 비율 산출 (1건: 0.2(20%), 2건: 0.4(40%), ... 5건 이상: 1.0(100%))
-  const personalRatio = Math.min(1.0, personalCount / 5);
-  const guestRatio = Math.min(1.0, guestCount / 5);
+  const clampedPersonal = Math.min(10, Math.max(0, personalCount));
 
-  if (personalCount > 0) {
-    mode = 'personal_weighted';
-    if (guestCount > 0) {
-      // 개인 평가와 게스트 평가가 모두 있는 경우 (5건 기준 최대: 내 평가 70%, 게스트 15%, 기본 15%)
-      w_personal = Math.round(0.70 * personalRatio * 100) / 100;
-      w_guest = Math.round(0.15 * guestRatio * 100) / 100;
-      w_rule = Math.round((1.0 - w_personal - w_guest) * 100) / 100;
-      description = `개인화 맞춤 (내 평가 ${Math.round(w_personal * 100)}% + 전체 ${Math.round(w_guest * 100)}% + 기본 ${Math.round(w_rule * 100)}%)`;
+  if (includeGuestData) {
+    if (clampedPersonal === 0) {
+      w_personal = 0;
+      w_guest = guestCount > 0 ? 0.40 : 0;
+      w_rule = Math.round((1.0 - w_guest) * 100) / 100;
+
+      if (guestCount > 0) {
+        mode = 'guest_weighted';
+        description = `게스트 누적 반영 (게스트 ${guestCount}건 40% + 기본 추천 60%)`;
+      } else {
+        mode = 'rule_only';
+        description = '기본 룰셋 100% 적용 (게스트 데이터 0건)';
+      }
     } else {
-      // 내 평가만 있는 경우 (5건 기준 최대: 내 평가 85%, 기본 15%)
-      w_personal = Math.round(0.85 * personalRatio * 100) / 100;
+      // 1개 = 10%, 10개 = 60%
+      w_personal = Math.round((10 + ((clampedPersonal - 1) * 50) / 9)) / 100;
+      // 게스트 데이터: 40%에서 개인화 데이터 1개당 2%씩 순차 감소하여 10개일 때 20%
+      const targetGuestRate = Math.round((40 - clampedPersonal * 2)) / 100;
+      w_guest = guestCount > 0 ? targetGuestRate : 0;
+      w_rule = Math.round((1.0 - w_personal - w_guest) * 100) / 100;
+
+      mode = 'personal_weighted';
+      description = `개인화 맞춤 (내 기록 ${personalCount}건 ${Math.round(w_personal * 100)}% + 게스트 ${Math.round(w_guest * 100)}% + 기본 ${Math.round(w_rule * 100)}%)`;
+    }
+  } else {
+    // 게스트 데이터 미반영 (기본 모드)
+    if (clampedPersonal === 0) {
+      mode = 'rule_only';
+      w_personal = 0;
+      w_guest = 0;
+      w_rule = 1.0;
+      description = '기본 룰셋 100% 적용';
+    } else {
+      mode = 'personal_weighted';
+      // 1개 = 10%, 10개 = 80% (최대 10개 80% 상한)
+      w_personal = Math.round((10 + ((clampedPersonal - 1) * 70) / 9)) / 100;
       w_guest = 0;
       w_rule = Math.round((1.0 - w_personal) * 100) / 100;
-      description = `개인화 맞춤 (내 평가 ${personalCount}건 기준 ${Math.round(w_personal * 100)}% + 기본 ${Math.round(w_rule * 100)}%)`;
+      description = `개인화 맞춤 (내 기록 ${personalCount}건 ${Math.round(w_personal * 100)}% + 기본 추천 ${Math.round(w_rule * 100)}%)`;
     }
-  } else if (guestCount > 0) {
-    mode = 'guest_weighted';
-    w_personal = 0;
-    // 게스트 누적 평가만 있는 경우 (5건 기준 최대: 85%, 1건당 17%씩 비례 증가)
-    w_guest = Math.round(0.85 * guestRatio * 100) / 100;
-    w_rule = Math.round((1.0 - w_guest) * 100) / 100;
-    description = `전체 누적 평가 반영 (${guestCount}건 기준 ${Math.round(w_guest * 100)}% + 기본 ${Math.round(w_rule * 100)}%)`;
-  } else {
-    mode = 'rule_only';
-    w_personal = 0;
-    w_guest = 0;
-    w_rule = 1.0;
-    description = '기본 룰셋 100% 적용';
   }
 
   const weights: RecommendationWeights = {
@@ -199,6 +216,7 @@ export function calculateWeightedRecommendations(
     personalCount,
     guestCount,
     totalCount,
+    includeGuestData,
     description,
   };
 

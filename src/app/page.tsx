@@ -31,6 +31,11 @@ import { Shirt, RefreshCw, AlertCircle, Users, Sliders } from 'lucide-react';
 
 export type RecommendationMode = 'LIVE_MODE' | 'DAILY_FORECAST_MODE' | 'MANUAL_MODE';
 
+const getSavedIncludeGuestData = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem('ondo_fit_include_guest_data') === 'true';
+};
+
 export default function HomePage() {
   const [location, setLocation] = useState<LocationInfo>(DEFAULT_LOCATION);
   const [weather, setWeather] = useState<ProcessedWeatherData | null>(null);
@@ -160,7 +165,8 @@ export default function HomePage() {
           slotTemp,
           activeUserRef.current,
           isAuthenticatedRef.current,
-          selectedGenderRef.current
+          selectedGenderRef.current,
+          getSavedIncludeGuestData()
         );
         newSelections[slot] = result.defaults;
       });
@@ -181,7 +187,8 @@ export default function HomePage() {
         temp,
         activeUserRef.current,
         isAuthenticatedRef.current,
-        selectedGenderRef.current
+        selectedGenderRef.current,
+        getSavedIncludeGuestData()
       );
       setManualSelection(rec.defaults);
     },
@@ -208,7 +215,8 @@ export default function HomePage() {
           curTemp,
           activeUserRef.current,
           isAuthenticatedRef.current,
-          selectedGenderRef.current
+          selectedGenderRef.current,
+          getSavedIncludeGuestData()
         );
         setManualSelection(rec.defaults);
       } catch (err: any) {
@@ -249,7 +257,8 @@ export default function HomePage() {
         morningTemp,
         activeUserRef.current,
         isAuthenticatedRef.current,
-        selectedGenderRef.current
+        selectedGenderRef.current,
+        getSavedIncludeGuestData()
       );
       const dayRec = calculateWeightedRecommendations(
         getOutfitRuleByTemperature(dayTemp),
@@ -257,7 +266,8 @@ export default function HomePage() {
         dayTemp,
         activeUserRef.current,
         isAuthenticatedRef.current,
-        selectedGenderRef.current
+        selectedGenderRef.current,
+        getSavedIncludeGuestData()
       );
       const eveningRec = calculateWeightedRecommendations(
         getOutfitRuleByTemperature(eveningTemp),
@@ -265,7 +275,8 @@ export default function HomePage() {
         eveningTemp,
         activeUserRef.current,
         isAuthenticatedRef.current,
-        selectedGenderRef.current
+        selectedGenderRef.current,
+        getSavedIncludeGuestData()
       );
 
       setForecastSelections({
@@ -549,7 +560,7 @@ export default function HomePage() {
                   Ondo Fit
                 </h1>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
-                  v0.31.0
+                  v0.32.0
                 </span>
               </div>
               {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
@@ -777,7 +788,7 @@ export default function HomePage() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.31.0</strong></p>
+        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.32.0</strong></p>
       </footer>
     </div>
   );
