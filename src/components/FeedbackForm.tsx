@@ -75,7 +75,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
   onChangeUserCondition,
   onKakaoLogin,
 }) => {
-  // 기본값: 0 (적정) / 범위: -2 ~ +2
+  // 기본값: 0 (적정) / 확장 범위: -5 ~ +5
   const [tempOffset, setTempOffset] = useState<number>(0);
   const [memo, setMemo] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -91,35 +91,49 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
     userName.trim() === '기본사용자' ||
     userName.trim() === '게스트';
 
-  // 평가 점수(-2 ~ +2) 체감 상태 라벨 계산
+  // 평가 점수(-5 ~ +5) 체감 상태 라벨 계산
   const getOffsetInfo = (offset: number) => {
-    if (offset <= -2) {
+    const formatted = formatScoreTemp(offset);
+
+    if (offset <= -4) {
       return {
-        label: '-2 (추움)',
+        label: `${formatted} (매우 추움)`,
         emoji: '🥶',
         color: 'text-blue-700 bg-blue-100 border-blue-300',
       };
+    } else if (offset <= -2) {
+      return {
+        label: `${formatted} (꽤 쌀쌀함)`,
+        emoji: '🧣',
+        color: 'text-sky-600 bg-sky-50 border-sky-200',
+      };
     } else if (offset === -1) {
       return {
-        label: '-1 (약간 쌀쌀함)',
+        label: `${formatted} (약간 쌀쌀함)`,
         emoji: '🍃',
         color: 'text-teal-600 bg-teal-50 border-teal-200',
       };
     } else if (offset === 0) {
       return {
-        label: '0 (적정 / 딱 맞음)',
+        label: `0°C (적정 / 딱 맞음)`,
         emoji: '✨',
         color: 'text-emerald-700 bg-emerald-50 border-emerald-300 font-bold',
       };
     } else if (offset === 1) {
       return {
-        label: '+1 (약간 더움)',
+        label: `${formatted} (약간 더움)`,
         emoji: '🌤️',
         color: 'text-amber-600 bg-amber-50 border-amber-200',
       };
+    } else if (offset <= 3) {
+      return {
+        label: `${formatted} (꽤 더움)`,
+        emoji: '☀️',
+        color: 'text-orange-600 bg-orange-50 border-orange-200',
+      };
     } else {
       return {
-        label: '+2 (더움)',
+        label: `${formatted} (매우 더움)`,
         emoji: '🥵',
         color: 'text-rose-700 bg-rose-100 border-rose-300',
       };
@@ -146,7 +160,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
         selected_top: currentOutfit.top,
         selected_bottom: currentOutfit.bottom,
         selected_items: currentOutfit.items,
-        score: tempOffset, // -2 ~ +2 체감 평가 점수 저장
+        score: tempOffset, // -5 ~ +5 체감 평가 점수 저장
         condition: userCondition,
         memo: memo.trim() || undefined,
       });
@@ -184,7 +198,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-800">
-              오늘의 복장 체감 평가 (-2 ~ +2)
+              오늘의 복장 체감 평가 (-5 ~ +5)
             </h3>
             <p className="text-[11px] text-slate-400">
               {isGuest
@@ -207,11 +221,11 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* 1. 체감 온도 평가 슬라이더 (-2 ~ +2) */}
+        {/* 1. 체감 온도 평가 슬라이더 (-5 ~ +5) */}
         <div className="space-y-2">
           <div className="flex items-center justify-between flex-wrap gap-1">
             <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-              <span>착용 체감 평가 점수</span>
+              <span>착용 체감 평가 점수 (-5 ~ +5)</span>
               <span className="text-[11px] text-slate-400 font-normal">
                 (기온 {currentTemp}°C 기준)
               </span>
@@ -226,20 +240,20 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
           <div className="pt-2 px-1">
             <input
               type="range"
-              min={-2}
-              max={2}
+              min={-5}
+              max={5}
               step={1}
               value={tempOffset}
               onChange={(e) => setTempOffset(Number(e.target.value))}
               className="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 focus:outline-none touch-manipulation"
             />
-            {/* 눈금 라벨 (-2: 추움 / 0: 적정 / +2: 더움) */}
+            {/* 눈금 라벨 (-5 ~ +5) */}
             <div className="flex items-center justify-between text-[11px] font-medium mt-2">
-              <span className="text-blue-600 font-bold">-2 : 추움</span>
-              <span className="text-sky-600">-1 : 약간 쌀쌀</span>
+              <span className="text-blue-600 font-bold">-5 : 매우 추움</span>
+              <span className="text-sky-600 hidden sm:inline">-3 : 쌀쌀</span>
               <span className="text-emerald-600 font-bold">0 : 적정 (딱 맞음)</span>
-              <span className="text-amber-600">+1 : 약간 더움</span>
-              <span className="text-rose-600 font-bold">+2 : 더움</span>
+              <span className="text-amber-600 hidden sm:inline">+3 : 더움</span>
+              <span className="text-rose-600 font-bold">+5 : 매우 더움</span>
             </div>
           </div>
         </div>
