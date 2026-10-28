@@ -1,11 +1,14 @@
 export type UserCondition = '정상' | '피곤' | '감기' | '활동량많음';
 
+export type UserRole = 'admin' | 'user';
+
 export interface UserProfile {
   id: string;
   name: string;
   created_at: string;
   avatar_url?: string | null;
   email?: string | null;
+  role?: UserRole | null;
 }
 
 export interface OutfitLog {
@@ -37,3 +40,26 @@ export interface MatchedRecallRecord {
   guidanceMessage: string;
   tempDiff: number;
 }
+
+/**
+ * 온도별 평가 데이터 관리 모델 (RBAC - Admin 전용 관리 테이블)
+ */
+export interface TemperatureEvaluation {
+  id: string;
+  created_at: string;
+  user_id?: string | null;
+  user_name: string;
+  location_name: string;
+  target_temp: number;
+  apparent_temp: number;
+  time_slot: string;
+  selected_outer: string;
+  selected_top: string[];
+  selected_bottom: string[];
+  selected_items: string[];
+  score: number;
+  condition: UserCondition;
+  memo?: string | null;
+}
+
+export type NewTemperatureEvaluationInput = Omit<TemperatureEvaluation, 'id' | 'created_at'>;

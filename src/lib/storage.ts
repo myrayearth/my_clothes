@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { OutfitLog, NewOutfitLogInput, UserProfile } from '@/types/database';
+import { OutfitLog, NewOutfitLogInput, UserProfile, TemperatureEvaluation, NewTemperatureEvaluationInput } from '@/types/database';
 
 const LOCAL_LOGS_KEY = 'weather_outfit_logs_v3';
 const LOCAL_PROFILES_KEY = 'weather_outfit_profiles_v1';
@@ -498,6 +498,29 @@ export async function createOutfitLog(input: NewOutfitLogInput): Promise<{
 
       if (!error && data) {
         saveLocalLog(data as OutfitLog);
+
+        // RBAC: temperature_evaluations 테이블에도 동기화 기록 (Admin 관리용)
+        try {
+          await supabase.from('temperature_evaluations').insert([
+            {
+              user_name: input.user_name,
+              location_name: input.location_name,
+              target_temp: input.target_temp,
+              apparent_temp: input.apparent_temp,
+              time_slot: input.time_slot,
+              selected_outer: input.selected_outer,
+              selected_top: input.selected_top,
+              selected_bottom: input.selected_bottom,
+              selected_items: input.selected_items,
+              score: input.score,
+              condition: input.condition,
+              memo: input.memo || null,
+            },
+          ]);
+        } catch (syncErr) {
+          console.warn('temperature_evaluations sync notice:', syncErr);
+        }
+
         return { success: true, savedLog: data as OutfitLog, isFallback: false };
       }
       console.warn('Supabase insert failed, fallback to LocalStorage:', error?.message);
@@ -509,3 +532,119 @@ export async function createOutfitLog(input: NewOutfitLogInput): Promise<{
   saveLocalLog(logToSave);
   return { success: true, savedLog: logToSave, isFallback: true };
 }
+
+// ==========================================
+// 온도별 평가 데이터 관리 (RBAC - Admin 전용)
+// ==========================================
+
+/**
+ * 온도별 평가 데이터 목록 조회 (Supabase RLS 적용: Admin만 접근 가능)
+ */
+export async function fetchTemperatureEvaluations(): Promise<{
+  data: TemperatureEvaluation[];
+  error?: string;
+}> {
+  if (!supabase) {
+    return { data: [], error: 'Supabase 클라이언트가 설정되지 않았습니다.' };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('temperature_evaluations')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('fetchTemperatureEvaluations error:', error);
+      return { data: [], error: error.message };
+    }
+
+    return { data: (data || []) as TemperatureEvaluation[] };
+  } catch (err: any) {
+    console.error('fetchTemperatureEvaluations exception:', err);
+    return { data: [], error: err.message || '데이터를 불러오는 중 오류가 발생했습니다.' };
+  }
+}
+
+/**
+ * 온도별 평가 데이터 항목 수정 (Admin 전용)
+ */
+export async function updateTemperatureEvaluation(
+  id: string,
+  updates: Partial<TemperatureEvaluation>
+): Promise<{ success: boolean; data?: TemperatureEvaluation; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: 'Supabase 클라이언트가 설정되지 않았습니다.' };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('temperature_evaluations')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data as TemperatureEvaluation };
+  } catch (err: any) {
+    return { success: false, error: err.message || '수정 중 오류가 발생했습니다.' };
+  }
+}
+
+/**
+ * 온도별 평가 데이터 항목 삭제 (Admin 전용)
+ */
+export async function deleteTemperatureEvaluation(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: 'Supabase 클라이언트가 설정되지 않았습니다.' };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('temperature_evaluations')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || '삭제 중 오류가 발생했습니다.' };
+  }
+}
+
+/**
+ * 온도별 평가 데이터 수동 등록 (Admin 전용)
+ */
+export async function createTemperatureEvaluation(
+  input: NewTemperatureEvaluationInput
+): Promise<{ success: boolean; data?: TemperatureEvaluation; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: 'Supabase 클라이언트가 설정되지 않았습니다.' };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('temperature_evaluations')
+      .insert([input])
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data as TemperatureEvaluation };
+  } catch (err: any) {
+    return { success: false, error: err.message || '등록 중 오류가 발생했습니다.' };
+  }
+}
+

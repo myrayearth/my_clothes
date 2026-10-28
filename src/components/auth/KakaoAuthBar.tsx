@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { signInWithKakao, signOutKakao } from '@/lib/auth';
+import Link from 'next/link';
+import { signInWithKakao, signOutKakao, isUserAdmin } from '@/lib/auth';
 import { UserProfile } from '@/types/database';
-import { LogOut, Loader2, User as UserIcon } from 'lucide-react';
+import { LogOut, Loader2, User as UserIcon, BarChart3, ShieldCheck } from 'lucide-react';
 
 interface KakaoAuthBarProps {
   currentProfile: UserProfile | null;
@@ -45,63 +46,82 @@ export const KakaoAuthBar: React.FC<KakaoAuthBarProps> = ({
     <div className="flex items-center gap-2">
       {isAuthenticated && currentProfile ? (
         // 로그인 상태 UI
-        <div className="flex items-center gap-2 bg-white border border-slate-200/80 rounded-2xl p-1.5 pr-2.5 shadow-2xs">
-          {/* 아바타 */}
-          <div className="relative">
-            {currentProfile.avatar_url ? (
-              <img
-                src={currentProfile.avatar_url}
-                alt={currentProfile.name}
-                className="w-7 h-7 rounded-xl object-cover ring-1 ring-amber-400/50"
-              />
-            ) : (
-              <div className="w-7 h-7 rounded-xl bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center ring-1 ring-amber-400/40">
-                {currentProfile.name.slice(0, 1)}
-              </div>
-            )}
-            <span
-              className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-[#FEE500] rounded-full flex items-center justify-center border border-white shadow-xs"
-              title="카카오 로그인 연동됨"
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* 관리자인 경우 관리자 대시보드 바로가기 버튼 */}
+          {(currentProfile.role === 'admin' || isUserAdmin(currentProfile)) && (
+            <Link
+              href="/admin/evaluations"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200 transition-all active:scale-95 shadow-2xs"
+              title="온도별 평가 데이터 관리 (관리자 전용)"
             >
-              <svg
-                viewBox="0 0 24 24"
-                fill="#191919"
-                className="w-2 h-2"
-              >
-                <path d="M12 3c-4.97 0-9 3.185-9 7.115 0 2.557 1.707 4.8 4.27 6.012l-1.08 4.025c-.097.362.316.65.617.433l4.757-3.15c.144.01.29.016.436.016 4.97 0 9-3.185 9-7.116S16.97 3 12 3z" />
-              </svg>
-            </span>
-          </div>
+              <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
+              <span className="hidden sm:inline">평가 관리</span>
+            </Link>
+          )}
 
-          {/* 사용자 이름 및 카카오 배지 */}
-          <div className="flex flex-col text-left">
-            <div className="flex items-center gap-1">
-              <span className="text-xs font-bold text-slate-800 truncate max-w-[110px]">
-                {currentProfile.name}
-              </span>
-              <span className="text-[9px] font-extrabold px-1 py-0.2 bg-[#FEE500] text-[#191919] rounded">
-                카카오
+          <div className="flex items-center gap-2 bg-white border border-slate-200/80 rounded-2xl p-1.5 pr-2.5 shadow-2xs">
+            {/* 아바타 */}
+            <div className="relative">
+              {currentProfile.avatar_url ? (
+                <img
+                  src={currentProfile.avatar_url}
+                  alt={currentProfile.name}
+                  className="w-7 h-7 rounded-xl object-cover ring-1 ring-amber-400/50"
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-xl bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center ring-1 ring-amber-400/40">
+                  {currentProfile.name.slice(0, 1)}
+                </div>
+              )}
+              <span
+                className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-[#FEE500] rounded-full flex items-center justify-center border border-white shadow-xs"
+                title="카카오 로그인 연동됨"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="#191919"
+                  className="w-2 h-2"
+                >
+                  <path d="M12 3c-4.97 0-9 3.185-9 7.115 0 2.557 1.707 4.8 4.27 6.012l-1.08 4.025c-.097.362.316.65.617.433l4.757-3.15c.144.01.29.016.436.016 4.97 0 9-3.185 9-7.116S16.97 3 12 3z" />
+                </svg>
               </span>
             </div>
-            <span className="text-[10px] text-slate-400 truncate max-w-[130px]">
-              {currentProfile.email || '개인 데이터 연동 중'}
-            </span>
-          </div>
 
-          {/* 로그아웃 버튼 */}
-          <button
-            type="button"
-            onClick={handleLogout}
-            disabled={isLoading}
-            className="ml-1 p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all active:scale-95 disabled:opacity-50"
-            title="카카오 로그아웃 (기본 사용자로 전환)"
-          >
-            {isLoading ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <LogOut className="w-3.5 h-3.5" />
-            )}
-          </button>
+            {/* 사용자 이름 및 카카오 배지 */}
+            <div className="flex flex-col text-left">
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-bold text-slate-800 truncate max-w-[110px]">
+                  {currentProfile.name}
+                </span>
+                <span className="text-[9px] font-extrabold px-1 py-0.2 bg-[#FEE500] text-[#191919] rounded">
+                  카카오
+                </span>
+                {(currentProfile.role === 'admin' || isUserAdmin(currentProfile)) && (
+                  <span className="text-[9px] font-bold px-1 py-0.2 bg-indigo-100 text-indigo-700 rounded border border-indigo-200">
+                    Admin
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] text-slate-400 truncate max-w-[130px]">
+                {currentProfile.email || '개인 데이터 연동 중'}
+              </span>
+            </div>
+
+            {/* 로그아웃 버튼 */}
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={isLoading}
+              className="ml-1 p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all active:scale-95 disabled:opacity-50"
+              title="카카오 로그아웃 (기본 사용자로 전환)"
+            >
+              {isLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <LogOut className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
         </div>
       ) : (
         // 비로그인 상태 UI (기본 사용자 + 카카오 3초 로그인 버튼)

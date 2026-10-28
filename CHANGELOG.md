@@ -12,6 +12,34 @@
 
 ---
 
+## [v0.9.0] - 2026-10-28 (Feature Release)
+
+온도별 평가 데이터 관리 페이지 신설 및 Supabase RLS 기반 관리자 권한 제어(RBAC) 구현 릴리즈입니다. (+0.1.0 Minor 증가)
+
+### ✨ 추가 및 개선 사항 (Features & Enhancements)
+- **Supabase PostgreSQL RLS 기반 관리자 권한 제어(RBAC) 구축**:
+  - `public.temperature_evaluations` 테이블 신설 및 Row Level Security (RLS) 활성화
+  - 보안 정의자 함수 `public.is_admin(lookup_uid UUID)` 구현:
+    - a) `auth.users`의 `email = 'ray0412@kakao.com'` 또는 `raw_user_meta_data->>'email' = 'ray0412@kakao.com'` 검증
+    - b) `public.profiles`의 `role = 'admin'` 또는 `email = 'ray0412@kakao.com'` 검증
+  - `temperature_evaluations`에 대해 일반 사용자/익명(anon) 접근을 원천 차단하고 오직 `is_admin() = true`인 관리자만 SELECT, INSERT, UPDATE, DELETE 가능하도록 정책 적용
+- **프론트엔드 라우트 보호 (`AdminGuard` 컴포넌트)**:
+  - `/admin/evaluations` 경로에 RBAC 권한 가드 적용
+  - 비로그인 사용자: 로그인 안내 화면 및 원클릭 카카오 로그인 버튼 노출 후 안전 리디렉션
+  - 일반 로그인 사용자 (관리자 아님): `403 Forbidden` 차단 화면 및 "(관리자 전용) 이 페이지는 시스템 관리자('ray0412@kakao.com') 전용 공간입니다" 명확한 안내 및 홈 복귀/계정 전환 기능 제공
+  - 관리자 계정(`ray0412@kakao.com`): 관리자 대시보드 및 차트 정상 렌더링
+- **온도별 평가 데이터 관리 대시보드 (`/admin/evaluations`) 구현**:
+  - 실시간 통계 KPI: 총 누적 평가 건수, 평균 체감 편차, 적정(0°C) 만족율, 추움 vs 더움 비율
+  - 8단계 기온 구간별 체감 평가 분포 차트 (구간별 건수, 퍼센트, 평균 오차 시각화)
+  - 다중 검색 및 필터: 사용자명/위치/메모/복장 텍스트 검색, 시간대(08/13/19시), 체감 점수(추움/적정/더움), 컨디션별 필터
+  - 인터랙티브 데이터 테이블: 작성일시, 사용자, 위치, 기온/체감, 시간대, 착용 복장, 체감 뱃지, 컨디션, 메모 표시
+  - 관리자 CRUD 액션: 평가 데이터 개별 수정 모달, 영구 삭제 확인 모달, 신규 벤치마크 평가 수동 등록 모달
+- **메인 홈 및 카카오 인증 바 연동**:
+  - 로그인된 관리자에게 헤더에 `[📊 평가 관리]` 바로가기 버튼 및 `[Admin]` 뱃지 자동 노출
+  - 복장 체감 피드백 등록 시 `temperature_evaluations` 테이블과 실시간 연동 기록
+
+---
+
 ## [v0.8.2] - 2026-10-28 (Patch Release)
 
 카카오 로그인 요청 시 이메일(account_email) 필수 스코프 제외 및 전용 인증 콜백 라우트 신설 릴리즈입니다. (+0.0.1 Patch 증가)
