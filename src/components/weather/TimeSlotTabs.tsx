@@ -7,6 +7,9 @@ interface TimeSlotTabsProps {
   timeSlots: Record<TargetTimeSlot, TimeSlotWeatherItem>;
   selectedSlot: TargetTimeSlot;
   onSelectSlot: (slot: TargetTimeSlot) => void;
+  title?: string;
+  badge?: React.ReactNode;
+  visibleSlots?: TargetTimeSlot[];
 }
 
 const slotMeta: Record<
@@ -39,22 +42,30 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
   timeSlots,
   selectedSlot,
   onSelectSlot,
+  title = '시간대별 예보 및 복장 기준',
+  badge,
+  visibleSlots = ['current', '08:00', '13:00', '19:00'],
 }) => {
-  const slots: TargetTimeSlot[] = ['current', '08:00', '13:00', '19:00'];
+  const slots: TargetTimeSlot[] = visibleSlots;
 
   return (
     <div className="w-full">
-      <div className="flex items-center gap-1.5 mb-2.5">
-        <Clock className="w-4 h-4 text-slate-500 shrink-0" />
-        <h3 className="text-sm font-bold text-slate-800">
-          시간대별 예보 및 복장 기준
-        </h3>
-        <span className="text-[11px] text-slate-400 font-normal">
-          (탭 선택)
-        </span>
+      <div className="flex items-center justify-between mb-2.5 flex-wrap gap-2">
+        <div className="flex items-center gap-1.5">
+          <Clock className="w-4 h-4 text-slate-500 shrink-0" />
+          <h3 className="text-sm font-bold text-slate-800">
+            {title}
+          </h3>
+          <span className="text-[11px] text-slate-400 font-normal">
+            (탭 선택)
+          </span>
+        </div>
+        {badge}
       </div>
 
-      <div className="grid grid-cols-2 xs:grid-cols-4 sm:grid-cols-4 gap-2 sm:gap-2.5">
+      <div className={`grid gap-2 sm:gap-2.5 ${
+        slots.length === 3 ? 'grid-cols-3' : 'grid-cols-2 xs:grid-cols-4 sm:grid-cols-4'
+      }`}>
         {slots.map((slot) => {
           const item = timeSlots[slot];
           if (!item) return null;

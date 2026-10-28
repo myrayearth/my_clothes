@@ -145,11 +145,12 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
 
   const offsetInfo = getOffsetInfo(tempOffset);
 
-  // 시간대 명칭 매핑 (아침, 낮, 저녁, 현재)
+  // 시간대 명칭 매핑 (아침, 낮, 저녁, 현재, 수동)
   const getSlotName = (slot: string) => {
-    if (slot === '08:00') return '아침';
-    if (slot === '13:00') return '낮';
-    if (slot === '19:00') return '저녁';
+    if (slot === '08:00' || slot.endsWith('08:00')) return '아침';
+    if (slot === '13:00' || slot.endsWith('13:00')) return '낮';
+    if (slot === '19:00' || slot.endsWith('19:00')) return '저녁';
+    if (slot === 'manual') return '수동';
     return '현재';
   };
   const slotLabel = getSlotName(timeSlot);
