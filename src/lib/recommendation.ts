@@ -34,7 +34,7 @@ function getSuitabilityScore(score: number): number {
 }
 
 /**
- * 특정 로그 그룹에서 해당 아이템의 평균 만족도 점수 계산
+ * 특정 로그 그룹에서 해당 아이템의 평균 만족도 점수 및 착용 횟수 계산
  */
 function calculateGroupItemScore(
   item: string,
@@ -70,12 +70,9 @@ function calculateGroupItemScore(
  * 데이터 오염 방지 및 개인화 가중치 기반 동적 복장 추천 엔진
  *
  * [가중치 산출 원칙]
- * 1. 평가 없음: 기본 추천 100%
- * 2. 게스트 상태 (또는 개인평가 0건):
- *    - 게스트 평가 수 < 5개: 기본 추천 100% (소수 평가 오염 방지)
- *    - 게스트 평가 수 >= 5개: 게스트 평가 65% + 기본 추천 35%
- * 3. 로그인 상태 + 개인평가 있음:
- *    - 개인 평가 60% + 게스트 평가 20% + 기본 추천 20%
+ * 1. 평가 0건: 기본 추천 100%
+ * 2. 개인 평가 1건 이상: 개인 평가 최우선 (내 평가 70~80% + 누적/기본 반영)
+ * 3. 누적 평가 1건 이상: 게스트/전체 누적 평가 반영 (누적 평가 75% + 기본 25%)
  */
 export function calculateWeightedRecommendations(
   rule: OutfitRuleStep,
@@ -114,12 +111,14 @@ export function calculateWeightedRecommendations(
     (log) => Math.abs(log.target_temp - targetTemp) <= tempTolerance
   );
 
-  // 3. 개인 평가와 게스트 평가로 엄격 분리
+  // 3. 개인 평가와 게스트 평가 분리
   const isPersonalLog = (log: OutfitLog) =>
-    isLoggedIn &&
-    currentUser &&
-    currentUser !== '게스트' &&
-    log.user_name === currentUser;
+    Boolean(
+      isLoggedIn &&
+      currentUser &&
+      currentUser !== '게스트' &&
+      log.user_name === currentUser
+    );
 
   const personalLogs = matchedLogs.filter(isPersonalLog);
   const guestLogs = matchedLogs.filter((log) => !isPersonalLog(log));
@@ -128,7 +127,7 @@ export function calculateWeightedRecommendations(
   const guestCount = guestLogs.length;
   const totalCount = matchedLogs.length;
 
-  // 4. 가중치 결정
+  // 4. 가중치 결정 (1건의 평가라도 즉시 반영되도록 완화)
   let w_personal = 0;
   let w_guest = 0;
   let w_rule = 1.0;
@@ -136,36 +135,30 @@ export function calculateWeightedRecommendations(
   let description = '기본 룰셋 100% 적용';
 
   if (personalCount > 0) {
-    // Case 3: 개인 평가가 있는 로그인 상태
     mode = 'personal_weighted';
     if (guestCount > 0) {
-      w_personal = 0.6;
+      w_personal = 0.7;
       w_guest = 0.2;
-      w_rule = 0.2;
-      description = `개인화 맞춤 (내 평가 60% + 전체 20% + 기본 20%)`;
+      w_rule = 0.1;
+      description = `개인화 맞춤 (내 평가 70% + 전체 20% + 기본 10%)`;
     } else {
-      w_personal = 0.6;
+      w_personal = 0.8;
       w_guest = 0;
-      w_rule = 0.4;
-      description = `개인화 맞춤 (내 평가 60% + 기본 40%)`;
+      w_rule = 0.2;
+      description = `개인화 맞춤 (내 평가 80% + 기본 20%)`;
     }
-  } else if (guestCount >= 5) {
-    // Case 2: 게스트 평가 5개 이상
+  } else if (guestCount > 0) {
     mode = 'guest_weighted';
     w_personal = 0;
-    w_guest = 0.65;
-    w_rule = 0.35;
-    description = `전체 누적 평가 반영 (게스트 평가 65% + 기본 35%)`;
+    w_guest = 0.75;
+    w_rule = 0.25;
+    description = `전체 누적 평가 반영 (누적 평가 75% + 기본 25%)`;
   } else {
-    // Case 1: 평가 0개 또는 5개 미만
     mode = 'rule_only';
     w_personal = 0;
     w_guest = 0;
     w_rule = 1.0;
-    description =
-      guestCount > 0
-        ? `누적 평가 수집 중 (${guestCount}/5건 미만, 기본 룰셋 100% 적용)`
-        : '기본 룰셋 100% 적용';
+    description = '기본 룰셋 100% 적용';
   }
 
   const weights: RecommendationWeights = {
@@ -179,7 +172,7 @@ export function calculateWeightedRecommendations(
     description,
   };
 
-  // 가중치가 기본 룰셋 100%일 때는 계산 비용 없이 즉시 반환
+  // 평가가 전혀 없는 경우 즉시 룰셋 기본값 반환
   if (w_rule === 1.0) {
     return {
       options: {
@@ -199,23 +192,37 @@ export function calculateWeightedRecommendations(
     recommendList: string[],
     category: 'outer' | 'top' | 'bottom' | 'item'
   ): { rankedOptions: string[]; topItem: string } => {
-    // 유니크 아이템 합집합
-    const allCandidateSet = new Set<string>([...candidateList, ...recommendList]);
+    // 로그에서 사용된 아이템들도 후보 목록에 성별 필터링 후 병합
+    const loggedItems = matchedLogs.flatMap((log) => {
+      if (category === 'outer') return log.selected_outer ? [log.selected_outer] : [];
+      if (category === 'top') return Array.isArray(log.selected_top) ? log.selected_top : (log.selected_top ? [log.selected_top] : []);
+      if (category === 'bottom') return Array.isArray(log.selected_bottom) ? log.selected_bottom : (log.selected_bottom ? [log.selected_bottom] : []);
+      return log.selected_items || [];
+    }).filter((name) => Boolean(name) && name !== '없음');
+
+    const validLoggedItems = filterItemsByGender(loggedItems, gender);
+    const allCandidateSet = new Set<string>([...candidateList, ...recommendList, ...validLoggedItems]);
     const items = Array.from(allCandidateSet);
 
     const scoredItems = items.map((item) => {
-      // 1) 룰셋 기본 점수 (대표 추천이면 5.0, 후보 목록이면 2.5, 그 외 1.0)
-      const ruleScore = recommendList.includes(item) ? 5.0 : candidateList.includes(item) ? 2.5 : 1.0;
+      // 1) 룰셋 사전 베이스라인 점수 (대표 추천: 3.2, 스펙트럼 후보: 2.0, 그 외: 1.5)
+      const ruleScore = recommendList.includes(item) ? 3.2 : candidateList.includes(item) ? 2.0 : 1.5;
 
       // 2) 개인 평가 점수
+      // - 착용 기록이 있는 경우: avgScore(0~5점) + 만족(3.5점 이상) 시 착용 빈도 신뢰도 보너스
+      // - 착용 기록이 없는 경우: 사전 베이스라인(ruleScore) 부여
       const pStat = calculateGroupItemScore(item, category, personalLogs);
-      const personalScore = pStat.count > 0 ? pStat.avgScore : ruleScore;
+      const personalScore = pStat.count > 0
+        ? pStat.avgScore + (pStat.avgScore >= 3.5 ? Math.min(0.5, pStat.count * 0.2) : 0)
+        : ruleScore;
 
-      // 3) 게스트 평가 점수
+      // 3) 게스트/누적 평가 점수
       const gStat = calculateGroupItemScore(item, category, guestLogs);
-      const guestScore = gStat.count > 0 ? gStat.avgScore : ruleScore;
+      const guestScore = gStat.count > 0
+        ? gStat.avgScore + (gStat.avgScore >= 3.5 ? Math.min(0.5, gStat.count * 0.1) : 0)
+        : ruleScore;
 
-      // 4) 가중 합산
+      // 4) 가중 종합 점수
       const finalScore =
         w_personal * personalScore + w_guest * guestScore + w_rule * ruleScore;
 
@@ -238,25 +245,43 @@ export function calculateWeightedRecommendations(
 
   // 외투 1위 결정 (외투는 '없음' 추천이 기본일 때 고평가 외투가 없으면 '없음' 유지)
   let bestOuter = outerResult.topItem;
-  if (filteredRecOuter === '없음' && mode !== 'personal_weighted') {
+  if (filteredRecOuter === '없음' && mode === 'rule_only') {
     bestOuter = '없음';
   }
 
   const bestTop = topResult.rankedOptions.find((i) => !isInnerClothingItem(i)) || topResult.topItem;
   const bestBottom = bottomResult.rankedOptions.find((i) => !isInnerClothingItem(i)) || bottomResult.topItem;
 
+  // 소품: 평가 로그에서 만족도(avgScore >= 3.0)가 높은 소품이 있으면 우선 포함, 없으면 기본 추천 소품 유지
+  const highRatedItems = itemResult.rankedOptions.filter((item) => {
+    const pStat = calculateGroupItemScore(item, 'item', personalLogs);
+    const gStat = calculateGroupItemScore(item, 'item', guestLogs);
+    const hasLog = pStat.count > 0 || gStat.count > 0;
+    const avgScore = (pStat.count * pStat.avgScore + gStat.count * gStat.avgScore) / (pStat.count + gStat.count || 1);
+    return hasLog && avgScore >= 3.0;
+  });
+
+  const bestItems = highRatedItems.length > 0 ? highRatedItems : filteredRecItems;
+
+  // 기존 스펙트럼 옵션 순서에 랭킹 아이템을 자연스럽게 우선 배치
+  const mergeRankedWithSpectrum = (ranked: string[], spectrum: string[]) => {
+    const set = new Set(ranked);
+    const remaining = spectrum.filter((item) => !set.has(item));
+    return [...ranked, ...remaining];
+  };
+
   return {
     options: {
-      outer: rawOuter,
-      top: rawTop,
-      bottom: rawBottom,
-      items: rawItems,
+      outer: mergeRankedWithSpectrum(outerResult.rankedOptions, rawOuter),
+      top: mergeRankedWithSpectrum(topResult.rankedOptions, rawTop),
+      bottom: mergeRankedWithSpectrum(bottomResult.rankedOptions, rawBottom),
+      items: mergeRankedWithSpectrum(itemResult.rankedOptions, rawItems),
     },
     defaults: {
       outer: bestOuter,
       top: [bestTop],
       bottom: [bestBottom],
-      items: filteredRecItems,
+      items: bestItems,
     },
     weights,
   };

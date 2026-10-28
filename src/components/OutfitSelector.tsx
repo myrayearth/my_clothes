@@ -430,15 +430,15 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
         {/* 복장 추천 리셋 제어 버튼 세트 */}
         <div className="flex items-center gap-2 self-start sm:self-center flex-wrap">
-          {/* 1. 기본 추천순 100% 반영 리셋 */}
+          {/* 1. 기본 추천 리셋 */}
           <button
             type="button"
             onClick={handleResetToRuleDefault}
             className="flex items-center gap-1.5 text-xs text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-lg font-semibold transition-all active:scale-95 touch-manipulation border border-slate-200 shadow-2xs cursor-pointer"
-            title="사용자 평가가 반영되지 않은 기온별 표준 룰셋 추천 100%로 초기화 (이너 제외)"
+            title="사용자 평가가 반영되지 않은 기온별 표준 룰셋 기본 추천으로 초기화 (이너 제외)"
           >
             <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-            <span>기본 추천 100% 리셋</span>
+            <span>기본 추천 리셋</span>
           </button>
 
           {/* 2. 평가 반영 리셋 */}
