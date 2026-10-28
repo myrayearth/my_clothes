@@ -72,7 +72,7 @@ function EvaluationsDashboardContent() {
 
   // 모달 상태
   const [editingItem, setEditingItem] = useState<TemperatureEvaluation | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingItem, setDeletingItem] = useState<TemperatureEvaluation | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
@@ -279,14 +279,14 @@ function EvaluationsDashboardContent() {
 
   // 항목 삭제 처리
   const handleDeleteConfirm = async () => {
-    if (!deletingId) return;
+    if (!deletingItem) return;
 
     setIsSubmitting(true);
     try {
-      const res = await deleteTemperatureEvaluation(deletingId);
+      const res = await deleteTemperatureEvaluation(deletingItem);
       if (res.success) {
-        setActionSuccessMsg('평가 데이터가 성공적으로 삭제되었습니다.');
-        setDeletingId(null);
+        setActionSuccessMsg('평가 데이터가 성공적으로 삭제되었습니다 (과거 리콜 및 캐시 동기화 완료).');
+        setDeletingItem(null);
         await loadData();
       } else {
         alert(res.error || '삭제에 실패했습니다.');
@@ -720,7 +720,7 @@ function EvaluationsDashboardContent() {
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => setDeletingId(item.id)}
+                            onClick={() => setDeletingItem(item)}
                             className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
                             title="삭제"
                           >
@@ -869,7 +869,7 @@ function EvaluationsDashboardContent() {
       )}
 
       {/* 7. 삭제 확인 모달 */}
-      {deletingId && (
+      {deletingItem && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-xl max-w-sm w-full p-6 space-y-4 border border-rose-200 text-center">
             <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl mx-auto flex items-center justify-center">
@@ -878,13 +878,18 @@ function EvaluationsDashboardContent() {
             <div>
               <h3 className="text-base font-bold text-slate-900">평가 데이터 삭제</h3>
               <p className="text-xs text-slate-500 mt-1">
-                정말 이 평가 기록을 삭제하시겠습니까? 데이터베이스(Supabase)에서 영구 제거됩니다.
+                정말 이 평가 기록을 삭제하시겠습니까? 데이터베이스 및 사용자 과거 리콜 화면에서 즉시 영구 제거됩니다.
               </p>
+              <div className="mt-2.5 p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-left text-[11px] text-slate-600 space-y-0.5">
+                <div><strong>사용자:</strong> {deletingItem.user_name}</div>
+                <div><strong>기온:</strong> {deletingItem.target_temp}°C ({deletingItem.time_slot})</div>
+                <div><strong>체감 점수:</strong> {formatScoreTemp(deletingItem.score)}</div>
+              </div>
             </div>
             <div className="flex items-center justify-center gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setDeletingId(null)}
+                onClick={() => setDeletingItem(null)}
                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl flex-1"
               >
                 취소

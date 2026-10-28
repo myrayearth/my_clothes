@@ -12,6 +12,24 @@
 
 ---
 
+## [v0.9.1] - 2026-10-28 (Patch Release)
+
+관리자 평가 데이터 관리와 메인 화면 리콜(History Recall) 간의 양방향 연쇄 삭제/수정 동기화 릴리즈입니다. (+0.0.1 Patch 증가)
+
+### 🐛 버그 수정 및 개선 사항 (Bug Fixes & Improvements)
+- **Supabase DB 트리거 기반 양방향 연쇄 삭제/수정 동기화**:
+  - `temperature_evaluations`에서 데이터가 삭제되면 `outfit_logs`에서도 연쇄 자동 삭제되는 PostgreSQL 트리거(`trg_temp_eval_delete`) 구축
+  - 수정 시에도 `outfit_logs`에 즉시 반영되는 트리거(`trg_temp_eval_update`) 적용
+- **클라이언트 스토리지 및 캐시 연쇄 제거 (`removeLocalLog`)**:
+  - 관리자 화면에서 평가 삭제 시 Supabase DB뿐만 아니라 브라우저의 LocalStorage(`weather_outfit_logs_v3`) 캐시도 함께 즉시 제거하여 리콜 화면 잔존 원천 차단
+- **메인 화면 실시간 동기화 이벤트 연동**:
+  - `weather_outfit_logs_changed` 커스텀 이벤트 및 탭 전환(`focus`) 감지 리스너를 메인 홈(`page.tsx`)에 추가
+  - 관리자 페이지에서 수정/삭제 후 메인 화면으로 돌아왔을 때 새로고침 없이도 과거 리콜 데이터가 즉각 최신 상태로 재계산되도록 조치
+- **기존 고아 복장 로그 정리**:
+  - 관리자 페이지에서 선제 삭제되었던 `레이 (3.0°C)` 테스트 데이터의 `outfit_logs` 잔여 항목 완벽 정리 완료
+
+---
+
 ## [v0.9.0] - 2026-10-28 (Feature Release)
 
 온도별 평가 데이터 관리 페이지 신설 및 Supabase RLS 기반 관리자 권한 제어(RBAC) 구현 릴리즈입니다. (+0.1.0 Minor 증가)

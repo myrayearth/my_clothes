@@ -180,6 +180,23 @@ export default function Home() {
     }
   }, [activeUser, loadLogs]);
 
+  // 관리자 페이지 등에서 평가 수정/삭제 시 리콜 데이터 실시간 동기화 리스너
+  useEffect(() => {
+    const handleLogsChanged = () => {
+      loadLogs(activeUser);
+    };
+
+    window.addEventListener('weather_outfit_logs_changed', handleLogsChanged);
+    window.addEventListener('storage', handleLogsChanged);
+    window.addEventListener('focus', handleLogsChanged);
+
+    return () => {
+      window.removeEventListener('weather_outfit_logs_changed', handleLogsChanged);
+      window.removeEventListener('storage', handleLogsChanged);
+      window.removeEventListener('focus', handleLogsChanged);
+    };
+  }, [activeUser, loadLogs]);
+
   // 사용자 전환 핸들러
   const handleSelectUser = (userName: string, userId?: string) => {
     setActiveUser(userName);
@@ -292,7 +309,7 @@ export default function Home() {
                   Weather Outfit
                 </h1>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                  v0.9.0
+                  v0.9.1
                 </span>
               </div>
               <p className="text-xs text-slate-500">
@@ -427,7 +444,7 @@ export default function Home() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.9.0</strong></p>
+        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.9.1</strong></p>
       </footer>
       {/* 8. 사용자 관리 (편집 / 삭제) 모달 */}
       <UserManagementModal

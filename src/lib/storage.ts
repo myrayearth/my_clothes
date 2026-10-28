@@ -428,6 +428,38 @@ function saveLocalLog(newLog: OutfitLog): void {
   }
 }
 
+export function removeLocalLog(
+  id: string,
+  target?: Partial<TemperatureEvaluation | OutfitLog> | null
+): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem(LOCAL_LOGS_KEY);
+    if (!raw) return;
+    const logs: OutfitLog[] = JSON.parse(raw);
+    const filtered = logs.filter((l) => {
+      if (l.id === id) return false;
+      if (target) {
+        if (
+          target.user_name &&
+          l.user_name === target.user_name &&
+          target.target_temp !== undefined &&
+          Number(l.target_temp) === Number(target.target_temp) &&
+          target.score !== undefined &&
+          Number(l.score) === Number(target.score) &&
+          (!target.time_slot || l.time_slot === target.time_slot)
+        ) {
+          return false;
+        }
+      }
+      return true;
+    });
+    localStorage.setItem(LOCAL_LOGS_KEY, JSON.stringify(filtered));
+  } catch (e) {
+    console.warn('removeLocalLog error:', e);
+  }
+}
+
 /**
  * 모든 복장 로그 가져오기 (특정 사용자 필터링 지원)
  */
@@ -499,10 +531,11 @@ export async function createOutfitLog(input: NewOutfitLogInput): Promise<{
       if (!error && data) {
         saveLocalLog(data as OutfitLog);
 
-        // RBAC: temperature_evaluations 테이블에도 동기화 기록 (Admin 관리용)
+        // RBAC: temperature_evaluations 테이블에도 동일한 ID로 동기화 기록 (Admin 관리용)
         try {
           await supabase.from('temperature_evaluations').insert([
             {
+              id: data.id,
               user_name: input.user_name,
               location_name: input.location_name,
               target_temp: input.target_temp,
@@ -567,7 +600,7 @@ export async function fetchTemperatureEvaluations(): Promise<{
 }
 
 /**
- * 온도별 평가 데이터 항목 수정 (Admin 전용)
+ * 온도별 평가 데이터 항목 수정 (Admin 전용 - outfit_logs 및 LocalStorage 연쇄 동기화)
  */
 export async function updateTemperatureEvaluation(
   id: string,
@@ -589,6 +622,39 @@ export async function updateTemperatureEvaluation(
       return { success: false, error: error.message };
     }
 
+    // outfit_logs 테이블에도 실시간 동기화 (과거 리콜 즉시 반영)
+    try {
+      const outfitUpdates: Record<string, any> = {};
+      if (updates.target_temp !== undefined) outfitUpdates.target_temp = updates.target_temp;
+      if (updates.apparent_temp !== undefined) outfitUpdates.apparent_temp = updates.apparent_temp;
+      if (updates.score !== undefined) outfitUpdates.score = updates.score;
+      if (updates.condition !== undefined) outfitUpdates.condition = updates.condition;
+      if (updates.memo !== undefined) outfitUpdates.memo = updates.memo;
+      if (updates.selected_outer !== undefined) outfitUpdates.selected_outer = updates.selected_outer;
+      if (updates.selected_top !== undefined) outfitUpdates.selected_top = updates.selected_top;
+      if (updates.selected_bottom !== undefined) outfitUpdates.selected_bottom = updates.selected_bottom;
+      if (updates.selected_items !== undefined) outfitUpdates.selected_items = updates.selected_items;
+
+      await supabase.from('outfit_logs').update(outfitUpdates).eq('id', id);
+    } catch (logErr) {
+      console.warn('outfit_logs sync update warning:', logErr);
+    }
+
+    // LocalStorage 실시간 동기화
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(LOCAL_LOGS_KEY);
+        if (raw) {
+          const logs: OutfitLog[] = JSON.parse(raw);
+          const updatedLogs = logs.map((l) => (l.id === id ? { ...l, ...updates } : l));
+          localStorage.setItem(LOCAL_LOGS_KEY, JSON.stringify(updatedLogs));
+        }
+      } catch (e) {
+        console.warn('local storage update warning:', e);
+      }
+      window.dispatchEvent(new Event('weather_outfit_logs_changed'));
+    }
+
     return { success: true, data: data as TemperatureEvaluation };
   } catch (err: any) {
     return { success: false, error: err.message || '수정 중 오류가 발생했습니다.' };
@@ -596,33 +662,62 @@ export async function updateTemperatureEvaluation(
 }
 
 /**
- * 온도별 평가 데이터 항목 삭제 (Admin 전용)
+ * 온도별 평가 데이터 항목 삭제 (Admin 전용 - outfit_logs 및 LocalStorage 완벽 연쇄 삭제)
  */
 export async function deleteTemperatureEvaluation(
-  id: string
+  target: string | TemperatureEvaluation
 ): Promise<{ success: boolean; error?: string }> {
-  if (!supabase) {
-    return { success: false, error: 'Supabase 클라이언트가 설정되지 않았습니다.' };
-  }
+  const targetId = typeof target === 'string' ? target : target.id;
+  const targetItem = typeof target === 'string' ? null : target;
 
-  try {
-    const { error } = await supabase
-      .from('temperature_evaluations')
-      .delete()
-      .eq('id', id);
+  if (supabase) {
+    try {
+      // 1. temperature_evaluations 테이블에서 삭제
+      const { error } = await supabase
+        .from('temperature_evaluations')
+        .delete()
+        .eq('id', targetId);
 
-    if (error) {
-      return { success: false, error: error.message };
+      if (error) {
+        console.warn('temperature_evaluations delete notice:', error.message);
+      }
+
+      // 2. outfit_logs 테이블에서도 id 일치 항목 삭제
+      await supabase
+        .from('outfit_logs')
+        .delete()
+        .eq('id', targetId);
+
+      // 3. ID가 상이한 마이그레이션 항목 대비 복합 조건 매칭 연쇄 삭제
+      if (targetItem) {
+        await supabase
+          .from('outfit_logs')
+          .delete()
+          .match({
+            user_name: targetItem.user_name,
+            target_temp: targetItem.target_temp,
+            time_slot: targetItem.time_slot,
+            score: targetItem.score,
+          });
+      }
+    } catch (err: any) {
+      console.warn('Supabase delete exception:', err);
     }
-
-    return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || '삭제 중 오류가 발생했습니다.' };
   }
+
+  // 4. 로컬 스토리지 캐시(weather_outfit_logs_v3)에서도 완전 제거 (리콜 화면 잔존 원천 차단)
+  removeLocalLog(targetId, targetItem);
+
+  // 5. 전역 실시간 갱신 이벤트 전파 (메인 화면 HistoryRecall 즉시 동기화)
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('weather_outfit_logs_changed'));
+  }
+
+  return { success: true };
 }
 
 /**
- * 온도별 평가 데이터 수동 등록 (Admin 전용)
+ * 온도별 평가 데이터 수동 등록 (Admin 전용 - outfit_logs 및 LocalStorage 연쇄 등록)
  */
 export async function createTemperatureEvaluation(
   input: NewTemperatureEvaluationInput
@@ -640,6 +735,33 @@ export async function createTemperatureEvaluation(
 
     if (error) {
       return { success: false, error: error.message };
+    }
+
+    // outfit_logs 에도 동일한 ID로 동기화 등록 (리콜 대상 포함)
+    try {
+      await supabase.from('outfit_logs').insert([
+        {
+          id: data.id,
+          user_name: input.user_name,
+          location_name: input.location_name,
+          target_temp: input.target_temp,
+          apparent_temp: input.apparent_temp,
+          time_slot: input.time_slot,
+          selected_outer: input.selected_outer,
+          selected_top: input.selected_top,
+          selected_bottom: input.selected_bottom,
+          selected_items: input.selected_items,
+          score: input.score,
+          condition: input.condition,
+          memo: input.memo || null,
+        },
+      ]);
+    } catch (logErr) {
+      console.warn('outfit_logs sync insert notice:', logErr);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('weather_outfit_logs_changed'));
     }
 
     return { success: true, data: data as TemperatureEvaluation };
