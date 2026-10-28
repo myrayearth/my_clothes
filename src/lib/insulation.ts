@@ -368,7 +368,7 @@ export function getInsulationStatusMeta(status: InsulationStatus): {
  *   2) 외투/상의/하의: 보온 점수가 높을수록 빨간색(진한 빨강), 낮을수록 파란색(진한 파랑)으로 점진적 그라데이션
  *   3) 소품(items): 보온 점수 색상을 적용하지 않고 깔끔한 뉴트럴 톤 유지
  *   4) 텍스트 색상:
- *      - 선택 가능한 항목 (미선택): '검은색에 가까운 네이비색' (text-[#0b192c] dark:text-[#f1f5f9])
+ *      - 선택 가능한 항목 (미선택): '검은색에 가까운 네이비색' (text-[#0b192c])
  *      - 선택된 항목: '흰색에 가까운 아이보리색' (text-[#fdfbf7])
  */
 export function getItemChipWarmthClasses(
@@ -379,15 +379,15 @@ export function getItemChipWarmthClasses(
 ): string {
   // 1. 선택된 항목: 최우선 브랜드 하이라이트 + '흰색에 가까운 아이보리색' 글자 적용
   if (isSelected) {
-    return 'bg-brand-600 text-[#fdfbf7] border-brand-600 shadow-md ring-2 ring-brand-400 ring-offset-1 ring-offset-white dark:bg-brand-500 dark:border-brand-500 dark:ring-offset-slate-900 font-bold';
+    return 'bg-brand-600 text-[#fdfbf7] border-brand-600 shadow-md ring-2 ring-brand-400 ring-offset-1 ring-offset-white font-bold';
   }
 
   // 2. 소품(items) 카테고리: 보온 색상 적용 제외 (뉴트럴/추천 스타일 유지, 글자색: 검은색에 가까운 네이비)
   if (category === 'items') {
     if (isRecommended) {
-      return 'bg-amber-50 hover:bg-amber-100/80 text-[#0b192c] border-amber-300 font-semibold dark:bg-amber-950/30 dark:text-[#f1f5f9] dark:border-amber-800';
+      return 'bg-amber-50 hover:bg-amber-100/80 text-[#0b192c] border-amber-300 font-semibold';
     }
-    return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold dark:bg-slate-800/80 dark:text-[#f1f5f9] dark:border-slate-700';
+    return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold';
   }
 
   const score = getItemInsulationScore(item);
@@ -396,100 +396,100 @@ export function getItemChipWarmthClasses(
   if (category === 'outer') {
     if (score >= 70) {
       // 숏패딩(70), 롱패딩(82), 헤비 다운 패딩(95)
-      return 'bg-rose-100 hover:bg-rose-200/80 text-[#0b192c] border-rose-300 font-semibold shadow-2xs dark:bg-rose-950/50 dark:text-[#f1f5f9] dark:border-rose-700';
+      return 'bg-rose-100 hover:bg-rose-200/80 text-[#0b192c] border-rose-300 font-semibold shadow-2xs';
     }
     if (score >= 45) {
       // 경량 패딩(48), 겨울 코트(58)
-      return 'bg-rose-50 hover:bg-rose-100 text-[#0b192c] border-rose-200 font-semibold dark:bg-rose-950/30 dark:text-[#f1f5f9] dark:border-rose-800';
+      return 'bg-rose-50 hover:bg-rose-100 text-[#0b192c] border-rose-200 font-semibold';
     }
     if (score >= 36) {
       // 패딩 조끼(40), 가죽/플리스 자켓(42)
-      return 'bg-rose-50/60 hover:bg-rose-100/80 text-[#0b192c] border-rose-200/80 font-semibold dark:bg-rose-950/20 dark:text-[#f1f5f9] dark:border-rose-900';
+      return 'bg-rose-50/60 hover:bg-rose-100/80 text-[#0b192c] border-rose-200/80 font-semibold';
     }
     if (score >= 30) {
       // 경량 패딩 조끼(32), 트렌치/야상/자켓(35) - 환절기 기준 뉴트럴
       if (isRecommended) {
-        return 'bg-amber-50 hover:bg-amber-100/80 text-[#0b192c] border-amber-300 font-semibold dark:bg-amber-950/30 dark:text-[#f1f5f9] dark:border-amber-800';
+        return 'bg-amber-50 hover:bg-amber-100/80 text-[#0b192c] border-amber-300 font-semibold';
       }
-      return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold dark:bg-slate-800/80 dark:text-[#f1f5f9] dark:border-slate-700';
+      return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold';
     }
     if (score >= 20) {
       // 간절기 자켓/점퍼(25)
-      return 'bg-blue-50/60 hover:bg-blue-100/80 text-[#0b192c] border-blue-200/80 font-semibold dark:bg-blue-950/20 dark:text-[#f1f5f9] dark:border-blue-900';
+      return 'bg-blue-50/60 hover:bg-blue-100/80 text-[#0b192c] border-blue-200/80 font-semibold';
     }
     if (score >= 16) {
       // 홑겹 바람막이/자켓(18)
-      return 'bg-blue-50 hover:bg-blue-100 text-[#0b192c] border-blue-200 font-semibold dark:bg-blue-950/30 dark:text-[#f1f5f9] dark:border-blue-800';
+      return 'bg-blue-50 hover:bg-blue-100 text-[#0b192c] border-blue-200 font-semibold';
     }
     // 얇은 셔츠/가디건(14)
-    return 'bg-blue-100 hover:bg-blue-200/80 text-[#0b192c] border-blue-300 font-semibold shadow-2xs dark:bg-blue-950/50 dark:text-[#f1f5f9] dark:border-blue-700';
+    return 'bg-blue-100 hover:bg-blue-200/80 text-[#0b192c] border-blue-300 font-semibold shadow-2xs';
   }
 
   // 4. 상의(Top) 보온 스펙트럼 (2 ~ 35점, 글자색: 검은색에 가까운 네이비)
   if (category === 'top') {
     if (score >= 30) {
       // 기모 맨투맨/후드(30), 기모 터틀넥(35), 헤비 울 스웨터(35)
-      return 'bg-rose-100 hover:bg-rose-200/80 text-[#0b192c] border-rose-300 font-semibold shadow-2xs dark:bg-rose-950/50 dark:text-[#f1f5f9] dark:border-rose-700';
+      return 'bg-rose-100 hover:bg-rose-200/80 text-[#0b192c] border-rose-300 font-semibold shadow-2xs';
     }
     if (score >= 20) {
       // 기모 이너(20), 목폴라/도톰 셔츠(24)
-      return 'bg-rose-50 hover:bg-rose-100 text-[#0b192c] border-rose-200 font-semibold dark:bg-rose-950/30 dark:text-[#f1f5f9] dark:border-rose-800';
+      return 'bg-rose-50 hover:bg-rose-100 text-[#0b192c] border-rose-200 font-semibold';
     }
     if (score >= 15) {
       // 가벼운 스웨터/조끼(15), 맨투맨/후드티(18)
-      return 'bg-rose-50/60 hover:bg-rose-100/80 text-[#0b192c] border-rose-200/80 font-semibold dark:bg-rose-950/20 dark:text-[#f1f5f9] dark:border-rose-900';
+      return 'bg-rose-50/60 hover:bg-rose-100/80 text-[#0b192c] border-rose-200/80 font-semibold';
     }
     if (score >= 10) {
       // 기본 긴팔(11), 얇은 이너(12), 얇은 셔츠/가디건(13) - 기준 뉴트럴
       if (isRecommended) {
-        return 'bg-amber-50 hover:bg-amber-100/80 text-[#0b192c] border-amber-300 font-semibold dark:bg-amber-950/30 dark:text-[#f1f5f9] dark:border-amber-800';
+        return 'bg-amber-50 hover:bg-amber-100/80 text-[#0b192c] border-amber-300 font-semibold';
       }
-      return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold dark:bg-slate-800/80 dark:text-[#f1f5f9] dark:border-slate-700';
+      return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold';
     }
     if (score >= 7) {
       // 7부/니트반팔(7), 얇은 긴팔(8)
-      return 'bg-blue-50/60 hover:bg-blue-100/80 text-[#0b192c] border-blue-200/80 font-semibold dark:bg-blue-950/20 dark:text-[#f1f5f9] dark:border-blue-900';
+      return 'bg-blue-50/60 hover:bg-blue-100/80 text-[#0b192c] border-blue-200/80 font-semibold';
     }
     if (score >= 4) {
       // 기본 반팔(5)
-      return 'bg-blue-50 hover:bg-blue-100 text-[#0b192c] border-blue-200 font-semibold dark:bg-blue-950/30 dark:text-[#f1f5f9] dark:border-blue-800';
+      return 'bg-blue-50 hover:bg-blue-100 text-[#0b192c] border-blue-200 font-semibold';
     }
     // 민소매(2)
-    return 'bg-blue-100 hover:bg-blue-200/80 text-[#0b192c] border-blue-300 font-semibold shadow-2xs dark:bg-blue-950/50 dark:text-[#f1f5f9] dark:border-blue-700';
+    return 'bg-blue-100 hover:bg-blue-200/80 text-[#0b192c] border-blue-300 font-semibold shadow-2xs';
   }
 
   // 5. 하의(Bottom) 보온 스펙트럼 (3 ~ 45점, 글자색: 검은색에 가까운 네이비)
   if (category === 'bottom') {
     if (score >= 36) {
       // 융기모 방한바지(36), 패딩/방풍 바지(41), 헤비 방한바지(45)
-      return 'bg-rose-100 hover:bg-rose-200/80 text-[#0b192c] border-rose-300 font-semibold shadow-2xs dark:bg-rose-950/50 dark:text-[#f1f5f9] dark:border-rose-700';
+      return 'bg-rose-100 hover:bg-rose-200/80 text-[#0b192c] border-rose-300 font-semibold shadow-2xs';
     }
     if (score >= 26) {
       // 두꺼운 긴바지(26), 기모 긴바지(32)
-      return 'bg-rose-50 hover:bg-rose-100 text-[#0b192c] border-rose-200 font-semibold dark:bg-rose-950/30 dark:text-[#f1f5f9] dark:border-rose-800';
+      return 'bg-rose-50 hover:bg-rose-100 text-[#0b192c] border-rose-200 font-semibold';
     }
     if (score >= 20) {
       // 하의 기모 이너(22)
-      return 'bg-rose-50/60 hover:bg-rose-100/80 text-[#0b192c] border-rose-200/80 font-semibold dark:bg-rose-950/20 dark:text-[#f1f5f9] dark:border-rose-900';
+      return 'bg-rose-50/60 hover:bg-rose-100/80 text-[#0b192c] border-rose-200/80 font-semibold';
     }
     if (score >= 16) {
       // 기본 긴바지(18) - 기준 뉴트럴
       if (isRecommended) {
-        return 'bg-amber-50 hover:bg-amber-100/80 text-[#0b192c] border-amber-300 font-semibold dark:bg-amber-950/30 dark:text-[#f1f5f9] dark:border-amber-800';
+        return 'bg-amber-50 hover:bg-amber-100/80 text-[#0b192c] border-amber-300 font-semibold';
       }
-      return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold dark:bg-slate-800/80 dark:text-[#f1f5f9] dark:border-slate-700';
+      return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold';
     }
     if (score >= 10) {
       // 간절기 얇은 바지(13), 하의 얇은 이너(14)
-      return 'bg-blue-50/60 hover:bg-blue-100/80 text-[#0b192c] border-blue-200/80 font-semibold dark:bg-blue-950/20 dark:text-[#f1f5f9] dark:border-blue-900';
+      return 'bg-blue-50/60 hover:bg-blue-100/80 text-[#0b192c] border-blue-200/80 font-semibold';
     }
     if (score >= 5) {
       // 7부 바지(5), 얇은 긴바지(7)
-      return 'bg-blue-50 hover:bg-blue-100 text-[#0b192c] border-blue-200 font-semibold dark:bg-blue-950/30 dark:text-[#f1f5f9] dark:border-blue-800';
+      return 'bg-blue-50 hover:bg-blue-100 text-[#0b192c] border-blue-200 font-semibold';
     }
     // 반바지(3)
-    return 'bg-blue-100 hover:bg-blue-200/80 text-[#0b192c] border-blue-300 font-semibold shadow-2xs dark:bg-blue-950/50 dark:text-[#f1f5f9] dark:border-blue-700';
+    return 'bg-blue-100 hover:bg-blue-200/80 text-[#0b192c] border-blue-300 font-semibold shadow-2xs';
   }
 
-  return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold dark:bg-slate-800 dark:text-[#f1f5f9] dark:border-slate-700';
+  return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold';
 }
