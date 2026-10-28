@@ -174,16 +174,52 @@ export function getInsulationTargetRange(temp: number, userOffset: number = 0): 
 export type InsulationStatus = 'COLD' | 'OPTIMAL' | 'HOT';
 
 /**
- * 보온 점수(0~300) -> 복장 적정 커버 기온(-20°C ~ +35°C) 역산 함수
- * - 점수가 0점(최소)일 때 = +35°C (한여름 폭염용)
- * - 점수가 300점(최대)일 때 = -20°C (혹한기 완전 무장)
- * - 점수가 높을수록(따뜻할수록) 더 낮은 영하의 온도를 견딜 수 있으므로 온도는 반비례 감소합니다.
+ * 룰셋 기준 점수-기온 매핑 테이블 (점수 오름차순, 구간 선형 보간용)
+ * 한국 기상청 및 체감 표준 11단계 기온 구간의 대표 추천 복장 점수를 기준 온도로 정확히 매핑
+ */
+export const ANCHOR_POINTS = [
+  { score: 0, temp: 35 },
+  { score: 15, temp: 27 },
+  { score: 50, temp: 22 },
+  { score: 67, temp: 17 },
+  { score: 86, temp: 12 },    // 86점일 때 정확히 12°C 매핑 (환절기 오판정 해결)
+  { score: 120, temp: 7 },
+  { score: 170, temp: 2 },
+  { score: 195, temp: -3 },
+  { score: 235, temp: -8 },
+  { score: 275, temp: -13 },
+  { score: 320, temp: -20 },
+];
+
+/**
+ * 보온 점수 -> 복장 적정 커버 기온(-20°C ~ +35°C) 역산 함수
+ * - 단순 1차 선형 비례식의 왜곡을 방지하기 위해 '구간 선형 보간(Piecewise Linear Interpolation)' 적용
+ * - 점수가 86점(10~14°C 추천 복장)일 때 정확히 12.0°C로 환산되어 ±2.5°C 적정 존 중앙(50%)에 안착합니다.
  */
 export function scoreToCoverTemperature(score: number): number {
-  // 0점 이하는 35도, 300점 이상은 -20도로 클램프 (총 55도 폭)
-  const clampedScore = Math.max(0, Math.min(300, score));
-  const temp = 35 - (clampedScore / 300) * 55;
-  return Math.round(temp * 10) / 10; // 소수점 첫째자리 반올림
+  const maxScore = ANCHOR_POINTS[ANCHOR_POINTS.length - 1].score;
+  const s = Math.max(0, Math.min(maxScore, score));
+
+  if (s <= ANCHOR_POINTS[0].score) {
+    return ANCHOR_POINTS[0].temp;
+  }
+  if (s >= maxScore) {
+    return ANCHOR_POINTS[ANCHOR_POINTS.length - 1].temp;
+  }
+
+  // 구간 탐색 및 선형 보간
+  for (let i = 0; i < ANCHOR_POINTS.length - 1; i++) {
+    const p1 = ANCHOR_POINTS[i];
+    const p2 = ANCHOR_POINTS[i + 1];
+
+    if (s >= p1.score && s <= p2.score) {
+      const ratio = (s - p1.score) / (p2.score - p1.score);
+      const temp = p1.temp + ratio * (p2.temp - p1.temp);
+      return Math.round(temp * 10) / 10;
+    }
+  }
+
+  return s <= 0 ? 35 : -20;
 }
 
 export type RelativeCoverStatus = 'OPTIMAL' | 'OVERHEATED' | 'COLD_NEED_WARMTH';
