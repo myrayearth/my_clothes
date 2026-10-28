@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { verifyAdminAccess, signInWithKakao, signOutKakao, ADMIN_EMAIL } from '@/lib/auth';
+import { verifyAdminAccess, signInWithKakao, signOutKakao } from '@/lib/auth';
 import { supabase } from '@/lib/storage';
 import { UserProfile } from '@/types/database';
 import {
@@ -116,9 +116,7 @@ export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
               관리자 로그인이 필요합니다
             </h2>
             <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
-              온도별 평가 데이터 관리 페이지는 관리자 계정(
-              <span className="font-semibold text-slate-700">{ADMIN_EMAIL}</span>
-              )으로 로그인한 경우에만 접근할 수 있습니다.
+              온도별 평가 데이터 관리 페이지는 승인된 관리자 계정으로 로그인한 경우에만 접근할 수 있습니다.
             </p>
           </div>
 
@@ -169,9 +167,7 @@ export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
               접근 권한이 없습니다. (관리자 전용)
             </h2>
             <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto">
-              이 페이지는 시스템 관리자(
-              <span className="font-semibold text-rose-600">{ADMIN_EMAIL}</span>
-              )에게만 열려 있는 통계 및 데이터 관리 구역입니다.
+              이 페이지는 승인된 시스템 관리자에게만 열려 있는 통계 및 데이터 관리 구역입니다.
             </p>
           </div>
 
