@@ -30,6 +30,7 @@ interface FeedbackFormProps {
   userCondition: UserCondition;
   onChangeUserCondition: (cond: UserCondition) => void;
   onRequireUserChange?: () => void;
+  onKakaoLogin?: () => void;
 }
 
 const conditionOptions: {
@@ -75,6 +76,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
   userCondition,
   onChangeUserCondition,
   onRequireUserChange,
+  onKakaoLogin,
 }) => {
   // 기본값: 0도 (적정)
   const [tempOffset, setTempOffset] = useState<number>(0);
@@ -153,10 +155,14 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 기본 사용자인 경우 반드시 다른 사용자를 선택하도록 강제
+    // 기본 사용자인 경우 카카오 로그인 또는 다른 프로필 선택 유도
     if (isDefaultUser) {
+      if (onKakaoLogin) {
+        onKakaoLogin();
+        return;
+      }
       setUserWarning(
-        '개인 맞춤 피드백을 기록하려면 "기본 사용자"가 아닌 본인의 프로필을 선택하거나 새로 등록해야 합니다.'
+        '개인 맞춤 피드백을 기록하려면 "기본 사용자"가 아닌 카카오 로그인 또는 본인 프로필을 선택해야 합니다.'
       );
       onRequireUserChange?.();
       return;
@@ -317,22 +323,36 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
 
         {/* 4. 기본 사용자 경고 안내 또는 피드백 메시지 */}
         {isDefaultUser && (
-          <div className="p-3 bg-amber-50 border border-amber-200/90 rounded-2xl flex items-center justify-between gap-2.5 text-amber-900 text-xs animate-in fade-in duration-150">
+          <div className="p-3 bg-amber-50 border border-amber-200/90 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-amber-900 text-xs animate-in fade-in duration-150">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
               <span>
-                현재 <strong>&apos;기본 사용자&apos;</strong> 상태입니다. 체감 복장을 기록하려면 본인 프로필을 선택해야 합니다.
+                현재 <strong>&apos;기본 사용자&apos;</strong> 상태입니다. 내 기록을 저장하려면 카카오 로그인이 필요합니다.
               </span>
             </div>
-            {onRequireUserChange && (
-              <button
-                type="button"
-                onClick={onRequireUserChange}
-                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shrink-0 transition-all active:scale-95 shadow-2xs"
-              >
-                프로필 선택/추가
-              </button>
-            )}
+            <div className="flex items-center gap-1.5 self-end sm:self-center">
+              {onKakaoLogin && (
+                <button
+                  type="button"
+                  onClick={onKakaoLogin}
+                  className="px-2.5 py-1 bg-[#FEE500] hover:bg-[#FDD835] text-[#191919] text-xs font-bold rounded-xl shrink-0 transition-all active:scale-95 shadow-2xs flex items-center gap-1"
+                >
+                  <svg viewBox="0 0 24 24" fill="#191919" className="w-3 h-3">
+                    <path d="M12 3c-4.97 0-9 3.185-9 7.115 0 2.557 1.707 4.8 4.27 6.012l-1.08 4.025c-.097.362.316.65.617.433l4.757-3.15c.144.01.29.016.436.016 4.97 0 9-3.185 9-7.116S16.97 3 12 3z" />
+                  </svg>
+                  <span>카카오 로그인</span>
+                </button>
+              )}
+              {onRequireUserChange && (
+                <button
+                  type="button"
+                  onClick={onRequireUserChange}
+                  className="px-2 py-1 bg-white hover:bg-slate-50 border border-amber-200 text-amber-800 text-xs font-semibold rounded-xl shrink-0 transition-all active:scale-95"
+                >
+                  프로필 선택
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -359,10 +379,10 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`w-full min-h-[46px] py-3 active:scale-[0.99] text-white font-bold text-sm rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 touch-manipulation ${
+            className={`w-full min-h-[46px] py-3 active:scale-[0.99] font-bold text-sm rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 touch-manipulation ${
               isDefaultUser
-                ? 'bg-amber-600 hover:bg-amber-700'
-                : 'bg-blue-600 hover:bg-blue-700'
+                ? 'bg-[#FEE500] hover:bg-[#FDD835] text-[#191919]'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
             }`}
           >
             {isSubmitting ? (
@@ -371,14 +391,16 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
                 <span>저장 중...</span>
               </>
             ) : isDefaultUser ? (
-              <>
-                <AlertTriangle className="w-4 h-4" />
-                <span>사용자 선택 후 저장 가능 (현재: 기본 사용자)</span>
-              </>
+              <div className="flex items-center gap-1.5 text-[#191919]">
+                <svg viewBox="0 0 24 24" fill="#191919" className="w-4 h-4">
+                  <path d="M12 3c-4.97 0-9 3.185-9 7.115 0 2.557 1.707 4.8 4.27 6.012l-1.08 4.025c-.097.362.316.65.617.433l4.757-3.15c.144.01.29.016.436.016 4.97 0 9-3.185 9-7.116S16.97 3 12 3z" />
+                </svg>
+                <span>카카오 로그인하고 내 체감 저장하기</span>
+              </div>
             ) : (
               <>
                 <Send className="w-4 h-4" />
-                <span>오늘 복장 체감 저장하기</span>
+                <span>오늘 복장 체감 저장하기 ({userName})</span>
               </>
             )}
           </button>

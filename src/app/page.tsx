@@ -14,7 +14,9 @@ import {
   getSavedActiveUser,
   getSavedActiveUserId,
   saveActiveUser,
+  supabase,
 } from '@/lib/storage';
+import { syncKakaoUserProfile, signInWithKakao } from '@/lib/auth';
 import { findMatchingRecallLogs } from '@/lib/matcher';
 import { LocationBar } from '@/components/layout/LocationBar';
 import { WeatherOverview } from '@/components/weather/WeatherOverview';
@@ -25,6 +27,7 @@ import { FeedbackForm } from '@/components/FeedbackForm';
 import { DailyForecast } from '@/components/weather/DailyForecast';
 import { UserProfileSelector } from '@/components/profile/UserProfileSelector';
 import { UserManagementModal } from '@/components/profile/UserManagementModal';
+import { KakaoAuthBar } from '@/components/auth/KakaoAuthBar';
 import { RefreshCw, Shirt, AlertCircle, Settings } from 'lucide-react';
 
 export default function Home() {
@@ -34,9 +37,11 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 사용자 프로필 상태
+  // 사용자 프로필 및 카카오 인증 상태
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [activeUser, setActiveUser] = useState<string>('기본 사용자');
+  const [authProfile, setAuthProfile] = useState<UserProfile | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState<boolean>(false);
 
   // 과거 복장 로그 데이터베이스 목록
@@ -70,6 +75,11 @@ export default function Home() {
       const pList = await fetchProfiles();
       setProfiles(pList);
 
+      if (isAuthenticated && authProfile) {
+        setActiveUser(authProfile.name);
+        return;
+      }
+
       const savedId = getSavedActiveUserId();
       const savedUser = getSavedActiveUser();
 
@@ -90,7 +100,7 @@ export default function Home() {
     } catch (err) {
       console.error('프로필 로드 실패:', err);
     }
-  }, []);
+  }, [isAuthenticated, authProfile]);
 
   // 과거 로그 데이터 로드 함수 (현재 선택된 사용자 전용)
   const loadLogs = useCallback(async (userName?: string) => {
@@ -102,6 +112,63 @@ export default function Home() {
       console.error('과거 로그 불러오기 실패:', err);
     }
   }, [activeUser]);
+
+  // Supabase Auth 세션 및 상태 변화 리스너 (카카오 로그인 연동)
+  useEffect(() => {
+    if (!supabase) return;
+
+    // 1. 기존 세션 확인
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        try {
+          const profile = await syncKakaoUserProfile(session.user);
+          setAuthProfile(profile);
+          setIsAuthenticated(true);
+          setActiveUser(profile.name);
+          saveActiveUser({ id: profile.id, name: profile.name });
+          await loadLogs(profile.name);
+        } catch (e) {
+          console.error('카카오 프로필 동기화 에러:', e);
+        }
+      } else {
+        // 비로그인 상태: 기본 사용자 및 기본 추천 데이터
+        setIsAuthenticated(false);
+        setAuthProfile(null);
+        setActiveUser('기본 사용자');
+        saveActiveUser('기본 사용자');
+        await loadLogs('기본 사용자');
+      }
+    });
+
+    // 2. Auth 상태 변화 리스너 (로그인 완료, 로그아웃 등)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
+        try {
+          const profile = await syncKakaoUserProfile(session.user);
+          setAuthProfile(profile);
+          setIsAuthenticated(true);
+          setActiveUser(profile.name);
+          saveActiveUser({ id: profile.id, name: profile.name });
+          await loadProfiles();
+          await loadLogs(profile.name);
+        } catch (e) {
+          console.error('카카오 프로필 갱신 에러:', e);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
+        setAuthProfile(null);
+        setActiveUser('기본 사용자');
+        saveActiveUser('기본 사용자');
+        await loadLogs('기본 사용자');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [loadLogs, loadProfiles]);
 
   useEffect(() => {
     loadProfiles();
@@ -225,7 +292,7 @@ export default function Home() {
                   Weather Outfit
                 </h1>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                  v0.6.0
+                  v0.7.0
                 </span>
               </div>
               <p className="text-xs text-slate-500">
@@ -234,26 +301,39 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 self-end sm:self-center">
-            {/* 사용자 프로필 선택 드롭다운 */}
-            <UserProfileSelector
-              currentUserName={activeUser}
-              profiles={profiles}
-              onSelectUser={handleSelectUser}
-              onProfileCreated={loadProfiles}
-              onOpenManageModal={() => setIsManageModalOpen(true)}
+          <div className="flex items-center gap-1.5 sm:gap-2 self-end sm:self-center flex-wrap justify-end">
+            {/* 카카오 로그인 / 프로필 바 */}
+            <KakaoAuthBar
+              currentProfile={authProfile}
+              isAuthenticated={isAuthenticated}
+              onAuthChange={() => {
+                loadProfiles();
+                loadLogs(activeUser);
+              }}
             />
 
-            {/* [⚙️ 사용자 관리] 버튼 (모달 트리거) */}
-            <button
-              type="button"
-              onClick={() => setIsManageModalOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition-all active:scale-95 touch-manipulation shadow-2xs hover:border-slate-300"
-              title="사용자 관리 (수정 / 삭제)"
-            >
-              <Settings className="w-3.5 h-3.5 text-slate-500" />
-              <span className="hidden sm:inline">사용자 관리</span>
-            </button>
+            {/* 비로그인 상태 게스트 프로필 전환 드롭다운 및 관리 */}
+            {!isAuthenticated && (
+              <>
+                <UserProfileSelector
+                  currentUserName={activeUser}
+                  profiles={profiles}
+                  onSelectUser={handleSelectUser}
+                  onProfileCreated={loadProfiles}
+                  onOpenManageModal={() => setIsManageModalOpen(true)}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setIsManageModalOpen(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition-all active:scale-95 touch-manipulation shadow-2xs hover:border-slate-300"
+                  title="사용자 관리 (수정 / 삭제)"
+                >
+                  <Settings className="w-3.5 h-3.5 text-slate-500" />
+                  <span className="hidden sm:inline">사용자 관리</span>
+                </button>
+              </>
+            )}
 
             <button
               onClick={() => {
@@ -336,6 +416,7 @@ export default function Home() {
             userCondition={userCondition}
             onChangeUserCondition={setUserCondition}
             onRequireUserChange={() => setIsManageModalOpen(true)}
+            onKakaoLogin={() => signInWithKakao()}
           />
         )}
 
@@ -346,7 +427,7 @@ export default function Home() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.6.0</strong></p>
+        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.7.0</strong></p>
       </footer>
       {/* 8. 사용자 관리 (편집 / 삭제) 모달 */}
       <UserManagementModal

@@ -4,6 +4,8 @@ export interface UserProfile {
   id: string;
   name: string;
   created_at: string;
+  avatar_url?: string | null;
+  email?: string | null;
 }
 
 export interface OutfitLog {
