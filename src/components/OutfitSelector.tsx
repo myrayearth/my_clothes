@@ -61,32 +61,22 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     );
   }, [currentRule, allLogs, temperature, currentUser, isLoggedIn, gender]);
 
-  // 1. 기본 추천순 100% 반영 리셋: 룰셋의 순수 기본 추천값으로 복원 (이너 기본 선택 제외)
+  // 1. 기본 추천순 100% 반영 리셋: 룰셋의 순수 기본 추천값으로 복원 (10°C 미만은 이너 포함, 10°C 이상은 이너 제외)
   const handleResetToRuleDefault = () => {
-    const rawDefaults = getDefaultOutfitSelection(currentRule);
-    const nonInnerTop = rawDefaults.top.filter((i) => !isInnerClothingItem(i));
-    const nonInnerBottom = rawDefaults.bottom.filter((i) => !isInnerClothingItem(i));
+    const rawDefaults = getDefaultOutfitSelection(currentRule, temperature);
 
     const genderFilteredDefaults: OutfitSelection = {
       outer: filterItemsByGender([rawDefaults.outer], gender)[0] || (dynamicOptions.outer[0] || '없음'),
-      top: filterItemsByGender(nonInnerTop.length > 0 ? nonInnerTop : rawDefaults.top, gender),
-      bottom: filterItemsByGender(nonInnerBottom.length > 0 ? nonInnerBottom : rawDefaults.bottom, gender),
+      top: filterItemsByGender(rawDefaults.top, gender),
+      bottom: filterItemsByGender(rawDefaults.bottom, gender),
       items: filterItemsByGender(rawDefaults.items, gender),
     };
     onChangeSelection(genderFilteredDefaults);
   };
 
-  // 2. 평가 반영 리셋: 산출된 최적 추천 복장 적용 (이너 기본 선택 제외)
+  // 2. 평가 반영: 산출된 최적 추천 복장 적용 (10°C 미만은 이너 포함, 10°C 이상은 이너 제외가 dynamicDefaults에 이미 반영됨)
   const handleApplyAggregatedRecommendations = () => {
-    const nonInnerTop = dynamicDefaults.top.filter((i) => !isInnerClothingItem(i));
-    const nonInnerBottom = dynamicDefaults.bottom.filter((i) => !isInnerClothingItem(i));
-
-    const cleanedDefaults: OutfitSelection = {
-      ...dynamicDefaults,
-      top: nonInnerTop.length > 0 ? nonInnerTop : dynamicDefaults.top,
-      bottom: nonInnerBottom.length > 0 ? nonInnerBottom : dynamicDefaults.bottom,
-    };
-    onChangeSelection(cleanedDefaults);
+    onChangeSelection(dynamicDefaults);
   };
 
   // ==========================================
@@ -437,7 +427,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             type="button"
             onClick={handleResetToRuleDefault}
             className="flex items-center gap-1.5 text-xs text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-lg font-semibold transition-all active:scale-95 touch-manipulation border border-slate-200 shadow-2xs cursor-pointer"
-            title="사용자 평가가 반영되지 않은 기온별 표준 룰셋 기본 추천으로 설정 (이너 제외)"
+            title="사용자 평가가 반영되지 않은 기온별 표준 룰셋 기본 추천으로 설정 (10°C 미만은 이너 포함)"
           >
             <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
             <span>기본 추천 설정</span>
@@ -448,7 +438,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             type="button"
             onClick={handleApplyAggregatedRecommendations}
             className="flex items-center gap-1.5 text-xs text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100/80 px-2.5 py-1.5 rounded-lg font-semibold transition-all active:scale-95 touch-manipulation border border-blue-200 shadow-2xs cursor-pointer"
-            title="개인 및 게스트 누적 평가 피드백이 가중 반영된 맞춤 복장 적용 (이너 제외)"
+            title="개인 및 게스트 누적 평가 피드백이 가중 반영된 맞춤 복장 적용 (10°C 미만은 이너 포함)"
           >
             <Sparkles className="w-3.5 h-3.5 text-blue-600" />
             <span>평가 반영</span>

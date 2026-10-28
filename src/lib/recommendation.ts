@@ -95,13 +95,36 @@ export function calculateWeightedRecommendations(
   const filteredRecBottom = filterItemsByGender(rule.recommend.bottom, gender);
   const filteredRecItems = filterItemsByGender(rule.recommend.item, gender);
 
-  const nonInnerRecTop = filteredRecTop.filter((i) => !isInnerClothingItem(i));
-  const nonInnerRecBottom = filteredRecBottom.filter((i) => !isInnerClothingItem(i));
+  const isColdWeather = targetTemp < 10;
+
+  let fallbackTop: string[];
+  let fallbackBottom: string[];
+
+  if (isColdWeather) {
+    // 10°C 미만: 보온성 확보를 위해 이너 + 본의류 중복 기본 추천
+    const innerTop = filteredRecTop.filter(isInnerClothingItem);
+    const nonInnerTop = filteredRecTop.filter((i) => !isInnerClothingItem(i));
+    const topInnerItem = innerTop[0] || (targetTemp < 0 ? '기모 이너' : '얇은 이너');
+    const mainTopItem = nonInnerTop[0] || (filteredRecTop[0] || rawTop[0] || '기본 긴팔');
+    fallbackTop = [topInnerItem, mainTopItem];
+
+    const innerBottom = filteredRecBottom.filter(isInnerClothingItem);
+    const nonInnerBottom = filteredRecBottom.filter((i) => !isInnerClothingItem(i));
+    const btmInnerItem = innerBottom[0] || (targetTemp < 0 ? '하의 기모 이너' : '하의 얇은 이너');
+    const mainBtmItem = nonInnerBottom[0] || (filteredRecBottom[0] || rawBottom[0] || '기본 긴바지');
+    fallbackBottom = [btmInnerItem, mainBtmItem];
+  } else {
+    // 10°C 이상: 이너 제외, 본의류만 단독 선택
+    const nonInnerRecTop = filteredRecTop.filter((i) => !isInnerClothingItem(i));
+    const nonInnerRecBottom = filteredRecBottom.filter((i) => !isInnerClothingItem(i));
+    fallbackTop = nonInnerRecTop.length > 0 ? nonInnerRecTop : (filteredRecTop.length > 0 ? filteredRecTop : [rawTop[0] || '기본 반팔']);
+    fallbackBottom = nonInnerRecBottom.length > 0 ? nonInnerRecBottom : (filteredRecBottom.length > 0 ? filteredRecBottom : [rawBottom[0] || '기본 긴바지']);
+  }
 
   const fallbackDefaults: OutfitSelection = {
     outer: filteredRecOuter,
-    top: nonInnerRecTop.length > 0 ? nonInnerRecTop : (filteredRecTop.length > 0 ? filteredRecTop : [rawTop[0] || '기본 반팔']),
-    bottom: nonInnerRecBottom.length > 0 ? nonInnerRecBottom : (filteredRecBottom.length > 0 ? filteredRecBottom : [rawBottom[0] || '기본 긴바지']),
+    top: fallbackTop,
+    bottom: fallbackBottom,
     items: filteredRecItems,
   };
 
@@ -256,8 +279,23 @@ export function calculateWeightedRecommendations(
     bestOuter = '없음';
   }
 
-  const bestTop = topResult.rankedOptions.find((i) => !isInnerClothingItem(i)) || topResult.topItem;
-  const bestBottom = bottomResult.rankedOptions.find((i) => !isInnerClothingItem(i)) || bottomResult.topItem;
+  const bestMainTop = topResult.rankedOptions.find((i) => !isInnerClothingItem(i)) || topResult.topItem;
+  const bestMainBottom = bottomResult.rankedOptions.find((i) => !isInnerClothingItem(i)) || bottomResult.topItem;
+
+  let finalTop: string[];
+  let finalBottom: string[];
+
+  if (isColdWeather) {
+    // 10°C 미만: 평가 순위가 가장 높은 이너 아이템을 찾아 본의류와 함께 중복 선택
+    const bestInnerTop = topResult.rankedOptions.find(isInnerClothingItem) || (targetTemp < 0 ? '기모 이너' : '얇은 이너');
+    finalTop = [bestInnerTop, bestMainTop];
+
+    const bestInnerBottom = bottomResult.rankedOptions.find(isInnerClothingItem) || (targetTemp < 0 ? '하의 기모 이너' : '하의 얇은 이너');
+    finalBottom = [bestInnerBottom, bestMainBottom];
+  } else {
+    finalTop = [bestMainTop];
+    finalBottom = [bestMainBottom];
+  }
 
   // 소품: 평가 로그에서 만족도(avgScore >= 3.0)가 높은 소품이 있으면 우선 포함, 없으면 기본 추천 소품 유지
   const highRatedItems = itemResult.rankedOptions.filter((item) => {
@@ -286,8 +324,8 @@ export function calculateWeightedRecommendations(
     },
     defaults: {
       outer: bestOuter,
-      top: [bestTop],
-      bottom: [bestBottom],
+      top: finalTop,
+      bottom: finalBottom,
       items: bestItems,
     },
     weights,

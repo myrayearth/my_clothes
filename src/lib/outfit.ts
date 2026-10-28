@@ -25,19 +25,44 @@ export function getOutfitRuleByTemperature(temp: number): OutfitRuleStep {
 
 /**
  * 룰셋 단계의 대표 추천 의류 선택 객체를 복제하여 반환합니다.
- * - OUTER: recommend.outer 단일 선택
- * - TOP: recommend.top 중 이너 항목을 제외한 주 추천 아이템 기본 선택
- * - BOTTOM: recommend.bottom 중 이너 항목을 제외한 주 추천 아이템 기본 선택
- * - ITEM: recommend.item 배열의 아이템들 기본 선택
+ * - 10°C 미만 (초겨울/겨울 추위/한파): 상/하의 보온 확보를 위해 이너 + 본의류 중복 기본 선택
+ * - 10°C 이상: 이너는 기본 선택에서 제외하고 본의류만 단독 선택
  */
-export function getDefaultOutfitSelection(rule: OutfitRuleStep): OutfitSelection {
-  const nonInnerTop = rule.recommend.top.filter((i) => !isInnerClothingItem(i));
-  const nonInnerBottom = rule.recommend.bottom.filter((i) => !isInnerClothingItem(i));
+export function getDefaultOutfitSelection(rule: OutfitRuleStep, targetTemp?: number): OutfitSelection {
+  const effectiveTemp = typeof targetTemp === 'number' ? targetTemp : (rule.min_temp + rule.max_temp) / 2;
+  const isColdWeather = effectiveTemp < 10;
+
+  let selectedTop: string[];
+  let selectedBottom: string[];
+
+  if (isColdWeather) {
+    // 10°C 미만: 룰셋의 대표 추천(이너 + 본의류)을 그대로 복수 선택
+    selectedTop = [...rule.recommend.top];
+    selectedBottom = [...rule.recommend.bottom];
+
+    // 만약 룰셋에 이너가 누락되어 있다면 자동 보강
+    const hasInnerTop = selectedTop.some(isInnerClothingItem);
+    if (!hasInnerTop) {
+      const defaultInnerTop = effectiveTemp < 0 ? '기모 이너' : '얇은 이너';
+      selectedTop = [defaultInnerTop, ...selectedTop];
+    }
+    const hasInnerBottom = selectedBottom.some(isInnerClothingItem);
+    if (!hasInnerBottom) {
+      const defaultInnerBottom = effectiveTemp < 0 ? '하의 기모 이너' : '하의 얇은 이너';
+      selectedBottom = [defaultInnerBottom, ...selectedBottom];
+    }
+  } else {
+    // 10°C 이상: 이너는 기본 선택에서 제외하고 본의류만 단독 선택
+    const nonInnerTop = rule.recommend.top.filter((i) => !isInnerClothingItem(i));
+    const nonInnerBottom = rule.recommend.bottom.filter((i) => !isInnerClothingItem(i));
+    selectedTop = nonInnerTop.length > 0 ? nonInnerTop : [rule.recommend.top[rule.recommend.top.length - 1] || '기본 반팔'];
+    selectedBottom = nonInnerBottom.length > 0 ? nonInnerBottom : [rule.recommend.bottom[rule.recommend.bottom.length - 1] || '기본 긴바지'];
+  }
 
   return {
     outer: rule.recommend.outer,
-    top: nonInnerTop.length > 0 ? nonInnerTop : [rule.recommend.top[rule.recommend.top.length - 1] || '기본 반팔'],
-    bottom: nonInnerBottom.length > 0 ? nonInnerBottom : [rule.recommend.bottom[rule.recommend.bottom.length - 1] || '기본 긴바지'],
+    top: selectedTop,
+    bottom: selectedBottom,
     items: [...rule.recommend.item],
   };
 }
