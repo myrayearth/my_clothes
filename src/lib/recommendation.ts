@@ -1,6 +1,7 @@
 import { OutfitRuleStep, OutfitSelection } from '@/types/outfit';
 import { OutfitLog, UserGender } from '@/types/database';
 import { filterItemsByGender } from '@/lib/gender';
+import { getSpectrumOutfitOptions } from '@/lib/itemPicker';
 
 export interface RecommendationWeights {
   mode: 'rule_only' | 'guest_weighted' | 'personal_weighted';
@@ -84,11 +85,12 @@ export function calculateWeightedRecommendations(
   isLoggedIn: boolean,
   gender: UserGender = 'male'
 ): CalculatedOutfitOptions {
-  // 1. 성별 필터링 적용된 기본 후보 목록
-  const rawOuter = filterItemsByGender(rule.outer.filter((i) => i !== '없음'), gender);
-  const rawTop = filterItemsByGender(rule.top, gender);
-  const rawBottom = filterItemsByGender(rule.bottom, gender);
-  const rawItems = filterItemsByGender(rule.item, gender);
+  // 1. 스펙트럼 기반 기본 후보 목록 (각 카테고리별 8~10개 스펙트럼 배치 및 10°C 미만 히트텍 핀 고정)
+  const spectrumOptions = getSpectrumOutfitOptions(targetTemp, gender, 9);
+  const rawOuter = spectrumOptions.outer;
+  const rawTop = spectrumOptions.top;
+  const rawBottom = spectrumOptions.bottom;
+  const rawItems = spectrumOptions.items;
 
   // 성별 필터링 적용된 대표 추천 기본값
   const filteredRecOuter = filterItemsByGender([rule.recommend.outer], gender)[0] || (rawOuter[0] || '없음');
@@ -239,10 +241,10 @@ export function calculateWeightedRecommendations(
 
   return {
     options: {
-      outer: outerResult.rankedOptions,
-      top: topResult.rankedOptions,
-      bottom: bottomResult.rankedOptions,
-      items: itemResult.rankedOptions,
+      outer: rawOuter,
+      top: rawTop,
+      bottom: rawBottom,
+      items: rawItems,
     },
     defaults: {
       outer: bestOuter,

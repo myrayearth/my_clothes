@@ -19,7 +19,8 @@ import {
   getRelativeCoverStatus,
 } from '@/lib/insulation';
 import { AllItemsModal } from '@/components/outfit/AllItemsModal';
-import { Shirt, RotateCcw, Check, Plus, ExternalLink, Sparkles, Thermometer } from 'lucide-react';
+import { isPinnedInnerItem } from '@/lib/itemPicker';
+import { Shirt, RotateCcw, Check, Plus, ExternalLink, Sparkles, Thermometer, Zap } from 'lucide-react';
 
 interface OutfitSelectorProps {
   temperature: number;
@@ -536,7 +537,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             </span>
           </div>
 
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          <div className="flex flex-wrap gap-2">
             {visibleOuterOptions.map((opt) => {
               const isSelected = selection.outer === opt;
               const isCustom = !dynamicOptions.outer.includes(opt);
@@ -567,7 +568,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   </span>
                   {isRecommended && (
                     <span
-                      className={`text-[9px] font-bold px-1 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
+                      className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                         isSelected
                           ? 'text-amber-300 bg-amber-950/60 border-amber-400/40'
                           : 'text-amber-700 bg-amber-50 border-amber-300'
@@ -618,10 +619,11 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             </span>
           </div>
 
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          <div className="flex flex-wrap gap-2">
             {visibleTopOptions.map((opt) => {
               const isSelected = selection.top.includes(opt);
               const isCustom = !dynamicOptions.top.includes(opt);
+              const isInner = isPinnedInnerItem(opt, 'top', temperature);
               const isRecommended = currentRule.recommend.top.includes(opt);
 
               return (
@@ -683,9 +685,21 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     >
                       {formatScoreBadge(opt)}
                     </span>
-                    {isRecommended && (
+                    {isInner && (
                       <span
-                        className={`text-[9px] font-bold px-1 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
+                        className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
+                          isSelected
+                            ? 'text-sky-200 bg-sky-950/70 border-sky-400/40'
+                            : 'text-sky-700 bg-sky-50 border-sky-300'
+                        }`}
+                      >
+                        <Zap className="w-2.5 h-2.5 text-sky-500 shrink-0 fill-sky-500" />
+                        <span>이너</span>
+                      </span>
+                    )}
+                    {isRecommended && !isInner && (
+                      <span
+                        className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                           isSelected
                             ? 'text-amber-300 bg-amber-950/60 border-amber-400/40'
                             : 'text-amber-700 bg-amber-50 border-amber-300'
@@ -737,10 +751,11 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             </span>
           </div>
 
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          <div className="flex flex-wrap gap-2">
             {visibleBottomOptions.map((opt) => {
               const isSelected = selection.bottom.includes(opt);
               const isCustom = !dynamicOptions.bottom.includes(opt);
+              const isInner = isPinnedInnerItem(opt, 'bottom', temperature);
               const isRecommended = currentRule.recommend.bottom.includes(opt);
 
               return (
@@ -802,9 +817,21 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     >
                       {formatScoreBadge(opt)}
                     </span>
-                    {isRecommended && (
+                    {isInner && (
                       <span
-                        className={`text-[9px] font-bold px-1 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
+                        className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
+                          isSelected
+                            ? 'text-sky-200 bg-sky-950/70 border-sky-400/40'
+                            : 'text-sky-700 bg-sky-50 border-sky-300'
+                        }`}
+                      >
+                        <Zap className="w-2.5 h-2.5 text-sky-500 shrink-0 fill-sky-500" />
+                        <span>이너</span>
+                      </span>
+                    )}
+                    {isRecommended && !isInner && (
+                      <span
+                        className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                           isSelected
                             ? 'text-amber-300 bg-amber-950/60 border-amber-400/40'
                             : 'text-amber-700 bg-amber-50 border-amber-300'
@@ -854,7 +881,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             </span>
           </div>
 
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          <div className="flex flex-wrap gap-2">
             {visibleItemOptions.map((opt) => {
               const isSelected = selection.items.includes(opt);
               const isCustom = !dynamicOptions.items.includes(opt);
