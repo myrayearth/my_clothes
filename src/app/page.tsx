@@ -12,6 +12,7 @@ import {
   fetchAllOutfitLogs,
   fetchProfiles,
   getSavedActiveUser,
+  getSavedActiveUserId,
   saveActiveUser,
 } from '@/lib/storage';
 import { findMatchingRecallLogs } from '@/lib/matcher';
@@ -23,7 +24,8 @@ import { HistoryRecallCard } from '@/components/HistoryRecallCard';
 import { FeedbackForm } from '@/components/FeedbackForm';
 import { DailyForecast } from '@/components/weather/DailyForecast';
 import { UserProfileSelector } from '@/components/profile/UserProfileSelector';
-import { RefreshCw, Shirt, AlertCircle } from 'lucide-react';
+import { UserManagementModal } from '@/components/profile/UserManagementModal';
+import { RefreshCw, Shirt, AlertCircle, Settings } from 'lucide-react';
 
 export default function Home() {
   const [location, setLocation] = useState<LocationInfo>(DEFAULT_LOCATION);
@@ -35,6 +37,7 @@ export default function Home() {
   // 사용자 프로필 상태
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [activeUser, setActiveUser] = useState<string>('기본 사용자');
+  const [isManageModalOpen, setIsManageModalOpen] = useState<boolean>(false);
 
   // 과거 복장 로그 데이터베이스 목록
   const [outfitLogs, setOutfitLogs] = useState<OutfitLog[]>([]);
@@ -61,18 +64,28 @@ export default function Home() {
     }
   }, []);
 
-  // 프로필 로드 함수
+  // 프로필 로드 함수 (Supabase DB 최우선 + LocalStorage 활성 사용자 ID 매칭)
   const loadProfiles = useCallback(async () => {
     try {
       const pList = await fetchProfiles();
       setProfiles(pList);
+
+      const savedId = getSavedActiveUserId();
       const savedUser = getSavedActiveUser();
-      // 저장된 사용자가 유효한지 확인
-      if (pList.some((p) => p.name === savedUser)) {
-        setActiveUser(savedUser);
+
+      // 1. 활성화된 사용자 ID로 먼저 매칭 시도
+      const matchedById = savedId ? pList.find((p) => p.id === savedId) : null;
+      // 2. 사용자 이름으로 매칭 시도
+      const matchedByName = pList.find((p) => p.name === savedUser);
+
+      const target = matchedById || matchedByName;
+
+      if (target) {
+        setActiveUser(target.name);
+        saveActiveUser({ id: target.id, name: target.name });
       } else if (pList.length > 0) {
         setActiveUser(pList[0].name);
-        saveActiveUser(pList[0].name);
+        saveActiveUser({ id: pList[0].id, name: pList[0].name });
       }
     } catch (err) {
       console.error('프로필 로드 실패:', err);
@@ -101,9 +114,9 @@ export default function Home() {
   }, [activeUser, loadLogs]);
 
   // 사용자 전환 핸들러
-  const handleSelectUser = (userName: string) => {
+  const handleSelectUser = (userName: string, userId?: string) => {
     setActiveUser(userName);
-    saveActiveUser(userName);
+    saveActiveUser({ id: userId, name: userName });
     loadLogs(userName);
   };
 
@@ -212,7 +225,7 @@ export default function Home() {
                   Weather Outfit
                 </h1>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                  v0.3.0
+                  v0.4.0
                 </span>
               </div>
               <p className="text-xs text-slate-500">
@@ -221,14 +234,26 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-center">
+          <div className="flex items-center gap-1.5 sm:gap-2 self-end sm:self-center">
             {/* 사용자 프로필 선택 드롭다운 */}
             <UserProfileSelector
               currentUserName={activeUser}
               profiles={profiles}
               onSelectUser={handleSelectUser}
               onProfileCreated={loadProfiles}
+              onOpenManageModal={() => setIsManageModalOpen(true)}
             />
+
+            {/* [⚙️ 사용자 관리] 버튼 (모달 트리거) */}
+            <button
+              type="button"
+              onClick={() => setIsManageModalOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition-all active:scale-95 touch-manipulation shadow-2xs hover:border-slate-300"
+              title="사용자 관리 (수정 / 삭제)"
+            >
+              <Settings className="w-3.5 h-3.5 text-slate-500" />
+              <span className="hidden sm:inline">사용자 관리</span>
+            </button>
 
             <button
               onClick={() => {
@@ -320,8 +345,17 @@ export default function Home() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.3.0</strong></p>
+        <p className="mt-1">Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.4.0</strong></p>
       </footer>
+      {/* 8. 사용자 관리 (편집 / 삭제) 모달 */}
+      <UserManagementModal
+        isOpen={isManageModalOpen}
+        onClose={() => setIsManageModalOpen(false)}
+        currentUserName={activeUser}
+        profiles={profiles}
+        onSelectUser={handleSelectUser}
+        onProfilesChanged={loadProfiles}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { OutfitLog, NewOutfitLogInput, UserProfile } from '@/types/database';
 const LOCAL_LOGS_KEY = 'weather_outfit_logs_v3';
 const LOCAL_PROFILES_KEY = 'weather_outfit_profiles_v1';
 const ACTIVE_USER_KEY = 'weather_outfit_active_user';
+const ACTIVE_USER_ID_KEY = 'weather_outfit_active_user_id';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -351,6 +352,15 @@ export async function deleteProfile(id: string, name: string): Promise<void> {
   deleteLocalProfile(id, name);
 }
 
+export function getSavedActiveUserId(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return localStorage.getItem(ACTIVE_USER_ID_KEY);
+  } catch {
+    return null;
+  }
+}
+
 export function getSavedActiveUser(): string {
   if (typeof window === 'undefined') return '기본 사용자';
   try {
@@ -360,10 +370,17 @@ export function getSavedActiveUser(): string {
   }
 }
 
-export function saveActiveUser(name: string): void {
+export function saveActiveUser(user: { id?: string; name: string } | string): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(ACTIVE_USER_KEY, name);
+    if (typeof user === 'string') {
+      localStorage.setItem(ACTIVE_USER_KEY, user);
+    } else {
+      localStorage.setItem(ACTIVE_USER_KEY, user.name);
+      if (user.id) {
+        localStorage.setItem(ACTIVE_USER_ID_KEY, user.id);
+      }
+    }
   } catch (e) {
     console.warn('Failed to save active user:', e);
   }
