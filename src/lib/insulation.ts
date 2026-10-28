@@ -38,6 +38,8 @@ export function getItemInsulationScore(item: string): number {
     trimmed.includes('스웨터')
   )
     return 20;
+  if (trimmed.includes('보온 양말') || trimmed.includes('보온양말') || trimmed.includes('양말')) return 7;
+  if (trimmed.includes('스타킹')) return 3;
   if (
     trimmed.includes('핫팩') ||
     trimmed.includes('목도리') ||

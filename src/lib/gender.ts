@@ -14,8 +14,7 @@ export const FEMALE_ONLY_KEYWORDS = [
  */
 export function isFemaleOnlyItem(item: string): boolean {
   if (!item) return false;
-  // 표준 소품 '기본 양말/스타킹'은 남녀 공용으로 허용
-  if (item === '기본 양말/스타킹') return false;
+  if (item === '보온 양말') return false;
   return FEMALE_ONLY_KEYWORDS.some((kw) => item.includes(kw));
 }
 

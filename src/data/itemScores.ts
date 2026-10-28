@@ -9,11 +9,11 @@ export interface StandardItem {
 }
 
 /**
- * 전면 압축 개편된 신규 표준 의류 및 소품 데이터셋 (총 48종)
+ * 전면 압축 개편된 신규 표준 의류 및 소품 데이터셋 (총 50종)
  * - 외투(Outer): 12종
  * - 상의(Top): 14종
  * - 하의(Bottom): 12종
- * - 소품(Item): 10종
+ * - 소품(Item): 12종
  */
 export const STANDARD_ITEMS: StandardItem[] = [
   // =========================================================================
@@ -67,14 +67,15 @@ export const STANDARD_ITEMS: StandardItem[] = [
   { name: '헤비 방한바지', category: 'bottom', season: 'winter', score: 45 },
 
   // =========================================================================
-  // 4. 소품 (Item - 11종, 합산 -10~+30점 캡 적용)
+  // 4. 소품 (Item - 12종, 합산 -10~+30점 캡 적용)
   // =========================================================================
   { name: '손풍기', category: 'items', season: 'summer', score: -3 },
   { name: '모자/썬캡', category: 'items', season: 'summer', score: -3 },
   { name: '양산', category: 'items', season: 'summer', score: -3 },
   { name: '자외선 차단', category: 'items', season: 'summer', score: -2 },
+  { name: '스타킹', category: 'items', season: 'spring_autumn', score: 3 },
   { name: '가벼운 스카프/숄', category: 'items', season: 'spring_autumn', score: 4 },
-  { name: '기본 양말/스타킹', category: 'items', season: 'spring_autumn', score: 5 },
+  { name: '보온 양말', category: 'items', season: 'winter', score: 7 },
   { name: '비니/가벼운 장갑', category: 'items', season: 'winter', score: 7 },
   { name: '방한 신발/귀마개', category: 'items', season: 'winter', score: 9 },
   { name: '두꺼운 목도리/넥워머', category: 'items', season: 'winter', score: 11 },
@@ -277,8 +278,12 @@ export const ITEM_SCORES: Record<string, number> = {
   우산: 0,
   '얇은 스카프': 4,
   '가벼운 숄': 4,
-  '도톰한 양말': 5,
-  스타킹: 5,
+  '기본 양말/스타킹': 3,
+  '기본 양말': 5,
+  '도톰한 양말': 7,
+  '보온 양말': 7,
+  '발열 양말': 7,
+  스타킹: 3,
   '울 머플러': 7,
   '가죽 / 니트 장갑': 7,
   '니트 비니': 7,
@@ -287,7 +292,6 @@ export const ITEM_SCORES: Record<string, number> = {
   '방한화 / 어그부츠': 9,
   '두꺼운 목도리': 11,
   '방한 넥워머': 11,
-  '발열 양말': 11,
   '휴대용 손난로 핫팩': 12,
   '붙이는 핫팩 (신체/발)': 12,
   '방풍 마스크': 14,
