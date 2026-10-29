@@ -155,7 +155,9 @@ export default function HomePage() {
       slots.forEach((slot) => {
         const slotItem = weatherData.timeSlots[slot];
         if (!slotItem) return;
-        const slotTemp = slotItem.temperature;
+        // 체감 기온 기준 우선 (산출 불가 시 실제 기온으로 폴백)
+        const hasApparent = typeof slotItem.apparentTemperature === 'number' && !isNaN(slotItem.apparentTemperature);
+        const slotTemp = hasApparent ? slotItem.apparentTemperature : slotItem.temperature;
         const rule = getOutfitRuleByTemperature(slotTemp);
 
         // 개인화 및 오염 방지 가중치 추천 산출
@@ -205,14 +207,16 @@ export default function HomePage() {
         setWeather(data);
         loadAggregatedData(data, outfitLogsRef.current);
 
-        // 수동 점검 기본값도 현재 기온으로 초기 동기화
+        // 수동 점검 기본값도 현재 체감 기온(산출 불가 시 실제 기온)으로 초기 동기화
+        const curApparent = data.currentApparentTemp;
         const curTemp = Math.round(data.currentTemp);
-        setManualTemp(curTemp);
-        const rule = getOutfitRuleByTemperature(curTemp);
+        const curTarget = (typeof curApparent === 'number' && !isNaN(curApparent)) ? Math.round(curApparent) : curTemp;
+        setManualTemp(curTarget);
+        const rule = getOutfitRuleByTemperature(curTarget);
         const rec = calculateWeightedRecommendations(
           rule,
           outfitLogsRef.current,
-          curTemp,
+          curTarget,
           activeUserRef.current,
           isAuthenticatedRef.current,
           selectedGenderRef.current,
@@ -237,7 +241,7 @@ export default function HomePage() {
     }
   }, [selectedGender, outfitLogs, activeUser, isAuthenticated, weather, loadAggregatedData, handleManualTempChange]);
 
-  // 주간 예보 미래 일자(D+1 ~ D+6) 클릭 핸들러 (최저/최고 기온 추천 갱신)
+  // 주간 예보 미래 일자(D+1 ~ D+6) 클릭 핸들러 (최저/최고 체감 기온 추천 갱신)
   const handleSelectForecastDate = useCallback(
     (date: string, day: DailyForecastItem) => {
       setRecommendationMode('DAILY_FORECAST_MODE');
@@ -246,10 +250,10 @@ export default function HomePage() {
         setSelectedSlot('13:00'); // 예보 선택 시 기본 낮(최고 기온)으로 포커스
       }
 
-      // 해당 날짜의 최저 기온(08시 아침), 최고 기온(13시 낮), 저녁(19시) 추천 조합 산출
-      const morningTemp = day.tempMin;
-      const dayTemp = day.tempMax;
-      const eveningTemp = Math.round((day.tempMin + day.tempMax) / 2);
+      // 해당 날짜의 최저 체감 기온(08시 아침), 최고 체감 기온(13시 낮), 저녁(19시) 추천 조합 산출
+      const morningTemp = day.apparentTempMin ?? day.tempMin;
+      const dayTemp = day.apparentTempMax ?? day.tempMax;
+      const eveningTemp = Math.round((morningTemp + dayTemp) / 2);
 
       const morningRec = calculateWeightedRecommendations(
         getOutfitRuleByTemperature(morningTemp),
@@ -457,10 +461,11 @@ export default function HomePage() {
     }
   };
 
-  // 모드별 활성화된 기준 기온, 시간대 라벨, 코디 선택 계산
+  // 모드별 활성화된 기준 기온(체감 우선), 실제 기온, 시간대 라벨, 코디 선택 계산
   const effectiveData = useMemo(() => {
     if (recommendationMode === 'MANUAL_MODE') {
       return {
+        targetTemp: manualTemp,
         temperature: manualTemp,
         apparentTemperature: manualTemp,
         timeSlotLabel: `수동 설정 (${manualTemp}°C)`,
@@ -471,16 +476,18 @@ export default function HomePage() {
 
     if (recommendationMode === 'DAILY_FORECAST_MODE' && selectedForecastItem) {
       const slot = selectedSlot === 'current' ? '13:00' : selectedSlot;
-      const morningTemp = selectedForecastItem.tempMin;
-      const dayTemp = selectedForecastItem.tempMax;
-      const eveningTemp = Math.round((selectedForecastItem.tempMin + selectedForecastItem.tempMax) / 2);
+      const morningApp = selectedForecastItem.apparentTempMin ?? selectedForecastItem.tempMin;
+      const dayApp = selectedForecastItem.apparentTempMax ?? selectedForecastItem.tempMax;
+      const eveningApp = Math.round((morningApp + dayApp) / 2);
 
-      const temp = slot === '08:00' ? morningTemp : slot === '13:00' ? dayTemp : eveningTemp;
+      const target = slot === '08:00' ? morningApp : slot === '13:00' ? dayApp : eveningApp;
+      const actual = slot === '08:00' ? selectedForecastItem.tempMin : slot === '13:00' ? selectedForecastItem.tempMax : Math.round((selectedForecastItem.tempMin + selectedForecastItem.tempMax) / 2);
       const subLabel = slot === '08:00' ? '아침(최저)' : slot === '13:00' ? '낮(최고)' : '저녁';
 
       return {
-        temperature: temp,
-        apparentTemperature: temp,
+        targetTemp: target,
+        temperature: actual,
+        apparentTemperature: target,
         timeSlotLabel: `${selectedForecastItem.dayName} ${subLabel}`,
         slotKey: slot,
         selection:
@@ -490,8 +497,10 @@ export default function HomePage() {
 
     // LIVE_MODE
     const currentSlotWeather = weather ? weather.timeSlots[selectedSlot] : null;
-    const temp = currentSlotWeather ? currentSlotWeather.temperature : 15;
-    const apparent = currentSlotWeather ? currentSlotWeather.apparentTemperature : 15;
+    const actualTemp = currentSlotWeather ? currentSlotWeather.temperature : 15;
+    const rawApparent = currentSlotWeather ? currentSlotWeather.apparentTemperature : undefined;
+    const apparentTemp = (typeof rawApparent === 'number' && !isNaN(rawApparent)) ? rawApparent : actualTemp;
+    const targetTemp = apparentTemp;
     const label =
       selectedSlot === 'current'
         ? '실시간 현재'
@@ -502,8 +511,9 @@ export default function HomePage() {
         : '19시 (저녁)';
 
     return {
-      temperature: temp,
-      apparentTemperature: apparent,
+      targetTemp,
+      temperature: actualTemp,
+      apparentTemperature: apparentTemp,
       timeSlotLabel: label,
       slotKey: selectedSlot,
       selection:
@@ -526,15 +536,15 @@ export default function HomePage() {
     return authProfile.role === 'admin' || isUserAdmin(authProfile) || authProfile.email === ADMIN_EMAIL;
   }, [isAuthenticated, authProfile]);
 
-  // 지능형 리콜: 현재 모드의 기준 기온을 바탕으로 매칭 계산
+  // 지능형 리콜: 현재 모드의 체감 기준 기온을 바탕으로 매칭 계산
   const matchedRecalls = useMemo(() => {
     return findMatchingRecallLogs(
       outfitLogs,
-      effectiveData.temperature,
+      effectiveData.targetTemp,
       userCondition,
       activeUser
     );
-  }, [outfitLogs, effectiveData.temperature, userCondition, activeUser]);
+  }, [outfitLogs, effectiveData.targetTemp, userCondition, activeUser]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -560,7 +570,7 @@ export default function HomePage() {
                   Ondo Fit
                 </h1>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
-                  v0.33.0
+                  v0.34.0
                 </span>
               </div>
               {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
@@ -682,7 +692,7 @@ export default function HomePage() {
                   slot: 'current',
                   timeString: '13:00',
                   temperature: selectedForecastItem.tempMax,
-                  apparentTemperature: selectedForecastItem.tempMax,
+                  apparentTemperature: selectedForecastItem.apparentTempMax ?? selectedForecastItem.tempMax,
                   weatherCode: selectedForecastItem.weatherCode,
                   weatherLabel: selectedForecastItem.weatherLabel,
                 },
@@ -690,7 +700,7 @@ export default function HomePage() {
                   slot: '08:00',
                   timeString: '08:00',
                   temperature: selectedForecastItem.tempMin,
-                  apparentTemperature: selectedForecastItem.tempMin,
+                  apparentTemperature: selectedForecastItem.apparentTempMin ?? selectedForecastItem.tempMin,
                   weatherCode: selectedForecastItem.weatherCode,
                   weatherLabel: selectedForecastItem.weatherLabel,
                 },
@@ -698,7 +708,7 @@ export default function HomePage() {
                   slot: '13:00',
                   timeString: '13:00',
                   temperature: selectedForecastItem.tempMax,
-                  apparentTemperature: selectedForecastItem.tempMax,
+                  apparentTemperature: selectedForecastItem.apparentTempMax ?? selectedForecastItem.tempMax,
                   weatherCode: selectedForecastItem.weatherCode,
                   weatherLabel: selectedForecastItem.weatherLabel,
                 },
@@ -706,7 +716,11 @@ export default function HomePage() {
                   slot: '19:00',
                   timeString: '19:00',
                   temperature: Math.round((selectedForecastItem.tempMin + selectedForecastItem.tempMax) / 2),
-                  apparentTemperature: Math.round((selectedForecastItem.tempMin + selectedForecastItem.tempMax) / 2),
+                  apparentTemperature: Math.round(
+                    ((selectedForecastItem.apparentTempMin ?? selectedForecastItem.tempMin) +
+                      (selectedForecastItem.apparentTempMax ?? selectedForecastItem.tempMax)) /
+                      2
+                  ),
                   weatherCode: selectedForecastItem.weatherCode,
                   weatherLabel: selectedForecastItem.weatherLabel,
                 },
@@ -750,7 +764,9 @@ export default function HomePage() {
 
         {/* 6. 복장 추천 및 칩 커스터마이징 컴포넌트 */}
         <OutfitSelector
-          temperature={effectiveData.temperature}
+          temperature={effectiveData.targetTemp}
+          actualTemperature={effectiveData.temperature}
+          apparentTemperature={effectiveData.apparentTemperature}
           timeSlotLabel={effectiveData.timeSlotLabel}
           selection={effectiveData.selection}
           onChangeSelection={handleCurrentOutfitChange}
@@ -788,7 +804,7 @@ export default function HomePage() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.33.0</strong></p>
+        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.34.0</strong></p>
       </footer>
     </div>
   );

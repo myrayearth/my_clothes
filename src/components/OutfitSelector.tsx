@@ -25,6 +25,8 @@ import { Shirt, RotateCcw, Check, Plus, ExternalLink, Sparkles, Thermometer, Zap
 
 interface OutfitSelectorProps {
   temperature: number;
+  actualTemperature?: number;
+  apparentTemperature?: number;
   timeSlotLabel: string;
   selection: OutfitSelection;
   onChangeSelection: (newSelection: OutfitSelection) => void;
@@ -36,6 +38,8 @@ interface OutfitSelectorProps {
 
 export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
   temperature,
+  actualTemperature,
+  apparentTemperature,
   timeSlotLabel,
   selection,
   onChangeSelection,
@@ -431,9 +435,14 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             <h3 className="text-sm font-bold text-slate-800">
               {timeSlotLabel} 맞춤 복장 제안
             </h3>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-900 text-white shrink-0">
-              {temperature}°C
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-900 text-white shrink-0 flex items-center gap-1">
+              <span>체감 {temperature}°C</span>
             </span>
+            {actualTemperature !== undefined && actualTemperature !== temperature && (
+              <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 shrink-0">
+                실제 {actualTemperature}°C
+              </span>
+            )}
             <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
               {currentRule.label}
             </span>
@@ -539,9 +548,15 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
               현재 복장 커버 기온: <strong className="text-slate-900 dark:text-white font-bold text-sm">약 {coverTemp}°C</strong>
             </span>
 
-            <div className="flex items-center gap-2 self-start sm:self-center">
+            <div className="flex items-center gap-2 self-start sm:self-center flex-wrap">
               <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                (기준 기온: <strong className="text-brand-700 dark:text-brand-400 font-bold">{temperature}°C</strong>)
+                (기준 체감: <strong className="text-brand-700 dark:text-brand-400 font-bold">{temperature}°C</strong>
+                {actualTemperature !== undefined && actualTemperature !== temperature && (
+                  <span className="ml-1 text-[11px] text-slate-400 dark:text-slate-500 font-normal">
+                    / 실제 {actualTemperature}°C
+                  </span>
+                )}
+                )
               </span>
 
               {/* 3색 상태 뱃지: [적정] 초록 / [과보온] 빨강 / [보온 필요] 파랑 */}
@@ -599,10 +614,10 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
               </span>
             </div>
 
-            {/* 중앙 50% 기준 기온(T_target) 타겟 세로선 */}
+            {/* 중앙 50% 기준 체감 기온(T_target) 타겟 세로선 */}
             <div
               className="absolute left-1/2 -translate-x-1/2 w-0.5 h-full bg-slate-900/70 dark:bg-white/80 z-10 pointer-events-none"
-              title={`기준 기온: ${temperature}°C`}
+              title={`기준 체감 기온: ${temperature}°C`}
             />
 
             {/* 현재 복장 커버 기온 마커 핀 */}
@@ -645,7 +660,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             </span>
             <div className="flex items-center gap-1.5 text-slate-900 dark:text-white font-bold text-xs sm:text-sm drop-shadow-sm dark:drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] select-none">
               <span className="inline-block animate-pulse text-base sm:text-lg">🎯</span>
-              <span>기준 기온 {temperature}°C</span>
+              <span>기준 체감 {temperature}°C</span>
             </div>
             <span className={`transition-colors font-bold ${isRightOverflow ? 'text-sky-600 dark:text-sky-400' : 'text-sky-950 dark:text-sky-200'}`}>
               {gaugeMaxTemp}°C (얇음) ▶

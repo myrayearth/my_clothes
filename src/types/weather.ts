@@ -10,6 +10,8 @@ export interface DailyWeather {
   weather_code: number[];
   temperature_2m_max: number[];
   temperature_2m_min: number[];
+  apparent_temperature_max?: number[];
+  apparent_temperature_min?: number[];
 }
 
 export interface ForecastApiResponse {
@@ -38,6 +40,8 @@ export interface DailyForecastItem {
   weatherLabel: string;
   tempMax: number;
   tempMin: number;
+  apparentTempMax?: number;
+  apparentTempMin?: number;
 }
 
 export interface ProcessedWeatherData {

@@ -150,9 +150,13 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
 
   const offsetInfo = getOffsetInfo(tempOffset);
 
-  // [새벽 02:00 롤오버 기준 D-day 일자 반영] 시간대 수식어(현재/아침/낮/저녁) 배제하고 일자/기온 기준 표기 단순화
+  // [새벽 02:00 롤오버 기준 D-day 일자 반영] 체감 기온 기준 우선 표기
   const effectiveDay = getEffectiveDayNumber();
-  const titleText = `오늘(${effectiveDay}일) ${currentTemp}°C 복장 체감 평가`;
+  const effectiveTemp = typeof apparentTemp === 'number' && !isNaN(apparentTemp) ? apparentTemp : currentTemp;
+  const isDiff = typeof apparentTemp === 'number' && !isNaN(apparentTemp) && apparentTemp !== currentTemp;
+  const titleText = isDiff
+    ? `오늘(${effectiveDay}일) 체감 ${effectiveTemp}°C (기온 ${currentTemp}°C) 복장 체감 평가`
+    : `오늘(${effectiveDay}일) 체감 ${effectiveTemp}°C 복장 체감 평가`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,8 +172,8 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
         user_id: isGuest ? undefined : userId,
         user_name: effectiveUserName,
         location_name: locationName,
-        target_temp: currentTemp,
-        apparent_temp: apparentTemp,
+        target_temp: effectiveTemp,
+        apparent_temp: apparentTemp ?? currentTemp,
         time_slot: timeSlot,
         selected_outer: Array.isArray(currentOutfit.outer)
           ? currentOutfit.outer.filter((o) => o && o !== '없음').join(', ') || '없음'

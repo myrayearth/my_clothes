@@ -72,6 +72,11 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
           const isSelected = selectedSlot === slot;
           const meta = slotMeta[slot];
 
+          // 체감 기온 기준 우선 (산출 불가 시 실제 기온으로 폴백)
+          const hasApparent = typeof item.apparentTemperature === 'number' && !isNaN(item.apparentTemperature);
+          const displayApparent = hasApparent ? item.apparentTemperature : item.temperature;
+          const isDiff = hasApparent && item.apparentTemperature !== item.temperature;
+
           return (
             <button
               key={slot}
@@ -91,7 +96,7 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
                 </span>
               </div>
 
-              {/* 날씨 아이콘 & 기온 */}
+              {/* 날씨 아이콘 & 체감 기온 (크게 표시) */}
               <div className="flex items-center justify-center gap-1.5 my-1">
                 <WeatherIcon
                   weatherCode={item.weatherCode}
@@ -99,14 +104,14 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
                   size={24}
                   className="shrink-0"
                 />
-                <span className="text-lg sm:text-xl font-bold tracking-tight">
-                  {item.temperature}°
+                <span className="text-lg sm:text-xl font-bold tracking-tight" title={`체감 ${displayApparent}°C`}>
+                  {displayApparent}°
                 </span>
               </div>
 
-              {/* 체감온도 및 날씨 요약 */}
+              {/* 실제 기온 (작게 표시) 및 날씨 요약 */}
               <div className="text-[10px] sm:text-[11px] font-medium opacity-80 leading-tight">
-                <span>체감 {item.apparentTemperature}°</span>
+                <span>{isDiff ? `실제 ${item.temperature}°` : `기온 ${item.temperature}°`}</span>
                 <span className="hidden xs:inline mx-0.5">•</span>
                 <span className="hidden xs:inline">{item.weatherLabel}</span>
               </div>

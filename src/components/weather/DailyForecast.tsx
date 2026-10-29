@@ -28,6 +28,11 @@ export const DailyForecast: React.FC<DailyForecastProps> = ({
           // dateStr 'YYYY-MM-DD'에서 'DD일' 추출
           const dayNumber = day.date ? parseInt(day.date.split('-')[2], 10) : null;
 
+          const displayMax = day.apparentTempMax ?? day.tempMax;
+          const displayMin = day.apparentTempMin ?? day.tempMin;
+          const isDiff = (day.apparentTempMax !== undefined && day.apparentTempMax !== day.tempMax) ||
+                         (day.apparentTempMin !== undefined && day.apparentTempMin !== day.tempMin);
+
           return (
             <button
               key={day.date}
@@ -38,7 +43,7 @@ export const DailyForecast: React.FC<DailyForecastProps> = ({
                   ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-500/25'
                   : 'bg-slate-50/80 border-slate-200/80 hover:bg-slate-100/80 text-slate-700 hover:border-slate-300'
               }`}
-              title={`${day.dayName} 날씨 기준 복장 추천 보기`}
+              title={`${day.dayName} 체감 ${displayMax}°/${displayMin}° (실제 기온 ${day.tempMax}°/${day.tempMin}°)`}
             >
               {/* 요일 및 일자(DD일) */}
               <div className="flex flex-col items-center">
@@ -79,17 +84,24 @@ export const DailyForecast: React.FC<DailyForecastProps> = ({
                 {day.weatherLabel}
               </div>
 
-              {/* 최고 / 최저 기온 */}
-              <div className="flex items-center justify-center gap-0.5 sm:gap-1 text-[11px] sm:text-xs font-bold leading-none">
-                <span className={isSelected ? 'text-white' : 'text-slate-900'}>
-                  {day.tempMax}°
-                </span>
-                <span className={`text-[9px] sm:text-[10px] ${isSelected ? 'text-blue-200' : 'text-slate-300'}`}>
-                  /
-                </span>
-                <span className={`text-[10px] sm:text-[11px] font-medium ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
-                  {day.tempMin}°
-                </span>
+              {/* 체감 최고/최저 기온 (크게) 및 실제 기온 (작게) */}
+              <div className="flex flex-col items-center gap-0.5">
+                <div className="flex items-center justify-center gap-0.5 sm:gap-1 text-[11px] sm:text-xs font-bold leading-none">
+                  <span className={isSelected ? 'text-white' : 'text-slate-900'}>
+                    {displayMax}°
+                  </span>
+                  <span className={`text-[9px] sm:text-[10px] ${isSelected ? 'text-blue-200' : 'text-slate-300'}`}>
+                    /
+                  </span>
+                  <span className={`text-[10px] sm:text-[11px] font-medium ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
+                    {displayMin}°
+                  </span>
+                </div>
+                {isDiff && (
+                  <span className={`text-[8px] sm:text-[9px] leading-tight ${isSelected ? 'text-blue-200' : 'text-slate-400'}`}>
+                    기온 {day.tempMax}°/{day.tempMin}°
+                  </span>
+                )}
               </div>
 
               {/* 활성화 상태 인디케이터 뱃지 */}

@@ -38,6 +38,11 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
   const isCurrentActive = isActive !== undefined ? isActive : selectedSlot === 'current';
   const shouldShowReturnGuide = isReturnMode || (!isCurrentActive && !!onSelectCurrent);
 
+  // 체감 기온 기준 우선 (산출 불가 시 실제 기온으로 폴백)
+  const hasApparent = typeof weather.currentApparentTemp === 'number' && !isNaN(weather.currentApparentTemp);
+  const displayApparent = hasApparent ? weather.currentApparentTemp : weather.currentTemp;
+  const isDiff = hasApparent && weather.currentApparentTemp !== weather.currentTemp;
+
   return (
     <div
       onClick={onSelectCurrent}
@@ -62,7 +67,7 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
         shouldShowReturnGuide
           ? '클릭 시 오늘 실시간 날씨로 복귀'
           : onSelectCurrent
-          ? '클릭하여 현재 기온 기준 복장 추천 보기'
+          ? '클릭하여 현재 체감 기온 기준 복장 추천 보기'
           : undefined
       }
     >
@@ -70,8 +75,8 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                실시간 현재 기온
+              <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 flex items-center gap-1">
+                <span>실시간 체감</span>
               </span>
               {isCurrentActive ? (
                 <span className="text-[11px] font-bold text-white bg-blue-600 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs animate-in fade-in">
@@ -91,12 +96,16 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
               ) : null}
             </div>
 
+            {/* 온도 표시: 체감 기온을 더 크게, 실제 기온을 더 작게 (현재 구조와 반대로) */}
             <div className="flex items-baseline gap-2 mt-2">
-              <span className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
-                {weather.currentTemp}°
+              <span
+                className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight"
+                title={`체감 기온 ${displayApparent}°C`}
+              >
+                {displayApparent}°
               </span>
               <span className="text-sm font-medium text-slate-500">
-                체감 {weather.currentApparentTemp}°
+                {isDiff ? `실제 ${weather.currentTemp}°` : `기온 ${weather.currentTemp}°`}
               </span>
             </div>
 

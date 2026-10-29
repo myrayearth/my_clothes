@@ -63,7 +63,7 @@ export async function fetchWeatherData(
   latitude: number,
   longitude: number
 ): Promise<ProcessedWeatherData> {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m,apparent_temperature,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&past_days=1&forecast_days=8`;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m,apparent_temperature,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min&timezone=auto&past_days=1&forecast_days=8`;
 
   const res = await fetch(url, {
     headers: { Accept: 'application/json' },
@@ -177,13 +177,22 @@ export function processWeatherData(raw: ForecastApiResponse): ProcessedWeatherDa
     const d = new Date(dateStr);
     const dayName = `${dayNames[d.getDay()]}요일`;
     const code = daily.weather_code[idx] ?? 0;
+    const tempMax = Math.round(daily.temperature_2m_max[idx] ?? 20);
+    const tempMin = Math.round(daily.temperature_2m_min[idx] ?? 10);
+    const rawAppMax = daily.apparent_temperature_max?.[idx];
+    const rawAppMin = daily.apparent_temperature_min?.[idx];
+    const apparentTempMax = (typeof rawAppMax === 'number' && !isNaN(rawAppMax)) ? Math.round(rawAppMax) : tempMax;
+    const apparentTempMin = (typeof rawAppMin === 'number' && !isNaN(rawAppMin)) ? Math.round(rawAppMin) : tempMin;
+
     return {
       date: dateStr,
       dayName,
       weatherCode: code,
       weatherLabel: getWeatherInterpretation(code).label,
-      tempMax: Math.round(daily.temperature_2m_max[idx] ?? 20),
-      tempMin: Math.round(daily.temperature_2m_min[idx] ?? 10),
+      tempMax,
+      tempMin,
+      apparentTempMax,
+      apparentTempMin,
     };
   });
 

@@ -76,7 +76,7 @@ export const ManualTempChecker: React.FC<ManualTempCheckerProps> = ({
               <Thermometer className="w-3.5 h-3.5 text-brand-600 animate-pulse" />
             </span>
             <span className="text-xs font-bold text-slate-800">
-              수동 복장 점검
+              수동 복장 점검 (체감)
             </span>
           </div>
 
@@ -118,7 +118,7 @@ export const ManualTempChecker: React.FC<ManualTempCheckerProps> = ({
                   ? 'bg-brand-50/90 border-brand-200/90 shadow-xs ring-1 ring-brand-300/40'
                   : 'bg-slate-50 border-slate-200'
               }`}
-              title={`현재 설정 기온(${temperature}°C) 적정 날씨`}
+              title={`현재 설정 체감 기온(${temperature}°C) 적정 날씨`}
             >
               <AnimatedWeatherIcon
                 weatherCode={getVirtualWeatherCodeByTemp(temperature)}
@@ -152,8 +152,8 @@ export const ManualTempChecker: React.FC<ManualTempCheckerProps> = ({
 
         <p className="text-xs text-slate-500 mt-1">
           {isActive
-            ? '화살표를 눌러 기온을 조절하면 대표 추천 복장과 보온 지수가 실시간 갱신됩니다.'
-            : '클릭하여 원하는 기온에서의 코디와 보온 적정성을 테스트하세요.'}
+            ? '화살표를 눌러 체감 기온을 조절하면 대표 추천 복장과 보온 지수가 실시간 갱신됩니다.'
+            : '클릭하여 원하는 체감 기온에서의 코디와 보온 적정성을 테스트하세요.'}
         </p>
       </div>
 
