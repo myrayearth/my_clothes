@@ -67,7 +67,7 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
 
       {/* 2. 초슬림 1줄 인라인 탭 바 (하드웨어 가속 sticky top-0 고정, 레이아웃 점프 0) */}
       <div
-        className="sticky top-0 z-40 w-full select-none bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-t-2xl rounded-b-none border border-slate-200/90 dark:border-slate-800 shadow-xs h-[44px] px-2.5 py-1 flex flex-col justify-center"
+        className="sticky top-0 z-40 w-full select-none bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-t-2xl rounded-b-none border-t border-x border-b-0 border-slate-200/90 dark:border-slate-800 shadow-xs h-[44px] px-2.5 py-1 flex flex-col justify-center"
       >
         <div
           className={`grid gap-1 sm:gap-1.5 h-[34px] items-center ${
