@@ -547,138 +547,142 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* 1. 상단 위치 바 및 검색 */}
-      <LocationBar
-        currentLocation={location}
-        onLocationChange={handleLocationChange}
-        isLoadingWeather={isLoading}
-      />
+      {/* 1. 상단 날씨 개요 섹션: 내 위치(도시 검색)은 이 영역(시간대별 예보 직전)까지만 상단 sticky 고정을 유지하고 스크롤되어 해제됨 */}
+      <header className="w-full">
+        <LocationBar
+          currentLocation={location}
+          onLocationChange={handleLocationChange}
+          isLoadingWeather={isLoading}
+        />
 
-      {/* 2. 전체 단일 메인 플로우 컨테이너: 시간대별 탭과 적정 체감 복장 분석이 스크롤 다운 시 상단에 스택(Stack)되어 연속 고정됨 */}
-      <main className="flex-1 max-w-2xl w-full mx-auto px-4 pt-4 pb-5 space-y-5">
-        {/* 서비스 타이틀, 성별 선택, 카카오 인증 바 & 새로고침 */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl overflow-hidden shadow-xs border border-slate-200/80 bg-white flex items-center justify-center shrink-0">
-              <img src="/logo.png" alt="Ondo Fit" className="w-full h-full object-cover" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="text-lg font-bold text-slate-900 leading-tight">
-                  Ondo Fit
-                </h1>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
-                  v0.35.0
-                </span>
+        <div className="max-w-2xl w-full mx-auto px-4 pt-4 space-y-5">
+          {/* 서비스 타이틀, 성별 선택, 카카오 인증 바 & 새로고침 */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl overflow-hidden shadow-xs border border-slate-200/80 bg-white flex items-center justify-center shrink-0">
+                <img src="/logo.png" alt="Ondo Fit" className="w-full h-full object-cover" />
               </div>
-              {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
-              <p className="text-xs text-slate-500">
-                온도 맞춤 복장 추천 및 피드백
-              </p>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h1 className="text-lg font-bold text-slate-900 leading-tight">
+                    Ondo Fit
+                  </h1>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
+                    v0.35.1
+                  </span>
+                </div>
+                {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
+                <p className="text-xs text-slate-500">
+                  온도 맞춤 복장 추천 및 피드백
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-center flex-wrap justify-end">
+              {/* 요구사항: 남성 / 여성 성별 선택 토글 */}
+              <div className="flex items-center bg-slate-200/80 p-0.5 rounded-xl border border-slate-300/80 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => handleGenderChange('male')}
+                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all active:scale-95 touch-manipulation ${
+                    selectedGender === 'male'
+                      ? 'bg-brand-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="남성 전용 추천 (여성 전용 복장 제외)"
+                >
+                  남성
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleGenderChange('female')}
+                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all active:scale-95 touch-manipulation ${
+                    selectedGender === 'female'
+                      ? 'bg-rose-500 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="여성 추천 (모든 복장 허용)"
+                >
+                  여성
+                </button>
+              </div>
+
+              {/* 카카오 로그인 / 프로필 바 (단일화된 사용자 인증) */}
+              <KakaoAuthBar
+                currentProfile={authProfile}
+                isAuthenticated={isAuthenticated}
+                onAuthChange={() => {
+                  loadLogs();
+                  if (weather) loadAggregatedData(weather);
+                }}
+              />
+
+              <button
+                onClick={() => {
+                  loadWeather(location);
+                  loadLogs();
+                }}
+                disabled={isLoading}
+                className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-all disabled:opacity-50"
+                title="날씨 및 기록 새로고침"
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-center flex-wrap justify-end">
-            {/* 요구사항: 남성 / 여성 성별 선택 토글 */}
-            <div className="flex items-center bg-slate-200/80 p-0.5 rounded-xl border border-slate-300/80 shadow-2xs">
-              <button
-                type="button"
-                onClick={() => handleGenderChange('male')}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all active:scale-95 touch-manipulation ${
-                  selectedGender === 'male'
-                    ? 'bg-brand-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="남성 전용 추천 (여성 전용 복장 제외)"
-              >
-                남성
-              </button>
-              <button
-                type="button"
-                onClick={() => handleGenderChange('female')}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all active:scale-95 touch-manipulation ${
-                  selectedGender === 'female'
-                    ? 'bg-rose-500 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="여성 추천 (모든 복장 허용)"
-              >
-                여성
-              </button>
+          {/* 에러 상태 안내 */}
+          {error && (
+            <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 text-rose-800 text-sm">
+              <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">날씨 정보를 가져오지 못했습니다.</p>
+                <p className="text-xs text-rose-600 mt-0.5">{error}</p>
+                <button
+                  onClick={() => loadWeather(location)}
+                  className="mt-2 text-xs font-semibold text-rose-700 underline underline-offset-2"
+                >
+                  다시 시도하기
+                </button>
+              </div>
             </div>
+          )}
 
-            {/* 카카오 로그인 / 프로필 바 (단일화된 사용자 인증) */}
-            <KakaoAuthBar
-              currentProfile={authProfile}
-              isAuthenticated={isAuthenticated}
-              onAuthChange={() => {
-                loadLogs();
-                if (weather) loadAggregatedData(weather);
+          {/* 2. 상단 단일 통합 날씨 카드 (실시간 날씨 및 인라인 수동 복장 점검 모드 통합) */}
+          {weather && (
+            <WeatherOverview
+              weather={weather}
+              isLoading={isLoading}
+              selectedSlot={selectedSlot}
+              isActive={recommendationMode === 'LIVE_MODE' && selectedSlot === 'current'}
+              isReturnMode={recommendationMode !== 'LIVE_MODE' || selectedSlot !== 'current'}
+              onSelectCurrent={() => handleSwitchLive('current')}
+              isManual={recommendationMode === 'MANUAL_MODE'}
+              manualTemp={manualTemp}
+              onManualTempChange={handleManualTempChange}
+              onToggleMode={(mode) => {
+                if (mode === 'manual') {
+                  handleSwitchManual();
+                } else {
+                  handleSwitchLive('current');
+                }
               }}
             />
+          )}
 
-            <button
-              onClick={() => {
-                loadWeather(location);
-                loadLogs();
-              }}
-              disabled={isLoading}
-              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-all disabled:opacity-50"
-              title="날씨 및 기록 새로고침"
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
+          {/* 3. 주간 예보 (내일부터 6일간 D+1 ~ D+6, 타이틀 없이 현재 날씨 바로 아래 일체화 가로 스크롤 카드) */}
+          {weather && (
+            <DailyForecast
+              forecasts={weather.dailyForecast}
+              selectedDate={recommendationMode === 'DAILY_FORECAST_MODE' ? selectedForecastItem?.date : null}
+              onSelectDate={handleSelectForecastDate}
+            />
+          )}
         </div>
+      </header>
 
-        {/* 에러 상태 안내 */}
-        {error && (
-          <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 text-rose-800 text-sm">
-            <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold">날씨 정보를 가져오지 못했습니다.</p>
-              <p className="text-xs text-rose-600 mt-0.5">{error}</p>
-              <button
-                onClick={() => loadWeather(location)}
-                className="mt-2 text-xs font-semibold text-rose-700 underline underline-offset-2"
-              >
-                다시 시도하기
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* 2. 상단 단일 통합 날씨 카드 (실시간 날씨 및 인라인 수동 복장 점검 모드 통합) */}
-        {weather && (
-          <WeatherOverview
-            weather={weather}
-            isLoading={isLoading}
-            selectedSlot={selectedSlot}
-            isActive={recommendationMode === 'LIVE_MODE' && selectedSlot === 'current'}
-            isReturnMode={recommendationMode !== 'LIVE_MODE' || selectedSlot !== 'current'}
-            onSelectCurrent={() => handleSwitchLive('current')}
-            isManual={recommendationMode === 'MANUAL_MODE'}
-            manualTemp={manualTemp}
-            onManualTempChange={handleManualTempChange}
-            onToggleMode={(mode) => {
-              if (mode === 'manual') {
-                handleSwitchManual();
-              } else {
-                handleSwitchLive('current');
-              }
-            }}
-          />
-        )}
-
-        {/* 3. 주간 예보 (내일부터 6일간 D+1 ~ D+6, 타이틀 없이 현재 날씨 바로 아래 일체화 가로 스크롤 카드) */}
-        {weather && (
-          <DailyForecast
-            forecasts={weather.dailyForecast}
-            selectedDate={recommendationMode === 'DAILY_FORECAST_MODE' ? selectedForecastItem?.date : null}
-            onSelectDate={handleSelectForecastDate}
-          />
-        )}
-
+      {/* 2. 메인 플로우 컨테이너: '시간대별 예보 및 복장 기준'부터 상단 sticky 시작 (초슬림 1줄 바 고정 + 적정 체감 복장 분석 2차 스택 고정) */}
+      <main className="flex-1 max-w-2xl w-full mx-auto px-4 pt-5 pb-5 space-y-5">
         {/* 4. 시간대별 탭 (스크롤 다운 시 최상단 sticky top-0 z-40으로 1줄 미니 탭 바 고정) */}
         {weather && (
           recommendationMode === 'MANUAL_MODE' ? null : recommendationMode === 'DAILY_FORECAST_MODE' && selectedForecastItem ? (
@@ -796,7 +800,7 @@ export default function HomePage() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.35.0</strong></p>
+        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.35.1</strong></p>
       </footer>
     </div>
   );

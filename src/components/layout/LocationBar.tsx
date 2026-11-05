@@ -93,7 +93,7 @@ export const LocationBar: React.FC<LocationBarProps> = ({
   };
 
   return (
-    <div className="w-full bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200/80 px-4 py-3 shadow-xs">
+    <div className="w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200/80 dark:border-slate-800 px-4 py-3 shadow-xs">
       <div className="max-w-2xl mx-auto flex flex-col gap-2.5">
         {/* 상단: 현재 선택된 위치 라벨 및 현재 위치 가져오기 버튼 */}
         <div className="flex items-center justify-between">

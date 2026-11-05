@@ -49,53 +49,51 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
   const slots: TargetTimeSlot[] = visibleSlots;
   const [isSticky, setIsSticky] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const naturalTopRef = useRef<number | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // 최초 렌더링 시 자연스러운 원래 offsetTop 기록
-    const updateNaturalTop = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const scrollTop = window.scrollY || document.documentElement.scrollTop;
-        if (!isSticky) {
-          naturalTopRef.current = rect.top + scrollTop;
-        }
-      }
-    };
-
-    updateNaturalTop();
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
 
     const handleScroll = () => {
-      const scrollTop = window.scrollY || document.documentElement.scrollTop;
-      const naturalTop = naturalTopRef.current ?? (containerRef.current ? containerRef.current.offsetTop : 0);
-      
-      // 스크롤이 요소의 원래 위치 이상으로 내려왔을 때 sticky 상태로 전환
-      if (scrollTop >= naturalTop - 2) {
-        setIsSticky(true);
-      } else {
-        setIsSticky(false);
+      if (sentinel) {
+        const rect = sentinel.getBoundingClientRect();
+        setIsSticky(rect.top <= 2);
       }
     };
 
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsSticky(!entry.isIntersecting && entry.boundingClientRect.top <= 2);
+      },
+      {
+        threshold: [0, 1],
+        rootMargin: '0px 0px 0px 0px',
+      }
+    );
+
+    observer.observe(sentinel);
     window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', updateNaturalTop);
     handleScroll();
 
     return () => {
+      observer.disconnect();
       window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', updateNaturalTop);
     };
-  }, [isSticky]);
+  }, []);
 
   return (
-    <div
-      ref={containerRef}
-      className={`sticky top-0 z-40 w-full transition-all duration-200 select-none ${
-        isSticky
-          ? 'bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/90 dark:border-slate-800 shadow-sm py-1.5 px-2.5 rounded-2xl'
-          : 'relative'
-      }`}
-    >
+    <>
+      {/* 스티키 전환 감지용 센티널 (크기 변형 없는 고정 위치 기준점) */}
+      <div ref={sentinelRef} className="h-0 w-full pointer-events-none" />
+      <div
+        ref={containerRef}
+        className={`sticky top-0 z-40 w-full transition-all duration-200 select-none ${
+          isSticky
+            ? 'bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/90 dark:border-slate-800 shadow-sm py-1.5 px-2.5 rounded-2xl'
+            : 'relative'
+        }`}
+      >
       {/* 기본 뷰(스크롤 전) 상단 타이틀 바: 스티키 시 숨김 */}
       {!isSticky && (
         <div className="flex items-center justify-between mb-2.5 flex-wrap gap-2">
@@ -218,5 +216,6 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
         </div>
       )}
     </div>
+    </>
   );
 };
