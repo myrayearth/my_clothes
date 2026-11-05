@@ -90,7 +90,6 @@ function EvaluationsDashboardContent() {
 
   // 검색 및 필터 상태
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [filterSlot, setFilterSlot] = useState<string>('all');
   const [filterScore, setFilterScore] = useState<string>('all');
   const [filterCondition, setFilterCondition] = useState<string>('all');
   const [filterTempTier, setFilterTempTier] = useState<string>('all');
@@ -149,22 +148,17 @@ function EvaluationsDashboardContent() {
         }
       }
 
-      // 2. 시간대 필터
-      if (filterSlot !== 'all' && item.time_slot !== filterSlot) {
-        return false;
-      }
-
-      // 3. 점수 필터
+      // 2. 점수 필터
       if (filterScore === 'cold' && item.score >= 0) return false;
       if (filterScore === 'perfect' && item.score !== 0) return false;
       if (filterScore === 'warm' && item.score <= 0) return false;
 
-      // 4. 컨디션 필터
+      // 3. 컨디션 필터
       if (filterCondition !== 'all' && item.condition !== filterCondition) {
         return false;
       }
 
-      // 5. 기온 구간 필터 (outfitRules.json 직접 연동 11단계 룰셋)
+      // 4. 기온 구간 필터 (outfitRules.json 직접 연동 11단계 룰셋)
       if (filterTempTier !== 'all') {
         const tier = TEMP_TIERS.find((t) => t.label === filterTempTier);
         if (tier) {
@@ -180,7 +174,7 @@ function EvaluationsDashboardContent() {
 
       return true;
     });
-  }, [evaluations, searchQuery, filterSlot, filterScore, filterCondition, filterTempTier]);
+  }, [evaluations, searchQuery, filterScore, filterCondition, filterTempTier]);
 
   // KPI 통계 계산
   const stats = useMemo(() => {
@@ -529,7 +523,7 @@ function EvaluationsDashboardContent() {
 
         {/* 4. 검색 & 다중 필터 컨트롤 바 */}
         <section className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
             {/* 검색창 */}
             <div className="relative lg:col-span-2">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -549,19 +543,6 @@ function EvaluationsDashboardContent() {
                 </button>
               )}
             </div>
-
-            {/* 시간대 필터 */}
-            <select
-              value={filterSlot}
-              onChange={(e) => setFilterSlot(e.target.value)}
-              className="py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-slate-700"
-            >
-              <option value="all">시간대: 전체</option>
-              <option value="current">현재 (실시간)</option>
-              <option value="08:00">08:00 (아침)</option>
-              <option value="13:00">13:00 (낮)</option>
-              <option value="19:00">19:00 (저녁)</option>
-            </select>
 
             {/* 11단계 기온 구간 필터 */}
             <select
@@ -607,11 +588,10 @@ function EvaluationsDashboardContent() {
             <span>
               필터 결과: <strong>{filteredEvaluations.length}</strong>건 (전체 {evaluations.length}건)
             </span>
-            {(searchQuery || filterSlot !== 'all' || filterScore !== 'all' || filterCondition !== 'all' || filterTempTier !== 'all') && (
+            {(searchQuery || filterScore !== 'all' || filterCondition !== 'all' || filterTempTier !== 'all') && (
               <button
                 onClick={() => {
                   setSearchQuery('');
-                  setFilterSlot('all');
                   setFilterScore('all');
                   setFilterCondition('all');
                   setFilterTempTier('all');
@@ -636,39 +616,40 @@ function EvaluationsDashboardContent() {
             </span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="overflow-x-auto scrollbar-thin">
+            <table className="w-full min-w-[860px] text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-slate-50/80 text-slate-600 font-bold border-b border-slate-200/80">
-                  <th className="py-3 px-4">작성일시</th>
-                  <th className="py-3 px-4">사용자</th>
-                  <th className="py-3 px-4">위치</th>
-                  <th className="py-3 px-4">기온 / 체감</th>
-                  <th className="py-3 px-4">시간대</th>
-                  <th className="py-3 px-4">선택 복장</th>
-                  <th className="py-3 px-4">체감 평가</th>
-                  <th className="py-3 px-4">컨디션</th>
-                  <th className="py-3 px-4">메모</th>
-                  <th className="py-3 px-4 text-center">관리</th>
+                  <th className="py-3 px-4 whitespace-nowrap">작성일시</th>
+                  <th className="py-3 px-4 whitespace-nowrap">사용자</th>
+                  <th className="py-3 px-4 whitespace-nowrap">위치</th>
+                  <th className="py-3 px-4 whitespace-nowrap">기온 / 체감</th>
+                  <th className="py-3 px-4 min-w-[180px]">선택 복장</th>
+                  <th className="py-3 px-4 whitespace-nowrap">체감 평가</th>
+                  <th className="py-3 px-4 whitespace-nowrap">컨디션</th>
+                  <th className="py-3 px-4 min-w-[140px] max-w-[200px]">메모</th>
+                  <th className="py-3 px-4 text-center sticky right-0 bg-slate-50/95 backdrop-blur-xs shadow-[-6px_0_12px_rgba(0,0,0,0.06)] min-w-[105px] w-[105px] z-10">
+                    관리
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={10} className="py-12 text-center text-slate-400">
+                    <td colSpan={9} className="py-12 text-center text-slate-400">
                       <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600 mb-2" />
                       <span>평가 데이터를 불러오는 중...</span>
                     </td>
                   </tr>
                 ) : filteredEvaluations.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="py-12 text-center text-slate-400">
+                    <td colSpan={9} className="py-12 text-center text-slate-400">
                       조회된 평가 데이터가 없습니다.
                     </td>
                   </tr>
                 ) : (
                   filteredEvaluations.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
+                    <tr key={item.id} className="hover:bg-slate-50/70 transition-colors group">
                       {/* 작성일시 */}
                       <td className="py-3 px-4 whitespace-nowrap text-slate-500 font-mono text-[11px]">
                         {new Date(item.created_at).toLocaleString('ko-KR', {
@@ -705,13 +686,6 @@ function EvaluationsDashboardContent() {
                         </span>
                       </td>
 
-                      {/* 시간대 */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <span className="px-2 py-0.5 bg-slate-100 rounded text-slate-700 font-semibold text-[11px]">
-                          {item.time_slot}
-                        </span>
-                      </td>
-
                       {/* 선택 복장 */}
                       <td className="py-3 px-4 min-w-[180px]">
                         <div className="space-y-0.5 text-[11px]">
@@ -721,7 +695,7 @@ function EvaluationsDashboardContent() {
                               <span className="font-medium text-slate-800">
                                 {item.selected_outer}
                                 {isDiscontinuedItem(item.selected_outer) && (
-                                  <span className="ml-1 text-[9px] text-slate-500 bg-slate-200 px-1 py-0.2 rounded">
+                                   <span className="ml-1 text-[9px] text-slate-500 bg-slate-200 px-1 py-0.2 rounded">
                                     [단종/구버전]
                                   </span>
                                 )}
@@ -799,20 +773,22 @@ function EvaluationsDashboardContent() {
                         {item.memo || '-'}
                       </td>
 
-                      {/* 관리 동작 */}
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-1">
+                      {/* 관리 동작 (수정 및 삭제 - sticky right-0 고정으로 가로 스크롤 시에도 절대 잘리지 않음) */}
+                      <td className="py-3 px-4 text-center whitespace-nowrap sticky right-0 bg-white/95 group-hover:bg-slate-50/95 backdrop-blur-xs shadow-[-6px_0_12px_rgba(0,0,0,0.06)] z-10 transition-colors">
+                        <div className="flex items-center justify-center gap-1.5">
                           <button
+                            type="button"
                             onClick={() => setEditingItem({ ...item })}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                            title="수정"
+                            className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 border border-blue-200/80 rounded-lg transition-all shadow-2xs active:scale-95 cursor-pointer"
+                            title="데이터 수정"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
+                            type="button"
                             onClick={() => setDeletingItem(item)}
-                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                            title="삭제"
+                            className="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 border border-rose-200/80 rounded-lg transition-all shadow-2xs active:scale-95 cursor-pointer"
+                            title="데이터 삭제"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -855,7 +831,7 @@ function EvaluationsDashboardContent() {
               </p>
               <div className="mt-2.5 p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-left text-[11px] text-slate-600 space-y-0.5">
                 <div><strong>사용자:</strong> {deletingItem.user_name}</div>
-                <div><strong>기온:</strong> {deletingItem.target_temp}°C ({deletingItem.time_slot})</div>
+                <div><strong>기온:</strong> {deletingItem.target_temp}°C</div>
                 <div><strong>체감 점수:</strong> {formatScoreTemp(deletingItem.score)}</div>
               </div>
             </div>
