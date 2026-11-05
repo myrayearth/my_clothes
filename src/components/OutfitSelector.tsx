@@ -66,22 +66,31 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
   // 스크롤 시 상단 초슬림 2줄 미니 가로 게이지 바 전환 및 원 카드(One Card) 도킹 감지
   const [isGaugeSticky, setIsGaugeSticky] = useState(false);
-  const gaugeWrapperRef = useRef<HTMLDivElement>(null);
   const gaugeContainerRef = useRef<HTMLDivElement>(null);
-  const [gaugeNaturalHeight, setGaugeNaturalHeight] = useState<number | null>(null);
+  const gaugeDocTopRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (gaugeContainerRef.current && !gaugeNaturalHeight && !isGaugeSticky) {
-      setGaugeNaturalHeight(gaugeContainerRef.current.offsetHeight);
-    }
-  }, [isGaugeSticky, gaugeNaturalHeight]);
+    const updateDocTop = () => {
+      if (gaugeContainerRef.current) {
+        const rect = gaugeContainerRef.current.getBoundingClientRect();
+        const scrollY = window.scrollY || document.documentElement.scrollTop;
+        if (gaugeDocTopRef.current === null || scrollY < gaugeDocTopRef.current - 50) {
+          gaugeDocTopRef.current = rect.top + scrollY;
+        }
+      }
+    };
 
-  useEffect(() => {
+    updateDocTop();
+
     const handleScroll = () => {
-      if (!gaugeWrapperRef.current) return;
-      const rect = gaugeWrapperRef.current.getBoundingClientRect();
-      // TimeSlotTabs 고정 높이 44px 바로 밑에 도킹
-      const docked = rect.top <= 44;
+      const scrollY = window.scrollY || document.documentElement.scrollTop;
+      if (gaugeDocTopRef.current === null) {
+        updateDocTop();
+      }
+      const gaugeDocTop = gaugeDocTopRef.current ?? 0;
+      // TimeSlotTabs(44px) 바로 아래 도킹: 스크롤이 (gaugeDocTop - 44px)에 도달했을 때
+      const dockPoint = Math.max(0, gaugeDocTop - 44);
+      const docked = scrollY >= dockPoint - 5;
       setIsGaugeSticky(docked);
       if (onGaugeDockedChange) {
         onGaugeDockedChange(docked);
@@ -89,12 +98,15 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', handleScroll);
+    window.addEventListener('resize', () => {
+      gaugeDocTopRef.current = null;
+      updateDocTop();
+      handleScroll();
+    });
     handleScroll();
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleScroll);
     };
   }, [onGaugeDockedChange]);
 
@@ -567,18 +579,13 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
       {/* [개편] 복장 적정 기온 (°C) 환산 및 ±5°C 상대 동적 게이지 그래프
           (시간대 예보 탭 바로 아래 sticky top-[44px] z-30 초슬림 2줄 미니 게이지 바 고정, 원 카드 도킹) */}
       <div
-        ref={gaugeWrapperRef}
-        className="relative w-full"
-        style={{ minHeight: isGaugeSticky && gaugeNaturalHeight ? `${gaugeNaturalHeight}px` : undefined }}
+        ref={gaugeContainerRef}
+        className={`sticky top-[44px] z-30 w-full transition-all duration-150 select-none bg-white/98 dark:bg-slate-900/98 backdrop-blur-md ${
+          isGaugeSticky
+            ? 'px-3 py-2 space-y-1.5 rounded-b-2xl rounded-t-none border-x border-b border-t-0 border-slate-200/90 dark:border-slate-800 shadow-md'
+            : 'p-4 space-y-3 rounded-2xl border border-slate-200/90 dark:border-slate-700/80 shadow-md'
+        }`}
       >
-        <div
-          ref={gaugeContainerRef}
-          className={`sticky top-[44px] z-30 w-full transition-all duration-150 select-none bg-white/98 dark:bg-slate-900/98 backdrop-blur-md ${
-            isGaugeSticky
-              ? 'px-3 py-2 space-y-1.5 rounded-b-2xl rounded-t-none border-x border-b border-t-0 border-slate-200/90 dark:border-slate-800 shadow-md'
-              : 'p-4 space-y-3 rounded-2xl border border-slate-200/90 dark:border-slate-700/80 shadow-md'
-          }`}
-        >
         {isGaugeSticky ? (
           /* ================= [스티키 뷰: 극도로 슬림한 2줄 미니 가로 게이지 바] ================= */
           <>
@@ -800,7 +807,6 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             </div>
           </>
         )}
-        </div>
       </div>
 
       {/* 복장 선택 섹션 목록 */}
