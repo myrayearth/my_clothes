@@ -91,7 +91,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     onChangeSelection(synced);
   };
 
-  // 상의 원피스 설정 시 하의 무조건 동일 원피스 강제 동기화 (마운트 및 변경 시 보장)
+  // 성별 변경 시 남성/여성 복장 안전 필터링 및 동기화
   useEffect(() => {
     const synced = syncOnePieceSelection(selection, undefined, temperature, gender);
     const isTopDiff = JSON.stringify(synced.top) !== JSON.stringify(selection.top);
@@ -99,7 +99,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     if (isTopDiff || isBottomDiff) {
       onChangeSelection(synced);
     }
-  }, [gender, selection.top, selection.bottom, temperature]);
+  }, [gender]);
 
   // 1. 기본 추천순 100% 반영 리셋: 룰셋의 순수 기본 추천값으로 복원 (5°C 미만은 이너 포함, 5°C 이상은 이너 제외)
   const handleResetToRuleDefault = () => {
@@ -244,6 +244,26 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
       return;
     }
 
+    // [원피스 특별 규칙 1]: 원피스를 클릭한 경우, 기존의 다른 원피스나 본의류는 새 원피스로 즉시 교체 (이너 레이어드 보존)
+    if (isOnePieceItem(item)) {
+      const inners = currentList.filter((x) => isInnerClothingItem(x) && !isOnePieceItem(x));
+      updateSelection({
+        ...selection,
+        [category]: [...inners, item],
+      });
+      return;
+    }
+
+    // [원피스 특별 규칙 2]: 원피스가 선택된 상태에서 일반 본의류(스커트/바지/블라우스 등)를 클릭한 경우, 원피스를 새 본의류로 즉시 교체
+    if (!isTargetInner && currentList.some(isOnePieceItem)) {
+      const inners = currentList.filter((x) => isInnerClothingItem(x) && !isOnePieceItem(x));
+      updateSelection({
+        ...selection,
+        [category]: [...inners, item],
+      });
+      return;
+    }
+
     // 현재 1개만 선택되어 있는 상태
     if (currentList.length === 1) {
       const currentSingle = currentList[0];
@@ -367,6 +387,26 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
         [category]: currentList.filter((x) => x !== item),
       });
     } else {
+      // [원피스 특별 규칙]: 원피스 선택 시 다른 원피스나 본의류를 새 원피스로 즉시 교체
+      if (isOnePieceItem(item)) {
+        const inners = currentList.filter((x) => isInnerClothingItem(x) && !isOnePieceItem(x));
+        updateSelection({
+          ...selection,
+          [category]: [...inners, item],
+        });
+        return;
+      }
+
+      // [원피스 특별 규칙 2]: 원피스가 선택된 상태에서 일반 본의류를 선택한 경우 새 본의류로 즉시 교체
+      if (!isInnerClothingItem(item) && currentList.some(isOnePieceItem)) {
+        const inners = currentList.filter((x) => isInnerClothingItem(x) && !isOnePieceItem(x));
+        updateSelection({
+          ...selection,
+          [category]: [...inners, item],
+        });
+        return;
+      }
+
       updateSelection({
         ...selection,
         [category]: [...currentList, item],

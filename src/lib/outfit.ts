@@ -16,11 +16,12 @@ export function isOnePieceItem(item: string): boolean {
 }
 
 /**
- * 상의가 원피스일 때 하의도 동일한 원피스로 강제 동기화하는 함수
- * - 상의에 원피스 선택 시: 하의 본의류도 동일한 원피스로 자동 변경 (스타킹/하의 이너는 레이어드 유지)
- * - 상의에서 원피스 해제 시: 하의의 원피스도 기온에 맞는 기본 하의(스커트/바지)로 자동 복원
- * - 하의에서 원피스 선택 시: 상의도 동일한 원피스로 자동 동기화
- * - 남성인 경우: 원피스 및 여성 전용 아이템 완전 필터링
+ * 상의-하의 원피스 일체형 동기화 엔진
+ * - 상의/하의 모달 및 메인 칩에서 원피스 간 전환(반팔 ↔ 긴팔) 시 양쪽 모두 즉시 교체
+ * - 상의에서 원피스 선택 시 하의도 동일한 원피스로 동기화 (스타킹/이너 레이어드 보존)
+ * - 하의에서 원피스가 선택되어 있는 상태에서 다른 일반 하의(스커트/바지) 선택 시 상의 원피스도 함께 해제
+ * - 상의에서 원피스를 해제하고 일반 상의 선택 시 하의 원피스도 함께 해제
+ * - 남성인 경우: 여성 전용 아이템 완전 필터링
  */
 export function syncOnePieceSelection(
   nextSelection: OutfitSelection,
@@ -39,39 +40,93 @@ export function syncOnePieceSelection(
     };
   }
 
-  const prevTopOnePiece = prevSelection?.top.find(isOnePieceItem);
-  const nextTopOnePiece = nextSelection.top.find(isOnePieceItem);
-  const prevBottomOnePiece = prevSelection?.bottom.find(isOnePieceItem);
-  const nextBottomOnePiece = nextSelection.bottom.find(isOnePieceItem);
-
+  const defaultTop = targetTemp >= 25 ? '반팔 블라우스' : targetTemp >= 15 ? '긴팔 블라우스' : '기본 긴팔';
   const defaultBottom = targetTemp >= 25 ? '숏 스커트' : targetTemp >= 15 ? '롱스커트' : '기본 긴바지';
 
-  // 1. 상의에서 원피스가 새로 선택되었거나 변경된 경우
-  if (nextTopOnePiece && nextTopOnePiece !== prevTopOnePiece) {
-    const bottomInners = nextSelection.bottom.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
-    const topInners = nextSelection.top.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
-    return {
-      ...nextSelection,
-      top: [...topInners, nextTopOnePiece],
-      bottom: [...bottomInners, nextTopOnePiece],
-    };
-  }
+  const prevTopOnePiece = prevSelection?.top.find(isOnePieceItem);
+  const prevBottomOnePiece = prevSelection?.bottom.find(isOnePieceItem);
 
-  // 2. 상의에 원피스가 유지되고 있는 경우 -> 무조건 하의도 동일한 원피스로 강제 보장
-  if (nextTopOnePiece) {
-    const bottomInners = nextSelection.bottom.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
-    const currentBottomMain = nextSelection.bottom.find((i) => !isInnerClothingItem(i) || isOnePieceItem(i));
-    if (currentBottomMain !== nextTopOnePiece) {
+  // 새로 추가/선택된 원피스 탐색 (이전 상태에 없던 원피스 우선)
+  const nextTopOnePieces = nextSelection.top.filter(isOnePieceItem);
+  const nextBottomOnePieces = nextSelection.bottom.filter(isOnePieceItem);
+
+  const newlyAddedTopOnePiece = nextTopOnePieces.find((i) => i !== prevTopOnePiece) || nextTopOnePieces[nextTopOnePieces.length - 1];
+  const newlyAddedBottomOnePiece = nextBottomOnePieces.find((i) => i !== prevBottomOnePiece) || nextBottomOnePieces[nextBottomOnePieces.length - 1];
+
+  const wasBottomChanged = Boolean(prevSelection && JSON.stringify(prevSelection.bottom) !== JSON.stringify(nextSelection.bottom));
+  const wasTopChanged = Boolean(prevSelection && JSON.stringify(prevSelection.top) !== JSON.stringify(nextSelection.top));
+
+  // =========================================================================
+  // 1. 하의가 명시적으로 변경된 경우 (사용자가 하의 칩이나 하의 모달을 조작함)
+  // =========================================================================
+  if (wasBottomChanged && !wasTopChanged) {
+    // 1-A. 하의에서 새로 원피스가 선택되었거나 다른 원피스로 교체된 경우 (예: 반팔 원피스 -> 긴팔 원피스)
+    if (newlyAddedBottomOnePiece) {
+      const topInners = nextSelection.top.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
+      const bottomInners = nextSelection.bottom.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
       return {
         ...nextSelection,
-        bottom: [...bottomInners, nextTopOnePiece],
+        top: [...topInners, newlyAddedBottomOnePiece],
+        bottom: [...bottomInners, newlyAddedBottomOnePiece],
       };
     }
-    return nextSelection;
+
+    // 1-B. 하의에 원피스가 있었는데, 사용자가 일반 하의(스커트/바지 등)를 선택하여 원피스가 사라진 경우
+    if (prevBottomOnePiece && nextBottomOnePieces.length === 0) {
+      // 상의의 원피스도 함께 해제하고 기본 상의(블라우스/긴팔)로 변경!
+      const topInners = nextSelection.top.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
+      return {
+        ...nextSelection,
+        top: topInners.length > 0 ? [...topInners, defaultTop] : [defaultTop],
+        bottom: nextSelection.bottom,
+      };
+    }
   }
 
-  // 3. 상의에 원피스가 있었는데 일반 상의로 변경되어 해제된 경우
-  if (prevTopOnePiece && !nextTopOnePiece) {
+  // =========================================================================
+  // 2. 상의가 명시적으로 변경된 경우 (사용자가 상의 칩이나 상의 모달을 조작함)
+  // =========================================================================
+  if (wasTopChanged && !wasBottomChanged) {
+    // 2-A. 상의에서 새로 원피스가 선택되었거나 다른 원피스로 교체된 경우 (예: 반팔 원피스 -> 긴팔 원피스)
+    if (newlyAddedTopOnePiece) {
+      const topInners = nextSelection.top.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
+      const bottomInners = nextSelection.bottom.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
+      return {
+        ...nextSelection,
+        top: [...topInners, newlyAddedTopOnePiece],
+        bottom: [...bottomInners, newlyAddedTopOnePiece],
+      };
+    }
+
+    // 2-B. 상의에 원피스가 있었는데, 사용자가 일반 상의를 선택하여 원피스가 사라진 경우
+    if (prevTopOnePiece && nextTopOnePieces.length === 0) {
+      // 하의의 원피스도 함께 해제하고 기본 하의(스커트/바지)로 변경!
+      const bottomInners = nextSelection.bottom.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
+      return {
+        ...nextSelection,
+        bottom: bottomInners.length > 0 ? [...bottomInners, defaultBottom] : [defaultBottom],
+      };
+    }
+  }
+
+  // =========================================================================
+  // 3. 상·하의가 동시에 전달되었거나 prevSelection이 없는 경우 (초기화 or 전역 동기화)
+  // =========================================================================
+  // 새로 선택된 원피스가 상의에 있으면 하의로 전파
+  const effectiveOnePiece = newlyAddedTopOnePiece || newlyAddedBottomOnePiece;
+
+  if (effectiveOnePiece) {
+    const topInners = nextSelection.top.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
+    const bottomInners = nextSelection.bottom.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
+    return {
+      ...nextSelection,
+      top: [...topInners, effectiveOnePiece],
+      bottom: [...bottomInners, effectiveOnePiece],
+    };
+  }
+
+  // 상의에는 원피스가 없는데 하의에만 원피스가 남아있는 경우 -> 하의 원피스 해제
+  if (nextTopOnePieces.length === 0 && nextBottomOnePieces.length > 0) {
     const bottomInners = nextSelection.bottom.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
     return {
       ...nextSelection,
@@ -79,22 +134,12 @@ export function syncOnePieceSelection(
     };
   }
 
-  // 4. 하의에서 새로 원피스가 선택된 경우 -> 상의도 동일한 원피스로 동기화
-  if (nextBottomOnePiece && nextBottomOnePiece !== prevBottomOnePiece) {
+  // 하의에는 원피스가 없는데 상의에만 원피스가 남아있는 경우 -> 상의 원피스 해제
+  if (nextBottomOnePieces.length === 0 && nextTopOnePieces.length > 0) {
     const topInners = nextSelection.top.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
     return {
       ...nextSelection,
-      top: [...topInners, nextBottomOnePiece],
-      bottom: nextSelection.bottom,
-    };
-  }
-
-  // 5. 상의에 원피스가 없는데 하의에만 남아있는 경우 (예외 정리)
-  if (!nextTopOnePiece && nextBottomOnePiece) {
-    const bottomInners = nextSelection.bottom.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
-    return {
-      ...nextSelection,
-      bottom: bottomInners.length > 0 ? [...bottomInners, defaultBottom] : [defaultBottom],
+      top: topInners.length > 0 ? [...topInners, defaultTop] : [defaultTop],
     };
   }
 
