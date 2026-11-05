@@ -569,7 +569,7 @@ export default function HomePage() {
                     Ondo Fit
                   </h1>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
-                    v0.37.3
+                    v0.37.4
                   </span>
                 </div>
                 {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
@@ -683,80 +683,80 @@ export default function HomePage() {
             onSelectDate={handleSelectForecastDate}
           />
         )}
-        {/* 4. 시간대별 탭 & 적정 체감 복장 분석 통합 상단 고정 유닛 (One Card) */}
+        {/* 4. 시간대별 탭 (기본 넉넉한 뷰 / 스크롤 시 초슬림 1줄 sticky top-0 z-40 고정) */}
         {weather && (
-          <div className="w-full flex flex-col">
-            {recommendationMode === 'MANUAL_MODE' ? null : recommendationMode === 'DAILY_FORECAST_MODE' && selectedForecastItem ? (
-              <TimeSlotTabs
-                timeSlots={{
-                  'current': {
-                    slot: 'current',
-                    timeString: '13:00',
-                    temperature: selectedForecastItem.tempMax,
-                    apparentTemperature: selectedForecastItem.apparentTempMax ?? selectedForecastItem.tempMax,
-                    weatherCode: selectedForecastItem.weatherCode,
-                    weatherLabel: selectedForecastItem.weatherLabel,
-                  },
-                  '08:00': {
-                    slot: '08:00',
-                    timeString: '08:00',
-                    temperature: selectedForecastItem.tempMin,
-                    apparentTemperature: selectedForecastItem.apparentTempMin ?? selectedForecastItem.tempMin,
-                    weatherCode: selectedForecastItem.weatherCode,
-                    weatherLabel: selectedForecastItem.weatherLabel,
-                  },
-                  '13:00': {
-                    slot: '13:00',
-                    timeString: '13:00',
-                    temperature: selectedForecastItem.tempMax,
-                    apparentTemperature: selectedForecastItem.apparentTempMax ?? selectedForecastItem.tempMax,
-                    weatherCode: selectedForecastItem.weatherCode,
-                    weatherLabel: selectedForecastItem.weatherLabel,
-                  },
-                  '19:00': {
-                    slot: '19:00',
-                    timeString: '19:00',
-                    temperature: Math.round((selectedForecastItem.tempMin + selectedForecastItem.tempMax) / 2),
-                    apparentTemperature: Math.round(
-                      ((selectedForecastItem.apparentTempMin ?? selectedForecastItem.tempMin) +
-                        (selectedForecastItem.apparentTempMax ?? selectedForecastItem.tempMax)) /
-                        2
-                    ),
-                    weatherCode: selectedForecastItem.weatherCode,
-                    weatherLabel: selectedForecastItem.weatherLabel,
-                  },
-                }}
-                selectedSlot={selectedSlot === 'current' ? '13:00' : selectedSlot}
-                onSelectSlot={(slot) => setSelectedSlot(slot)}
-                title={`${selectedForecastItem.dayName} 예보 시간대별 복장 기준`}
-                visibleSlots={['08:00', '13:00', '19:00']}
-              />
-            ) : (
-              <TimeSlotTabs
-                timeSlots={weather.timeSlots}
-                selectedSlot={selectedSlot}
-                onSelectSlot={(slot) => {
-                  setSelectedSlot(slot);
-                  setRecommendationMode('LIVE_MODE');
-                  setSelectedForecastItem(null);
-                }}
-                title="시간대별 예보 및 복장 기준"
-                visibleSlots={['current', '08:00', '13:00', '19:00']}
-              />
-            )}
-
-            {/* 적정 체감 복장 분석 게이지 카드 (탭 바로 아래 sticky top-[44px] z-30 도킹, 100% 동일 폭의 단일 일체형 카드 완성) */}
-            <OutfitGaugeCard
-              temperature={effectiveData.targetTemp}
-              actualTemperature={effectiveData.temperature}
-              apparentTemperature={effectiveData.apparentTemperature}
-              selection={effectiveData.selection}
-              allLogs={outfitLogs}
-              currentUser={activeUser}
-              isLoggedIn={isAuthenticated}
-              gender={selectedGender}
+          recommendationMode === 'MANUAL_MODE' ? null : recommendationMode === 'DAILY_FORECAST_MODE' && selectedForecastItem ? (
+            <TimeSlotTabs
+              timeSlots={{
+                'current': {
+                  slot: 'current',
+                  timeString: '13:00',
+                  temperature: selectedForecastItem.tempMax,
+                  apparentTemperature: selectedForecastItem.apparentTempMax ?? selectedForecastItem.tempMax,
+                  weatherCode: selectedForecastItem.weatherCode,
+                  weatherLabel: selectedForecastItem.weatherLabel,
+                },
+                '08:00': {
+                  slot: '08:00',
+                  timeString: '08:00',
+                  temperature: selectedForecastItem.tempMin,
+                  apparentTemperature: selectedForecastItem.apparentTempMin ?? selectedForecastItem.tempMin,
+                  weatherCode: selectedForecastItem.weatherCode,
+                  weatherLabel: selectedForecastItem.weatherLabel,
+                },
+                '13:00': {
+                  slot: '13:00',
+                  timeString: '13:00',
+                  temperature: selectedForecastItem.tempMax,
+                  apparentTemperature: selectedForecastItem.apparentTempMax ?? selectedForecastItem.tempMax,
+                  weatherCode: selectedForecastItem.weatherCode,
+                  weatherLabel: selectedForecastItem.weatherLabel,
+                },
+                '19:00': {
+                  slot: '19:00',
+                  timeString: '19:00',
+                  temperature: Math.round((selectedForecastItem.tempMin + selectedForecastItem.tempMax) / 2),
+                  apparentTemperature: Math.round(
+                    ((selectedForecastItem.apparentTempMin ?? selectedForecastItem.tempMin) +
+                      (selectedForecastItem.apparentTempMax ?? selectedForecastItem.tempMax)) /
+                      2
+                  ),
+                  weatherCode: selectedForecastItem.weatherCode,
+                  weatherLabel: selectedForecastItem.weatherLabel,
+                },
+              }}
+              selectedSlot={selectedSlot === 'current' ? '13:00' : selectedSlot}
+              onSelectSlot={(slot) => setSelectedSlot(slot)}
+              title={`${selectedForecastItem.dayName} 예보 시간대별 복장 기준`}
+              visibleSlots={['08:00', '13:00', '19:00']}
             />
-          </div>
+          ) : (
+            <TimeSlotTabs
+              timeSlots={weather.timeSlots}
+              selectedSlot={selectedSlot}
+              onSelectSlot={(slot) => {
+                setSelectedSlot(slot);
+                setRecommendationMode('LIVE_MODE');
+                setSelectedForecastItem(null);
+              }}
+              title="시간대별 예보 및 복장 기준"
+              visibleSlots={['current', '08:00', '13:00', '19:00']}
+            />
+          )
+        )}
+
+        {/* 5. 적정 체감 복장 분석 게이지 카드 (기본 넉넉한 상세 뷰 / 스크롤 시 컴팩트 sticky top-[44px] z-30 도킹) */}
+        {weather && (
+          <OutfitGaugeCard
+            temperature={effectiveData.targetTemp}
+            actualTemperature={effectiveData.temperature}
+            apparentTemperature={effectiveData.apparentTemperature}
+            selection={effectiveData.selection}
+            allLogs={outfitLogs}
+            currentUser={activeUser}
+            isLoggedIn={isAuthenticated}
+            gender={selectedGender}
+          />
         )}
 
         {/* 5. 지능형 리콜 카드 (현재 모드 기준 기온 기반) */}
@@ -814,7 +814,7 @@ export default function HomePage() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.37.3</strong></p>
+        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.37.4</strong></p>
       </footer>
     </div>
   );
