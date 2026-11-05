@@ -64,6 +64,9 @@ export default function HomePage() {
   // 과거 복장 로그 데이터베이스 목록
   const [outfitLogs, setOutfitLogs] = useState<OutfitLog[]>([]);
 
+  // 상단 스티키 원 카드(One Card) 도킹 상태: 게이지가 시간대별 탭 하단에 붙었는지 여부
+  const [isGaugeDocked, setIsGaugeDocked] = useState<boolean>(false);
+
   // 사용자 현재 컨디션 상태 ('정상', '피곤', '감기', '활동량많음')
   const [userCondition, setUserCondition] = useState<UserCondition>('정상');
 
@@ -568,7 +571,7 @@ export default function HomePage() {
                     Ondo Fit
                   </h1>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
-                    v0.35.1
+                    v0.36.0
                   </span>
                 </div>
                 {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
@@ -729,6 +732,7 @@ export default function HomePage() {
               onSelectSlot={(slot) => setSelectedSlot(slot)}
               title={`${selectedForecastItem.dayName} 예보 시간대별 복장 기준`}
               visibleSlots={['08:00', '13:00', '19:00']}
+              isGaugeDocked={isGaugeDocked}
             />
           ) : (
             <TimeSlotTabs
@@ -741,6 +745,7 @@ export default function HomePage() {
               }}
               title="시간대별 예보 및 복장 기준"
               visibleSlots={['current', '08:00', '13:00', '19:00']}
+              isGaugeDocked={isGaugeDocked}
             />
           )
         )}
@@ -770,6 +775,7 @@ export default function HomePage() {
           currentUser={activeUser}
           isLoggedIn={isAuthenticated}
           gender={selectedGender}
+          onGaugeDockedChange={setIsGaugeDocked}
         />
 
         {/* 7. 오늘의 복장 체감 평가 & 피드백 폼 (미래 날짜 D+1 ~ D+6 예보 조회 시 숨김) */}
@@ -800,7 +806,7 @@ export default function HomePage() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.35.1</strong></p>
+        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.36.0</strong></p>
       </footer>
     </div>
   );

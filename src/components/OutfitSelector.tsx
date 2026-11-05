@@ -34,6 +34,7 @@ interface OutfitSelectorProps {
   currentUser?: string;
   isLoggedIn?: boolean;
   gender?: UserGender;
+  onGaugeDockedChange?: (docked: boolean) => void;
 }
 
 export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
@@ -47,6 +48,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
   currentUser = '게스트',
   isLoggedIn = false,
   gender = 'male',
+  onGaugeDockedChange,
 }) => {
   const currentRule: OutfitRuleStep = getOutfitRuleByTemperature(temperature);
 
@@ -62,39 +64,39 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     return false;
   });
 
-  // 스크롤 시 상단 초슬림 2줄 미니 가로 게이지 바 전환 감지
+  // 스크롤 시 상단 초슬림 2줄 미니 가로 게이지 바 전환 및 원 카드(One Card) 도킹 감지
   const [isGaugeSticky, setIsGaugeSticky] = useState(false);
-  const gaugeSentinelRef = useRef<HTMLDivElement>(null);
+  const gaugeWrapperRef = useRef<HTMLDivElement>(null);
+  const gaugeContainerRef = useRef<HTMLDivElement>(null);
+  const [gaugeNaturalHeight, setGaugeNaturalHeight] = useState<number | null>(null);
 
   useEffect(() => {
-    const sentinel = gaugeSentinelRef.current;
-    if (!sentinel) return;
+    if (gaugeContainerRef.current && !gaugeNaturalHeight && !isGaugeSticky) {
+      setGaugeNaturalHeight(gaugeContainerRef.current.offsetHeight);
+    }
+  }, [isGaugeSticky, gaugeNaturalHeight]);
 
+  useEffect(() => {
     const handleScroll = () => {
-      if (sentinel) {
-        const rect = sentinel.getBoundingClientRect();
-        setIsGaugeSticky(rect.top <= 48);
+      if (!gaugeWrapperRef.current) return;
+      const rect = gaugeWrapperRef.current.getBoundingClientRect();
+      // TimeSlotTabs 고정 높이 44px 바로 밑에 도킹
+      const docked = rect.top <= 44;
+      setIsGaugeSticky(docked);
+      if (onGaugeDockedChange) {
+        onGaugeDockedChange(docked);
       }
     };
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsGaugeSticky(!entry.isIntersecting && entry.boundingClientRect.top <= 48);
-      },
-      {
-        threshold: [0, 1],
-        rootMargin: '-44px 0px 0px 0px',
-      }
-    );
-
-    observer.observe(sentinel);
     window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll);
+    handleScroll();
 
     return () => {
-      observer.disconnect();
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
     };
-  }, []);
+  }, [onGaugeDockedChange]);
 
   const handleToggleGuestData = () => {
     setIncludeGuestData((prev) => {
@@ -562,16 +564,21 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
         </div>
       </div>
 
-      {/* [스크롤 고정] 스티키 상태 감지용 0px Sentinel */}
-      <div ref={gaugeSentinelRef} className="h-0 pointer-events-none opacity-0" />
-
       {/* [개편] 복장 적정 기온 (°C) 환산 및 ±5°C 상대 동적 게이지 그래프
-          (스크롤 시 시간대 예보 탭 바로 아래 sticky top-[40px] sm:top-[44px] z-30 초슬림 2줄 미니 게이지 바 고정) */}
+          (시간대 예보 탭 바로 아래 sticky top-[44px] z-30 초슬림 2줄 미니 게이지 바 고정, 원 카드 도킹) */}
       <div
-        className={`sticky top-[40px] sm:top-[44px] z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-slate-700/80 shadow-md transition-all duration-200 select-none ${
-          isGaugeSticky ? 'p-2 sm:p-2.5 space-y-1.5' : 'p-4 space-y-3'
-        }`}
+        ref={gaugeWrapperRef}
+        className="relative w-full"
+        style={{ minHeight: isGaugeSticky && gaugeNaturalHeight ? `${gaugeNaturalHeight}px` : undefined }}
       >
+        <div
+          ref={gaugeContainerRef}
+          className={`sticky top-[44px] z-30 w-full transition-all duration-150 select-none bg-white/98 dark:bg-slate-900/98 backdrop-blur-md ${
+            isGaugeSticky
+              ? 'px-3 py-2 space-y-1.5 rounded-b-2xl rounded-t-none border-x border-b border-t-0 border-slate-200/90 dark:border-slate-800 shadow-md'
+              : 'p-4 space-y-3 rounded-2xl border border-slate-200/90 dark:border-slate-700/80 shadow-md'
+          }`}
+        >
         {isGaugeSticky ? (
           /* ================= [스티키 뷰: 극도로 슬림한 2줄 미니 가로 게이지 바] ================= */
           <>
@@ -793,6 +800,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             </div>
           </>
         )}
+        </div>
       </div>
 
       {/* 복장 선택 섹션 목록 */}
