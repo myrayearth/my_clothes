@@ -550,8 +550,8 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* 1. 상단 날씨 개요 섹션: 내 위치(도시 검색)은 이 영역(시간대별 예보 직전)까지만 상단 sticky 고정을 유지하고 스크롤되어 해제됨 */}
-      <header className="w-full">
+      {/* 1. 상단 날씨 개요 섹션: 내 위치(도시 검색)은 '주간 날씨(DailyForecast)'를 만날 때까지만 상단 sticky 고정을 유지하고 스크롤되어 해제됨 */}
+      <section className="w-full">
         <LocationBar
           currentLocation={location}
           onLocationChange={handleLocationChange}
@@ -571,7 +571,7 @@ export default function HomePage() {
                     Ondo Fit
                   </h1>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
-                    v0.36.1
+                    v0.37.0
                   </span>
                 </div>
                 {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
@@ -672,20 +672,19 @@ export default function HomePage() {
               }}
             />
           )}
-
-          {/* 3. 주간 예보 (내일부터 6일간 D+1 ~ D+6, 타이틀 없이 현재 날씨 바로 아래 일체화 가로 스크롤 카드) */}
-          {weather && (
-            <DailyForecast
-              forecasts={weather.dailyForecast}
-              selectedDate={recommendationMode === 'DAILY_FORECAST_MODE' ? selectedForecastItem?.date : null}
-              onSelectDate={handleSelectForecastDate}
-            />
-          )}
         </div>
-      </header>
+      </section>
 
-      {/* 2. 메인 플로우 컨테이너: '시간대별 예보 및 복장 기준'부터 상단 sticky 시작 (초슬림 1줄 바 고정 + 적정 체감 복장 분석 2차 스택 고정) */}
+      {/* 2. 메인 플로우 컨테이너: '주간 날씨(DailyForecast)'부터 시작 */}
       <main className="flex-1 max-w-2xl w-full mx-auto px-4 pt-5 pb-5 space-y-5">
+        {/* 3. 주간 예보 (내일부터 6일간 D+1 ~ D+6, 타이틀 없이 현재 날씨 바로 아래 일체화 가로 스크롤 카드) */}
+        {weather && (
+          <DailyForecast
+            forecasts={weather.dailyForecast}
+            selectedDate={recommendationMode === 'DAILY_FORECAST_MODE' ? selectedForecastItem?.date : null}
+            onSelectDate={handleSelectForecastDate}
+          />
+        )}
         {/* 4. 시간대별 탭 (스크롤 다운 시 최상단 sticky top-0 z-40으로 1줄 미니 탭 바 고정) */}
         {weather && (
           recommendationMode === 'MANUAL_MODE' ? null : recommendationMode === 'DAILY_FORECAST_MODE' && selectedForecastItem ? (
@@ -806,7 +805,7 @@ export default function HomePage() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.36.1</strong></p>
+        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.37.0</strong></p>
       </footer>
     </div>
   );

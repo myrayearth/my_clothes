@@ -90,7 +90,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
       const gaugeDocTop = gaugeDocTopRef.current ?? 0;
       // TimeSlotTabs(44px) 바로 아래 도킹: 스크롤이 (gaugeDocTop - 44px)에 도달했을 때
       const dockPoint = Math.max(0, gaugeDocTop - 44);
-      const docked = scrollY >= dockPoint - 5;
+      const docked = scrollY >= dockPoint - 2;
       setIsGaugeSticky(docked);
       if (onGaugeDockedChange) {
         onGaugeDockedChange(docked);
@@ -475,117 +475,119 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
   return (
     <div className="space-y-4">
       {/* 1. 복장 선택 및 게이지 플로우 래퍼: ITEM(소품)의 마지막 줄까지 게이지가 sticky로 유지됨 */}
-      <div className="relative outfit-flow-wrapper bg-white rounded-2xl shadow-xs border border-slate-200/90 p-4 sm:p-5 space-y-4">
-        {/* 컴포넌트 헤더 */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-sm font-bold text-slate-800">
-              {timeSlotLabel} 맞춤 복장 제안
-            </h3>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-900 text-white shrink-0 flex items-center gap-1">
-              <span>체감 {temperature}°C</span>
-            </span>
-            {actualTemperature !== undefined && actualTemperature !== temperature && (
-              <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 shrink-0">
-                실제 {actualTemperature}°C
-              </span>
-            )}
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
-              {currentRule.label}
-            </span>
-
-            {/* 가중치 추천 모드 뱃지 */}
-            {weights.mode === 'personal_weighted' ? (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-brand-600" />
-                <span>
-                  개인화 {Math.round(weights.w_personal * 100)}%
-                  {weights.w_guest > 0 ? ` + 게스트 ${Math.round(weights.w_guest * 100)}%` : ''}
-                  {` + 기본 ${Math.round(weights.w_rule * 100)}%`}
-                  {` (내 기록 ${weights.personalCount}건)`}
+      <div className="relative outfit-flow-wrapper space-y-4">
+        {/* 컴포넌트 헤더 카드 */}
+        <div className="bg-white rounded-2xl shadow-xs border border-slate-200/90 p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm font-bold text-slate-800">
+                  {timeSlotLabel} 맞춤 복장 제안
+                </h3>
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-900 text-white shrink-0 flex items-center gap-1">
+                  <span>체감 {temperature}°C</span>
                 </span>
-              </span>
-            ) : weights.mode === 'guest_weighted' ? (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                <Users className="w-3 h-3 text-emerald-600" />
-                <span>게스트 반영 (게스트 {weights.guestCount}건 / {Math.round(weights.w_guest * 100)}% + 기본 {Math.round(weights.w_rule * 100)}%)</span>
-              </span>
-            ) : (
-              <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200">
-                {weights.description}
-              </span>
-            )}
+                {actualTemperature !== undefined && actualTemperature !== temperature && (
+                  <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 shrink-0">
+                    실제 {actualTemperature}°C
+                  </span>
+                )}
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
+                  {currentRule.label}
+                </span>
+
+                {/* 가중치 추천 모드 뱃지 */}
+                {weights.mode === 'personal_weighted' ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-brand-600" />
+                    <span>
+                      개인화 {Math.round(weights.w_personal * 100)}%
+                      {weights.w_guest > 0 ? ` + 게스트 ${Math.round(weights.w_guest * 100)}%` : ''}
+                      {` + 기본 ${Math.round(weights.w_rule * 100)}%`}
+                      {` (내 기록 ${weights.personalCount}건)`}
+                    </span>
+                  </span>
+                ) : weights.mode === 'guest_weighted' ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                    <Users className="w-3 h-3 text-emerald-600" />
+                    <span>게스트 반영 (게스트 {weights.guestCount}건 / {Math.round(weights.w_guest * 100)}% + 기본 {Math.round(weights.w_rule * 100)}%)</span>
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200">
+                    {weights.description}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                <strong className="text-brand-600 font-semibold">{currentRule.label}</strong> : {weights.description}
+              </p>
+            </div>
+
+            {/* 복장 추천 리셋 제어 버튼 세트 */}
+            <div className="flex items-center gap-2 self-start sm:self-center flex-wrap">
+              {/* 0. 게스트 데이터 반영 체크 버튼 */}
+              <button
+                type="button"
+                onClick={handleToggleGuestData}
+                className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-semibold transition-all active:scale-95 touch-manipulation border shadow-2xs cursor-pointer select-none ${
+                  includeGuestData
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100/80'
+                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200/70 hover:text-slate-800'
+                }`}
+                title={
+                  includeGuestData
+                    ? '게스트 누적 평가 데이터가 알고리즘에 반영 중입니다. (클릭 시 반영 해제)'
+                    : '게스트 누적 평가 데이터를 알고리즘에 반영합니다. (개인화 기록에 따라 40% ~ 20% 순차 배분)'
+                }
+              >
+                <Users className={`w-3.5 h-3.5 ${includeGuestData ? 'text-emerald-600' : 'text-slate-400'}`} />
+                <span>게스트 데이터 반영</span>
+                <span
+                  className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] font-bold transition-colors ${
+                    includeGuestData
+                      ? 'bg-emerald-600 border-emerald-600 text-white'
+                      : 'bg-white border-slate-300 text-transparent'
+                  }`}
+                >
+                  ✓
+                </span>
+              </button>
+
+              {/* 1. 기본 추천 설정 */}
+              <button
+                type="button"
+                onClick={handleResetToRuleDefault}
+                className="flex items-center gap-1.5 text-xs text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-lg font-semibold transition-all active:scale-95 touch-manipulation border border-slate-200 shadow-2xs cursor-pointer"
+                title="사용자 평가가 반영되지 않은 기온별 표준 룰셋 기본 추천으로 설정 (10°C 미만은 이너 포함)"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                <span>기본 추천 설정</span>
+              </button>
+
+              {/* 2. 평가 반영 */}
+              <button
+                type="button"
+                onClick={handleApplyAggregatedRecommendations}
+                className="flex items-center gap-1.5 text-xs text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100/80 px-2.5 py-1.5 rounded-lg font-semibold transition-all active:scale-95 touch-manipulation border border-blue-200 shadow-2xs cursor-pointer"
+                title="개인 및 게스트 누적 평가 피드백이 가중 반영된 맞춤 복장 적용 (10°C 미만은 이너 포함)"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                <span>평가 반영</span>
+              </button>
+            </div>
           </div>
-          <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-            <strong className="text-brand-600 font-semibold">{currentRule.label}</strong> : {weights.description}
-          </p>
         </div>
 
-        {/* 복장 추천 리셋 제어 버튼 세트 */}
-        <div className="flex items-center gap-2 self-start sm:self-center flex-wrap">
-          {/* 0. 게스트 데이터 반영 체크 버튼 */}
-          <button
-            type="button"
-            onClick={handleToggleGuestData}
-            className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-semibold transition-all active:scale-95 touch-manipulation border shadow-2xs cursor-pointer select-none ${
-              includeGuestData
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100/80'
-                : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200/70 hover:text-slate-800'
-            }`}
-            title={
-              includeGuestData
-                ? '게스트 누적 평가 데이터가 알고리즘에 반영 중입니다. (클릭 시 반영 해제)'
-                : '게스트 누적 평가 데이터를 알고리즘에 반영합니다. (개인화 기록에 따라 40% ~ 20% 순차 배분)'
-            }
-          >
-            <Users className={`w-3.5 h-3.5 ${includeGuestData ? 'text-emerald-600' : 'text-slate-400'}`} />
-            <span>게스트 데이터 반영</span>
-            <span
-              className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] font-bold transition-colors ${
-                includeGuestData
-                  ? 'bg-emerald-600 border-emerald-600 text-white'
-                  : 'bg-white border-slate-300 text-transparent'
-              }`}
-            >
-              ✓
-            </span>
-          </button>
-
-          {/* 1. 기본 추천 설정 */}
-          <button
-            type="button"
-            onClick={handleResetToRuleDefault}
-            className="flex items-center gap-1.5 text-xs text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-lg font-semibold transition-all active:scale-95 touch-manipulation border border-slate-200 shadow-2xs cursor-pointer"
-            title="사용자 평가가 반영되지 않은 기온별 표준 룰셋 기본 추천으로 설정 (10°C 미만은 이너 포함)"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-            <span>기본 추천 설정</span>
-          </button>
-
-          {/* 2. 평가 반영 */}
-          <button
-            type="button"
-            onClick={handleApplyAggregatedRecommendations}
-            className="flex items-center gap-1.5 text-xs text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100/80 px-2.5 py-1.5 rounded-lg font-semibold transition-all active:scale-95 touch-manipulation border border-blue-200 shadow-2xs cursor-pointer"
-            title="개인 및 게스트 누적 평가 피드백이 가중 반영된 맞춤 복장 적용 (10°C 미만은 이너 포함)"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-            <span>평가 반영</span>
-          </button>
-        </div>
-      </div>
-
-      {/* [개편] 복장 적정 기온 (°C) 환산 및 ±5°C 상대 동적 게이지 그래프
-          (시간대 예보 탭 바로 아래 sticky top-[44px] z-30 초슬림 2줄 미니 게이지 바 고정, 원 카드 도킹) */}
-      <div
-        ref={gaugeContainerRef}
-        className={`sticky top-[44px] z-30 w-full transition-all duration-150 select-none bg-white/98 dark:bg-slate-900/98 backdrop-blur-md ${
-          isGaugeSticky
-            ? 'px-3 py-2 space-y-1.5 rounded-b-2xl rounded-t-none border-x border-b border-t-0 border-slate-200/90 dark:border-slate-800 shadow-md'
-            : 'p-4 space-y-3 rounded-2xl border border-slate-200/90 dark:border-slate-700/80 shadow-md'
-        }`}
-      >
+        {/* [개편] 복장 적정 기온 (°C) 환산 및 ±5°C 상대 동적 게이지 그래프
+            (시간대 예보 탭 바로 아래 sticky top-[44px] z-30 초슬림 2줄 미니 게이지 바 고정, 원 카드 도킹) */}
+        <div
+          ref={gaugeContainerRef}
+          className={`sticky top-[44px] z-30 w-full transition-all duration-150 select-none bg-white/98 dark:bg-slate-900/98 backdrop-blur-md ${
+            isGaugeSticky
+              ? 'px-3 py-2 space-y-1.5 rounded-b-2xl rounded-t-none border-x border-b border-t-0 border-slate-200/90 dark:border-slate-800 shadow-md'
+              : 'p-4 space-y-3 rounded-2xl border border-slate-200/90 dark:border-slate-700/80 shadow-xs'
+          }`}
+        >
         {isGaugeSticky ? (
           /* ================= [스티키 뷰: 극도로 슬림한 2줄 미니 가로 게이지 바] ================= */
           <>
@@ -809,8 +811,8 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
         )}
       </div>
 
-      {/* 복장 선택 섹션 목록 */}
-      <div className="space-y-4">
+      {/* 복장 선택 섹션 목록 카드 */}
+      <div className="bg-white rounded-2xl shadow-xs border border-slate-200/90 p-4 sm:p-5 space-y-4">
         {/* 1. OUTER (외투 - 다중 선택 및 레이어드 지원) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">

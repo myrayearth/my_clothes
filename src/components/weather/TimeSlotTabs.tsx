@@ -97,7 +97,7 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
     };
   }, []);
 
-  const isCompact = scrollProgress >= 0.75;
+  const isCompact = scrollProgress >= 0.95;
 
   return (
     <div
