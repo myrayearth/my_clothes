@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { OutfitRuleStep, OutfitSelection, OutfitCategory } from '@/types/outfit';
 import { OutfitLog, UserGender } from '@/types/database';
 import { getOutfitRuleByTemperature, getDefaultOutfitSelection } from '@/lib/outfit';
@@ -61,6 +61,40 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     }
     return false;
   });
+
+  // 스크롤 시 상단 초슬림 2줄 미니 가로 게이지 바 전환 감지
+  const [isGaugeSticky, setIsGaugeSticky] = useState(false);
+  const gaugeSentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const sentinel = gaugeSentinelRef.current;
+    if (!sentinel) return;
+
+    const handleScroll = () => {
+      if (sentinel) {
+        const rect = sentinel.getBoundingClientRect();
+        setIsGaugeSticky(rect.top <= 48);
+      }
+    };
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsGaugeSticky(!entry.isIntersecting && entry.boundingClientRect.top <= 48);
+      },
+      {
+        threshold: [0, 1],
+        rootMargin: '-44px 0px 0px 0px',
+      }
+    );
+
+    observer.observe(sentinel);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   const handleToggleGuestData = () => {
     setIncludeGuestData((prev) => {
@@ -528,145 +562,237 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
         </div>
       </div>
 
-      {/* [개편] 복장 적정 기온 (°C) 환산 및 ±5°C 상대 동적 게이지 그래프 (스티키 상단 고정: 의류 선택 중 지속 확인) */}
-      <div className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-4 border border-slate-200/90 dark:border-slate-700/80 shadow-md space-y-3 transition-all">
-        {/* 상단 정보 텍스트 & 상태 뱃지 (2줄 구조) */}
-        <div className="space-y-1.5 border-b border-slate-200/60 dark:border-slate-700/60 pb-2.5">
-          {/* 첫 번째 줄: 헤더 타이틀 */}
-          <div className="flex items-center gap-1.5">
-            <div className="p-1 bg-brand-100/80 dark:bg-brand-900/40 text-brand-800 dark:text-brand-300 rounded-lg shrink-0">
-              <Thermometer className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
-            </div>
-            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-              적정 체감 복장 분석
-            </h4>
-          </div>
+      {/* [스크롤 고정] 스티키 상태 감지용 0px Sentinel */}
+      <div ref={gaugeSentinelRef} className="h-0 pointer-events-none opacity-0" />
 
-          {/* 두 번째 줄: 현재 복장 커버 기온 & 우측 상태 뱃지 및 기준 기온 표시 */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-            <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">
-              현재 복장 커버 기온: <strong className="text-slate-900 dark:text-white font-bold text-sm">약 {coverTemp}°C</strong>
-            </span>
-
-            <div className="flex items-center gap-2 self-start sm:self-center flex-wrap">
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                (기준 체감: <strong className="text-brand-700 dark:text-brand-400 font-bold">{temperature}°C</strong>
-                {actualTemperature !== undefined && actualTemperature !== temperature && (
-                  <span className="ml-1 text-[11px] text-slate-400 dark:text-slate-500 font-normal">
-                    / 실제 {actualTemperature}°C
-                  </span>
-                )}
-                )
+      {/* [개편] 복장 적정 기온 (°C) 환산 및 ±5°C 상대 동적 게이지 그래프
+          (스크롤 시 시간대 예보 탭 바로 아래 sticky top-[40px] sm:top-[44px] z-30 초슬림 2줄 미니 게이지 바 고정) */}
+      <div
+        className={`sticky top-[40px] sm:top-[44px] z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-slate-700/80 shadow-md transition-all duration-200 select-none ${
+          isGaugeSticky ? 'p-2 sm:p-2.5 space-y-1.5' : 'p-4 space-y-3'
+        }`}
+      >
+        {isGaugeSticky ? (
+          /* ================= [스티키 뷰: 극도로 슬림한 2줄 미니 가로 게이지 바] ================= */
+          <>
+            {/* 1번째 줄: 현재 커버 기온 및 상태 뱃지 / 기준 체감 기온 인라인 배치 */}
+            <div className="flex items-center justify-between gap-1.5 flex-wrap">
+              <span className="text-xs text-slate-700 dark:text-slate-300 font-semibold truncate">
+                커버 기온: <strong className="text-slate-900 dark:text-white font-extrabold text-sm">약 {coverTemp}°C</strong>
               </span>
 
-              {/* 3색 상태 뱃지: [적정] 초록 / [과보온] 빨강 / [보온 필요] 파랑 */}
-              <span
-                className={`transition-all duration-300 flex items-center gap-1 shrink-0 ${relativeStatus.badgeStyle}`}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  (기준 <strong className="text-brand-700 dark:text-brand-400 font-bold">{temperature}°C</strong>)
+                </span>
+                <span className={`text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${relativeStatus.badgeStyle}`}>
+                  <span>{relativeStatus.badgeText}</span>
+                  {relativeStatus.diff !== 0 && (
+                    <span className="font-semibold opacity-90">
+                      ({relativeStatus.diff > 0 ? `+${relativeStatus.diff}` : relativeStatus.diff}°C)
+                    </span>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {/* 2번째 줄: 컴팩트 가로 게이지 바 (높이 h-4 sm:h-5 슬림화) */}
+            <div className="relative h-4 sm:h-5 w-full select-none">
+              {/* 1. 과보온 구간 */}
+              <div
+                className="absolute top-0 bottom-0 left-0 w-1/4 h-full flex items-center justify-center font-bold text-[9px] sm:text-[10px] tracking-tight bg-rose-100/90 border-y border-l border-rose-500/80 rounded-l-full dark:bg-rose-500/25 dark:border-rose-400/80"
+                title={`과보온 (${gaugeMinTemp}°C ~ ${temperature - 2.5}°C)`}
               >
-                <span>{relativeStatus.badgeText}</span>
-                {relativeStatus.diff !== 0 && (
-                  <span className="text-[11px] font-semibold opacity-90">
-                    ({relativeStatus.diff > 0 ? `+${relativeStatus.diff}` : relativeStatus.diff}°C)
+                <span className="text-rose-950 font-bold dark:text-rose-200 truncate px-0.5">과보온</span>
+              </div>
+
+              {/* 2. 적정 구간 */}
+              <div
+                className="absolute top-0 bottom-0 left-1/4 w-1/2 h-full flex items-center justify-center font-bold text-[9px] sm:text-[10px] tracking-tight bg-emerald-100/90 border border-emerald-500/80 dark:bg-emerald-500/25 dark:border-emerald-400/80"
+                title={`적정 (${temperature - 2.5}°C ~ ${temperature + 2.5}°C)`}
+              >
+                <span className="text-emerald-950 font-bold dark:text-emerald-200 truncate px-0.5">적정 (±2.5°C)</span>
+              </div>
+
+              {/* 3. 보온 필요 구간 */}
+              <div
+                className="absolute top-0 bottom-0 right-0 w-1/4 h-full flex items-center justify-center font-bold text-[9px] sm:text-[10px] tracking-tight bg-sky-100/90 border-y border-r border-sky-500/80 rounded-r-full dark:bg-sky-500/25 dark:border-sky-400/80"
+                title={`보온 필요 (${temperature + 2.5}°C ~ ${gaugeMaxTemp}°C)`}
+              >
+                <span className="text-sky-950 font-bold dark:text-sky-200 truncate px-0.5">보온 필요</span>
+              </div>
+
+              {/* 중앙 50% 기준 세로선 */}
+              <div className="absolute left-1/2 -translate-x-1/2 w-0.5 h-full bg-slate-900/70 dark:bg-white/80 z-10 pointer-events-none" />
+
+              {/* 현재 마커 핀 */}
+              <div
+                className="absolute top-0 bottom-0 transition-all duration-300 ease-out z-20 pointer-events-none"
+                style={{ left: `${markerPct}%` }}
+              >
+                <div
+                  className={`w-1 h-full -translate-x-1/2 shadow-xs ${
+                    relativeStatus.status === 'OVERHEATED'
+                      ? 'bg-rose-500'
+                      : relativeStatus.status === 'OPTIMAL'
+                      ? 'bg-emerald-600 dark:bg-emerald-500'
+                      : 'bg-sky-600 dark:bg-sky-500'
+                  }`}
+                />
+                <div
+                  className={`absolute -top-1 left-0 -translate-x-1/2 w-3.5 h-3.5 rounded-full ring-2 ring-white dark:ring-slate-900 shadow-xs ${
+                    relativeStatus.status === 'OVERHEATED'
+                      ? 'bg-rose-500'
+                      : relativeStatus.status === 'OPTIMAL'
+                      ? 'bg-emerald-600 dark:bg-emerald-500'
+                      : 'bg-sky-600 dark:bg-sky-500'
+                  } ${isLeftOverflow || isRightOverflow ? 'animate-bounce' : ''}`}
+                />
+              </div>
+            </div>
+          </>
+        ) : (
+          /* ================= [기본 뷰: 상세 정보 및 넉넉한 높이의 분석 카드] ================= */
+          <>
+            {/* 상단 정보 텍스트 & 상태 뱃지 (2줄 구조) */}
+            <div className="space-y-1.5 border-b border-slate-200/60 dark:border-slate-700/60 pb-2.5">
+              {/* 첫 번째 줄: 헤더 타이틀 */}
+              <div className="flex items-center gap-1.5">
+                <div className="p-1 bg-brand-100/80 dark:bg-brand-900/40 text-brand-800 dark:text-brand-300 rounded-lg shrink-0">
+                  <Thermometer className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                  적정 체감 복장 분석
+                </h4>
+              </div>
+
+              {/* 두 번째 줄: 현재 복장 커버 기온 & 우측 상태 뱃지 및 기준 기온 표시 */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                  현재 복장 커버 기온: <strong className="text-slate-900 dark:text-white font-bold text-sm">약 {coverTemp}°C</strong>
+                </span>
+
+                <div className="flex items-center gap-2 self-start sm:self-center flex-wrap">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    (기준 체감: <strong className="text-brand-700 dark:text-brand-400 font-bold">{temperature}°C</strong>
+                    {actualTemperature !== undefined && actualTemperature !== temperature && (
+                      <span className="ml-1 text-[11px] text-slate-400 dark:text-slate-500 font-normal">
+                        / 실제 {actualTemperature}°C
+                      </span>
+                    )}
+                    )
                   </span>
-                )}
-              </span>
-            </div>
-          </div>
-        </div>
 
-        {/* 상태별 동적 안내 문구 (최소 높이 예약 및 정렬 고정으로 CLS 제거) */}
-        <div className="min-h-[44px] sm:min-h-[48px] flex items-center justify-center text-center px-3 py-1.5 rounded-xl border transition-all duration-300 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
-          <p className="text-xs sm:text-sm font-medium leading-snug tracking-tight text-slate-700 dark:text-slate-200">
-            {relativeStatus.description}
-          </p>
-        </div>
-
-        {/* 현재 기준 기온(T_target) 기준 ±5°C 상대 동적 게이지 그래프 */}
-        <div className="pt-2 pb-1">
-          <div className="relative h-8 sm:h-9 w-full select-none">
-            {/* 1. 과보온 구간 (좌측 / 두꺼움 측 트랙: 0% ~ 25%) */}
-            <div
-              className="absolute top-0 bottom-0 left-0 w-1/4 h-8 sm:h-9 flex items-center justify-center font-bold text-xs sm:text-sm tracking-tight transition-all duration-300 bg-rose-100/90 border-y-2 border-l-2 border-rose-500/80 rounded-l-full dark:bg-rose-500/25 dark:border-y-2 dark:border-l-2 dark:border-rose-400/80"
-              title={`과보온 구역 (${gaugeMinTemp}°C ~ ${temperature - 2.5}°C)`}
-            >
-              <span className="text-rose-950 font-bold drop-shadow-sm dark:text-rose-200 dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] select-none truncate px-1 text-[11px] sm:text-xs">
-                과보온
-              </span>
+                  {/* 3색 상태 뱃지: [적정] 초록 / [과보온] 빨강 / [보온 필요] 파랑 */}
+                  <span
+                    className={`transition-all duration-300 flex items-center gap-1 shrink-0 ${relativeStatus.badgeStyle}`}
+                  >
+                    <span>{relativeStatus.badgeText}</span>
+                    {relativeStatus.diff !== 0 && (
+                      <span className="text-[11px] font-semibold opacity-90">
+                        ({relativeStatus.diff > 0 ? `+${relativeStatus.diff}` : relativeStatus.diff}°C)
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* 2. 적정 구간 (중앙 / ±2.5°C 적정 범위 트랙: 25% ~ 75%) */}
-            <div
-              className="absolute top-0 bottom-0 left-1/4 w-1/2 h-8 sm:h-9 flex items-center justify-center font-bold text-xs sm:text-sm tracking-tight transition-all duration-300 bg-emerald-100/90 border-2 border-emerald-500/80 dark:bg-emerald-500/25 dark:border-2 dark:border-emerald-400/80"
-              title={`적정 보온 권장 범위 (${temperature - 2.5}°C ~ ${temperature + 2.5}°C)`}
-            >
-              <span className="text-emerald-950 font-bold drop-shadow-sm dark:text-emerald-200 dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] select-none truncate px-1 text-[11px] sm:text-xs">
-                적정 범위 (±2.5°C)
-              </span>
+            {/* 상태별 동적 안내 문구 (최소 높이 예약 및 정렬 고정으로 CLS 제거) */}
+            <div className="min-h-[44px] sm:min-h-[48px] flex items-center justify-center text-center px-3 py-1.5 rounded-xl border transition-all duration-300 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
+              <p className="text-xs sm:text-sm font-medium leading-snug tracking-tight text-slate-700 dark:text-slate-200">
+                {relativeStatus.description}
+              </p>
             </div>
 
-            {/* 3. 보온 필요 구간 (우측 / 얇음 측 트랙: 75% ~ 100%) */}
-            <div
-              className="absolute top-0 bottom-0 right-0 w-1/4 h-8 sm:h-9 flex items-center justify-center font-bold text-xs sm:text-sm tracking-tight transition-all duration-300 bg-sky-100/90 border-y-2 border-r-2 border-sky-500/80 rounded-r-full dark:bg-sky-500/25 dark:border-y-2 dark:border-r-2 dark:border-sky-400/80"
-              title={`보온 필요 구역 (${temperature + 2.5}°C ~ ${gaugeMaxTemp}°C)`}
-            >
-              <span className="text-sky-950 font-bold drop-shadow-sm dark:text-sky-200 dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] select-none truncate px-1 text-[11px] sm:text-xs">
-                보온 필요
-              </span>
-            </div>
+            {/* 현재 기준 기온(T_target) 기준 ±5°C 상대 동적 게이지 그래프 */}
+            <div className="pt-2 pb-1">
+              <div className="relative h-8 sm:h-9 w-full select-none">
+                {/* 1. 과보온 구간 (좌측 / 두꺼움 측 트랙: 0% ~ 25%) */}
+                <div
+                  className="absolute top-0 bottom-0 left-0 w-1/4 h-8 sm:h-9 flex items-center justify-center font-bold text-xs sm:text-sm tracking-tight transition-all duration-300 bg-rose-100/90 border-y-2 border-l-2 border-rose-500/80 rounded-l-full dark:bg-rose-500/25 dark:border-y-2 dark:border-l-2 dark:border-rose-400/80"
+                  title={`과보온 구역 (${gaugeMinTemp}°C ~ ${temperature - 2.5}°C)`}
+                >
+                  <span className="text-rose-950 font-bold drop-shadow-sm dark:text-rose-200 dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] select-none truncate px-1 text-[11px] sm:text-xs">
+                    과보온
+                  </span>
+                </div>
 
-            {/* 중앙 50% 기준 체감 기온(T_target) 타겟 세로선 */}
-            <div
-              className="absolute left-1/2 -translate-x-1/2 w-0.5 h-full bg-slate-900/70 dark:bg-white/80 z-10 pointer-events-none"
-              title={`기준 체감 기온: ${temperature}°C`}
-            />
+                {/* 2. 적정 구간 (중앙 / ±2.5°C 적정 범위 트랙: 25% ~ 75%) */}
+                <div
+                  className="absolute top-0 bottom-0 left-1/4 w-1/2 h-8 sm:h-9 flex items-center justify-center font-bold text-xs sm:text-sm tracking-tight transition-all duration-300 bg-emerald-100/90 border-2 border-emerald-500/80 dark:bg-emerald-500/25 dark:border-2 dark:border-emerald-400/80"
+                  title={`적정 보온 권장 범위 (${temperature - 2.5}°C ~ ${temperature + 2.5}°C)`}
+                >
+                  <span className="text-emerald-950 font-bold drop-shadow-sm dark:text-emerald-200 dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] select-none truncate px-1 text-[11px] sm:text-xs">
+                    적정 범위 (±2.5°C)
+                  </span>
+                </div>
 
-            {/* 현재 복장 커버 기온 마커 핀 */}
-            <div
-              className="absolute top-0 bottom-0 transition-all duration-300 ease-out z-20 pointer-events-none"
-              style={{ left: `${markerPct}%` }}
-            >
-              {/* 마커 세로선 (과보온: 붉은선, 적정: 초록선, 보온 필요: 파란선) */}
-              <div
-                className={`w-1 h-full -translate-x-1/2 shadow-md ${
-                  relativeStatus.status === 'OVERHEATED'
-                    ? 'bg-rose-500 shadow-rose-500/50'
-                    : relativeStatus.status === 'OPTIMAL'
-                    ? 'bg-emerald-600 dark:bg-emerald-500 shadow-emerald-500/50'
-                    : 'bg-sky-600 dark:bg-sky-500 shadow-sky-500/50'
-                }`}
-              />
-              {/* 마커 헤드 뱃지 (진한 원 + 흰색 링 + 그림자) */}
-              <div
-                className={`absolute -top-1.5 left-0 -translate-x-1/2 w-4 h-4 rounded-full ring-2 ring-white dark:ring-slate-900 shadow-md ${
-                  relativeStatus.status === 'OVERHEATED'
-                    ? 'bg-rose-500 shadow-rose-500/60'
-                    : relativeStatus.status === 'OPTIMAL'
-                    ? 'bg-emerald-600 dark:bg-emerald-500 shadow-emerald-500/60'
-                    : 'bg-sky-600 dark:bg-sky-500 shadow-sky-500/60'
-                } ${
-                  isLeftOverflow || isRightOverflow
-                    ? 'animate-bounce ring-4 ring-offset-1 ring-offset-white dark:ring-offset-slate-900'
-                    : ''
-                }`}
-                title={`현재 복장 커버 기온: 약 ${coverTemp}°C`}
-              />
-            </div>
-          </div>
+                {/* 3. 보온 필요 구간 (우측 / 얇음 측 트랙: 75% ~ 100%) */}
+                <div
+                  className="absolute top-0 bottom-0 right-0 w-1/4 h-8 sm:h-9 flex items-center justify-center font-bold text-xs sm:text-sm tracking-tight transition-all duration-300 bg-sky-100/90 border-y-2 border-r-2 border-sky-500/80 rounded-r-full dark:bg-sky-500/25 dark:border-y-2 dark:border-r-2 dark:border-sky-400/80"
+                  title={`보온 필요 구역 (${temperature + 2.5}°C ~ ${gaugeMaxTemp}°C)`}
+                >
+                  <span className="text-sky-950 font-bold drop-shadow-sm dark:text-sky-200 dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] select-none truncate px-1 text-[11px] sm:text-xs">
+                    보온 필요
+                  </span>
+                </div>
 
-          {/* 게이지 하단 상대 기온 눈금 표시 */}
-          <div className="relative mt-2.5 h-5 select-none flex items-center justify-between gap-1 text-xs sm:text-sm">
-            <span className={`transition-colors font-bold ${isLeftOverflow ? 'text-rose-600 dark:text-rose-400' : 'text-rose-950 dark:text-rose-200'}`}>
-              ◀ {gaugeMinTemp}°C (두꺼움)
-            </span>
-            <div className="flex items-center gap-1.5 text-slate-900 dark:text-white font-bold text-xs sm:text-sm drop-shadow-sm dark:drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] select-none">
-              <span className="inline-block animate-pulse text-base sm:text-lg">🎯</span>
-              <span>기준 체감 {temperature}°C</span>
+                {/* 중앙 50% 기준 체감 기온(T_target) 타겟 세로선 */}
+                <div
+                  className="absolute left-1/2 -translate-x-1/2 w-0.5 h-full bg-slate-900/70 dark:bg-white/80 z-10 pointer-events-none"
+                  title={`기준 체감 기온: ${temperature}°C`}
+                />
+
+                {/* 현재 복장 커버 기온 마커 핀 */}
+                <div
+                  className="absolute top-0 bottom-0 transition-all duration-300 ease-out z-20 pointer-events-none"
+                  style={{ left: `${markerPct}%` }}
+                >
+                  {/* 마커 세로선 (과보온: 붉은선, 적정: 초록선, 보온 필요: 파란선) */}
+                  <div
+                    className={`w-1 h-full -translate-x-1/2 shadow-md ${
+                      relativeStatus.status === 'OVERHEATED'
+                        ? 'bg-rose-500 shadow-rose-500/50'
+                        : relativeStatus.status === 'OPTIMAL'
+                        ? 'bg-emerald-600 dark:bg-emerald-500 shadow-emerald-500/50'
+                        : 'bg-sky-600 dark:bg-sky-500 shadow-sky-500/50'
+                    }`}
+                  />
+                  {/* 마커 헤드 뱃지 (진한 원 + 흰색 링 + 그림자) */}
+                  <div
+                    className={`absolute -top-1.5 left-0 -translate-x-1/2 w-4 h-4 rounded-full ring-2 ring-white dark:ring-slate-900 shadow-md ${
+                      relativeStatus.status === 'OVERHEATED'
+                        ? 'bg-rose-500 shadow-rose-500/60'
+                        : relativeStatus.status === 'OPTIMAL'
+                        ? 'bg-emerald-600 dark:bg-emerald-500 shadow-emerald-500/60'
+                        : 'bg-sky-600 dark:bg-sky-500 shadow-sky-500/60'
+                    } ${
+                      isLeftOverflow || isRightOverflow
+                        ? 'animate-bounce ring-4 ring-offset-1 ring-offset-white dark:ring-offset-slate-900'
+                        : ''
+                    }`}
+                    title={`현재 복장 커버 기온: 약 ${coverTemp}°C`}
+                  />
+                </div>
+              </div>
+
+              {/* 게이지 하단 상대 기온 눈금 표시 */}
+              <div className="relative mt-2.5 h-5 select-none flex items-center justify-between gap-1 text-xs sm:text-sm">
+                <span className={`transition-colors font-bold ${isLeftOverflow ? 'text-rose-600 dark:text-rose-400' : 'text-rose-950 dark:text-rose-200'}`}>
+                  ◀ {gaugeMinTemp}°C (두꺼움)
+                </span>
+                <div className="flex items-center gap-1.5 text-slate-900 dark:text-white font-bold text-xs sm:text-sm drop-shadow-sm dark:drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] select-none">
+                  <span className="inline-block animate-pulse text-base sm:text-lg">🎯</span>
+                  <span>기준 체감 {temperature}°C</span>
+                </div>
+                <span className={`transition-colors font-bold ${isRightOverflow ? 'text-sky-600 dark:text-sky-400' : 'text-sky-950 dark:text-sky-200'}`}>
+                  {gaugeMaxTemp}°C (얇음) ▶
+                </span>
+              </div>
             </div>
-            <span className={`transition-colors font-bold ${isRightOverflow ? 'text-sky-600 dark:text-sky-400' : 'text-sky-950 dark:text-sky-200'}`}>
-              {gaugeMaxTemp}°C (얇음) ▶
-            </span>
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       {/* 복장 선택 섹션 목록 */}

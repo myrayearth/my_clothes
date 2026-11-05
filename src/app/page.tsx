@@ -19,7 +19,6 @@ import { findMatchingRecallLogs } from '@/lib/matcher';
 
 import { LocationBar } from '@/components/layout/LocationBar';
 import { WeatherOverview } from '@/components/weather/WeatherOverview';
-import { ManualTempChecker } from '@/components/weather/ManualTempChecker';
 import { TimeSlotTabs } from '@/components/weather/TimeSlotTabs';
 import { DailyForecast } from '@/components/weather/DailyForecast';
 import { OutfitSelector } from '@/components/OutfitSelector';
@@ -570,7 +569,7 @@ export default function HomePage() {
                   Ondo Fit
                 </h1>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
-                  v0.34.0
+                  v0.35.0
                 </span>
               </div>
               {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
@@ -650,28 +649,26 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 2. 상단 2분할 날씨 카드 (좌측: 실시간 현재 날씨 / 우측: 수동 복장 점검) */}
+        {/* 2. 상단 단일 통합 날씨 카드 (실시간 날씨 및 인라인 수동 복장 점검 모드 통합) */}
         {weather && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* 좌측: 실시간 현재 날씨 카드 (미래 날짜 또는 수동 모드 시 클릭하면 오늘 날씨로 복귀) */}
-            <WeatherOverview
-              weather={weather}
-              isLoading={isLoading}
-              selectedSlot={selectedSlot}
-              isActive={recommendationMode === 'LIVE_MODE' && selectedSlot === 'current'}
-              isReturnMode={recommendationMode !== 'LIVE_MODE' || selectedSlot !== 'current'}
-              onSelectCurrent={() => handleSwitchLive('current')}
-            />
-
-            {/* 우측: 수동 복장 점검 카드 */}
-            <ManualTempChecker
-              temperature={manualTemp}
-              onChangeTemp={handleManualTempChange}
-              isActive={recommendationMode === 'MANUAL_MODE'}
-              onActivate={handleSwitchManual}
-              defaultTemp={weather.currentTemp}
-            />
-          </div>
+          <WeatherOverview
+            weather={weather}
+            isLoading={isLoading}
+            selectedSlot={selectedSlot}
+            isActive={recommendationMode === 'LIVE_MODE' && selectedSlot === 'current'}
+            isReturnMode={recommendationMode !== 'LIVE_MODE' || selectedSlot !== 'current'}
+            onSelectCurrent={() => handleSwitchLive('current')}
+            isManual={recommendationMode === 'MANUAL_MODE'}
+            manualTemp={manualTemp}
+            onManualTempChange={handleManualTempChange}
+            onToggleMode={(mode) => {
+              if (mode === 'manual') {
+                handleSwitchManual();
+              } else {
+                handleSwitchLive('current');
+              }
+            }}
+          />
         )}
 
         {/* 3. 주간 예보 (내일부터 6일간 D+1 ~ D+6, 타이틀 없이 현재 날씨 바로 아래 일체화 가로 스크롤 카드) */}
@@ -804,7 +801,7 @@ export default function HomePage() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.34.0</strong></p>
+        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.35.0</strong></p>
       </footer>
     </div>
   );
