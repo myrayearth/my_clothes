@@ -67,46 +67,35 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
   // 스크롤 시 상단 초슬림 2줄 미니 가로 게이지 바 전환 및 원 카드(One Card) 도킹 감지
   const [isGaugeSticky, setIsGaugeSticky] = useState(false);
   const gaugeContainerRef = useRef<HTMLDivElement>(null);
-  const gaugeDocTopRef = useRef<number | null>(null);
+  const gaugeSentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const updateDocTop = () => {
-      if (gaugeContainerRef.current) {
-        const rect = gaugeContainerRef.current.getBoundingClientRect();
-        const scrollY = window.scrollY || document.documentElement.scrollTop;
-        if (gaugeDocTopRef.current === null || scrollY < gaugeDocTopRef.current - 50) {
-          gaugeDocTopRef.current = rect.top + scrollY;
+    const handleScroll = () => {
+      if (!gaugeSentinelRef.current) return;
+      const rect = gaugeSentinelRef.current.getBoundingClientRect();
+      // TimeSlotTabs의 스티키 높이는 44px
+      // 하향 스크롤: 정적 센티널이 40px 이하로 올라왔을 때 도킹 (게이지 상단이 44px에 정확히 밀착)
+      // 상향 스크롤: 정적 센티널이 60px 이상 내려왔을 때 도킹 해제 (20px 히스테리시스 데드밴드로 진동 방지)
+      if (rect.top <= 40) {
+        setIsGaugeSticky(true);
+        if (onGaugeDockedChange) {
+          onGaugeDockedChange(true);
+        }
+      } else if (rect.top >= 60) {
+        setIsGaugeSticky(false);
+        if (onGaugeDockedChange) {
+          onGaugeDockedChange(false);
         }
       }
     };
 
-    updateDocTop();
-
-    const handleScroll = () => {
-      const scrollY = window.scrollY || document.documentElement.scrollTop;
-      if (gaugeDocTopRef.current === null) {
-        updateDocTop();
-      }
-      const gaugeDocTop = gaugeDocTopRef.current ?? 0;
-      // TimeSlotTabs(44px) 바로 아래 도킹: 스크롤이 (gaugeDocTop - 44px)에 도달했을 때
-      const dockPoint = Math.max(0, gaugeDocTop - 44);
-      const docked = scrollY >= dockPoint - 2;
-      setIsGaugeSticky(docked);
-      if (onGaugeDockedChange) {
-        onGaugeDockedChange(docked);
-      }
-    };
-
     window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', () => {
-      gaugeDocTopRef.current = null;
-      updateDocTop();
-      handleScroll();
-    });
+    window.addEventListener('resize', handleScroll, { passive: true });
     handleScroll();
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
     };
   }, [onGaugeDockedChange]);
 
@@ -577,6 +566,9 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
             </div>
           </div>
         </div>
+
+        {/* 정적 센티널: 헤더 직후, 게이지 직전에 위치하여 도킹 지점(44px)을 감지하는 0-높이 정적 요소 */}
+        <div ref={gaugeSentinelRef} className="h-0 w-full pointer-events-none -mb-4" aria-hidden="true" />
 
         {/* [개편] 복장 적정 기온 (°C) 환산 및 ±5°C 상대 동적 게이지 그래프
             (시간대 예보 탭 바로 아래 sticky top-[44px] z-30 초슬림 2줄 미니 게이지 바 고정, 원 카드 도킹) */}

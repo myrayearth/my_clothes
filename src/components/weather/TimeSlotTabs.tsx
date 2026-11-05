@@ -50,98 +50,73 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
 }) => {
   const slots: TargetTimeSlot[] = visibleSlots;
   const containerRef = useRef<HTMLDivElement>(null);
-  const docTopRef = useRef<number | null>(null);
-  const [scrollProgress, setScrollProgress] = useState(0); // 0 (풀 뷰) ~ 1 (슬림 1줄 스티키 뷰)
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [isCompact, setIsCompact] = useState(false);
 
   useEffect(() => {
-    const updateDocTop = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const scrollY = window.scrollY || document.documentElement.scrollTop;
-        if (docTopRef.current === null || scrollY < docTopRef.current - 50) {
-          docTopRef.current = rect.top + scrollY;
-        }
-      }
-    };
-
-    updateDocTop();
-
     const handleScroll = () => {
-      const scrollY = window.scrollY || document.documentElement.scrollTop;
-      if (docTopRef.current === null) {
-        updateDocTop();
-      }
-      const docTop = docTopRef.current ?? 0;
-      const TRANSITION_RANGE = 70; // 상단 도달 직전 70px에 걸쳐 부드럽게 축소
-
-      const start = Math.max(0, docTop - TRANSITION_RANGE);
-      if (scrollY <= start) {
-        setScrollProgress(0);
-      } else if (scrollY >= docTop) {
-        setScrollProgress(1);
-      } else {
-        setScrollProgress((scrollY - start) / TRANSITION_RANGE);
+      if (!sentinelRef.current) return;
+      const rect = sentinelRef.current.getBoundingClientRect();
+      // rect.top은 뷰포트 상단으로부터의 정적 센티널 위치
+      // 하향 스크롤: 센티널이 화면 상단 위로 10px 이상 올라가 완전히 스티키에 안착했을 때만 1줄 바로 축소
+      // 상향 스크롤: 센티널이 화면 상단 아래로 15px 이상 내려왔을 때만 원래 카드로 확장 (25px 히스테리시스 데드밴드로 진동 방지)
+      if (rect.top <= -10) {
+        setIsCompact(true);
+      } else if (rect.top >= 15) {
+        setIsCompact(false);
       }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', () => {
-      docTopRef.current = null;
-      updateDocTop();
-      handleScroll();
-    });
+    window.addEventListener('resize', handleScroll, { passive: true });
     handleScroll();
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
     };
   }, []);
 
-  const isCompact = scrollProgress >= 0.95;
-
   return (
-    <div
-      ref={containerRef}
-      className={`sticky top-0 z-40 w-full transition-all duration-150 select-none bg-white/98 dark:bg-slate-900/98 backdrop-blur-md ${
-        isCompact
-          ? `h-[44px] px-2.5 py-1 flex flex-col justify-center ${
-              isGaugeDocked
-                ? 'rounded-t-2xl rounded-b-none border-t border-x border-b border-slate-200/90 dark:border-slate-800 shadow-none'
-                : 'rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm'
-            }`
-          : 'rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm p-3 sm:p-3.5 space-y-2'
-      }`}
-    >
-      {/* 상단 타이틀 바: 스크롤 진행도에 맞춰 서서히 페이드아웃 및 축소 */}
+    <>
+      {/* 정적 센티널: 상단 마진을 상쇄하여 위치만 감지하는 0-높이 정적 요소 */}
+      <div ref={sentinelRef} className="h-0 w-full pointer-events-none -mb-5" aria-hidden="true" />
       <div
-        style={{
-          maxHeight: `${Math.max(0, (1 - scrollProgress) * 36)}px`,
-          opacity: Math.max(0, 1 - scrollProgress * 1.4),
-          marginBottom: `${(1 - scrollProgress) * 8}px`,
-          overflow: 'hidden',
-        }}
-        className="flex items-center justify-between flex-wrap gap-2 transition-[max-height,opacity,margin] duration-75"
+        ref={containerRef}
+        className={`sticky top-0 z-40 w-full transition-all duration-150 select-none bg-white/98 dark:bg-slate-900/98 backdrop-blur-md ${
+          isCompact
+            ? `h-[44px] px-2.5 py-1 flex flex-col justify-center ${
+                isGaugeDocked
+                  ? 'rounded-t-2xl rounded-b-none border-t border-x border-b border-slate-200/90 dark:border-slate-800 shadow-none'
+                  : 'rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm'
+              }`
+            : 'rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm p-3 sm:p-3.5 space-y-2'
+        }`}
       >
-        <div className="flex items-center gap-1.5">
-          <Clock className="w-4 h-4 text-slate-500 shrink-0" />
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-            {title}
-          </h3>
-          <span className="text-[11px] text-slate-400 font-normal">
-            (탭 선택)
-          </span>
-        </div>
-        {badge}
-      </div>
+        {/* 기본 뷰일 때만 상단 타이틀 바 렌더링 */}
+        {!isCompact && (
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-slate-500 shrink-0" />
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                {title}
+              </h3>
+              <span className="text-[11px] text-slate-400 font-normal">
+                (탭 선택)
+              </span>
+            </div>
+            {badge}
+          </div>
+        )}
 
-      {/* 탭 그리드: 스크롤 축소 완료 시 h-[34px] 초슬림 1줄 인라인 뷰, 기본 시 넉넉한 카드 뷰 */}
-      {isCompact ? (
-        /* ================= [스티키 뷰: 완벽한 1줄 초슬림 인라인 탭 바] ================= */
-        <div
-          className={`grid gap-1 sm:gap-1.5 h-[34px] items-center ${
-            slots.length === 3 ? 'grid-cols-3' : 'grid-cols-4'
-          }`}
-        >
+        {/* 탭 그리드: 스크롤 축소 완료 시 h-[34px] 초슬림 1줄 인라인 뷰, 기본 시 넉넉한 카드 뷰 */}
+        {isCompact ? (
+          /* ================= [스티키 뷰: 완벽한 1줄 초슬림 인라인 탭 바] ================= */
+          <div
+            className={`grid gap-1 sm:gap-1.5 h-[34px] items-center ${
+              slots.length === 3 ? 'grid-cols-3' : 'grid-cols-4'
+            }`}
+          >
           {slots.map((slot) => {
             const item = timeSlots[slot];
             if (!item) return null;
@@ -237,5 +212,6 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
         </div>
       )}
     </div>
-  );
+  </>
+);
 };
