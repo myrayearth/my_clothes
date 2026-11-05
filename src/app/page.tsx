@@ -547,17 +547,16 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* 1. 상단 날씨 & 위치 바 섹션 래퍼: 지능형 리콜 요약 카드 진입 시 LocationBar의 sticky 고정이 자연스럽게 해제되어 위로 스크롤되어 사라짐 */}
-      <section className="relative weather-flow-section">
-        {/* 상단 위치 바 및 검색 */}
-        <LocationBar
-          currentLocation={location}
-          onLocationChange={handleLocationChange}
-          isLoadingWeather={isLoading}
-        />
+      {/* 1. 상단 위치 바 및 검색 */}
+      <LocationBar
+        currentLocation={location}
+        onLocationChange={handleLocationChange}
+        isLoadingWeather={isLoading}
+      />
 
-        <div className="max-w-2xl w-full mx-auto px-4 pt-5 pb-2.5 space-y-5">
-          {/* 서비스 타이틀, 성별 선택, 카카오 인증 바 & 새로고침 */}
+      {/* 2. 전체 단일 메인 플로우 컨테이너: 시간대별 탭과 적정 체감 복장 분석이 스크롤 다운 시 상단에 스택(Stack)되어 연속 고정됨 */}
+      <main className="flex-1 max-w-2xl w-full mx-auto px-4 pt-4 pb-5 space-y-5">
+        {/* 서비스 타이틀, 성별 선택, 카카오 인증 바 & 새로고침 */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl overflow-hidden shadow-xs border border-slate-200/80 bg-white flex items-center justify-center shrink-0">
@@ -680,7 +679,7 @@ export default function HomePage() {
           />
         )}
 
-        {/* 4. 시간대별 탭 (실시간/예보 모드; 수동 모드 시 별도 중복 안내 배너 미노출) */}
+        {/* 4. 시간대별 탭 (스크롤 다운 시 최상단 sticky top-0 z-40으로 1줄 미니 탭 바 고정) */}
         {weather && (
           recommendationMode === 'MANUAL_MODE' ? null : recommendationMode === 'DAILY_FORECAST_MODE' && selectedForecastItem ? (
             <TimeSlotTabs
@@ -741,11 +740,7 @@ export default function HomePage() {
             />
           )
         )}
-        </div>
-      </section>
 
-      {/* 2. 지능형 리콜, 복장 추천 및 체감 평가 메인 콘텐츠 컨테이너 */}
-      <main className="flex-1 max-w-2xl w-full mx-auto px-4 pt-2.5 pb-5 space-y-5">
         {/* 5. 지능형 리콜 카드 (현재 모드 기준 기온 기반) */}
         {matchedRecalls.length > 0 && (
           <HistoryRecallCard
