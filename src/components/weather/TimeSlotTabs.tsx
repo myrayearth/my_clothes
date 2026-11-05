@@ -49,70 +49,58 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
   visibleSlots = ['current', '08:00', '13:00', '19:00'],
 }) => {
   const slots: TargetTimeSlot[] = visibleSlots;
-  const containerRef = useRef<HTMLDivElement>(null);
-  const initialTopRef = useRef<number | null>(null);
-  const [isSticky, setIsSticky] = useState(false);
+  const fullCardRef = useRef<HTMLDivElement>(null);
+  const [isDocked, setIsDocked] = useState(false);
+  const [isGaugeDocked, setIsGaugeDocked] = useState(false);
 
-  // 문서 기준 원래 절대 Y좌표 측정 및 스크롤 연동 (중간 감싸는 부모 div 없이 main 직계 자식으로 sticky 100% 작동)
+  // 인플로우(In-Flow) 풀 카드의 높이는 절대 변경하지 않아 문서 높이 변화(CLS) 및 스크롤 바운스 0% 보장
   useEffect(() => {
-    const updatePosition = () => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const currentScrollY = window.scrollY;
-      // 아직 sticky 상태가 아니거나 초기 측정 시 절대 Y좌표 기록
-      if (initialTopRef.current === null || currentScrollY === 0) {
-        initialTopRef.current = rect.top + currentScrollY;
-      }
+    let ticking = false;
+
+    const checkScroll = () => {
+      if (!fullCardRef.current) return;
+      const rect = fullCardRef.current.getBoundingClientRect();
+      // 풀 카드의 하단이 상단 고정 슬림 바 높이(44px) 부근에 도달하면 슬림 고정 바로 자연스럽게 배턴 터치
+      const shouldDock = rect.bottom <= 52;
+      setIsDocked((prev) => (prev !== shouldDock ? shouldDock : prev));
     };
 
-    updatePosition();
-
-    let ticking = false;
     const handleScroll = () => {
       if (!ticking) {
         requestAnimationFrame(() => {
-          if (initialTopRef.current === null) {
-            updatePosition();
-          }
-          const scrollY = window.scrollY;
-          const targetTop = initialTopRef.current ?? 300;
-
-          // 25px 히스테리시스 데드밴드로 진동(바운스) 방지
-          if (scrollY >= targetTop) {
-            setIsSticky(true);
-          } else if (scrollY < targetTop - 25) {
-            setIsSticky(false);
-          }
+          checkScroll();
           ticking = false;
         });
         ticking = true;
       }
     };
 
+    const handleGaugeDock = (e: Event) => {
+      const customEvent = e as CustomEvent<boolean>;
+      setIsGaugeDocked(Boolean(customEvent.detail));
+    };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', () => {
-      initialTopRef.current = null;
-      updatePosition();
-      handleScroll();
-    });
-    handleScroll();
+    window.addEventListener('resize', handleScroll);
+    window.addEventListener('ondofit:gauge-dock', handleGaugeDock);
+    checkScroll();
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+      window.removeEventListener('ondofit:gauge-dock', handleGaugeDock);
     };
   }, []);
 
   return (
-    <div
-      ref={containerRef}
-      className={`sticky top-0 z-40 w-full select-none bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-t-2xl rounded-b-none border-t border-x border-b-0 border-slate-200/90 dark:border-slate-800 shadow-xs transition-all duration-150 ${
-        isSticky
-          ? 'h-[44px] px-2.5 py-1 flex flex-col justify-center'
-          : 'p-3 sm:p-3.5 space-y-2'
-      }`}
-    >
-      {/* 상단 섹션 타이틀: 기본 뷰에서만 노출, 스티키 고정 시 숨김 */}
-      {!isSticky && (
+    <>
+      {/* 1. 기본 상태 인플로우(In-Flow) 카드: 항상 원래 높이를 그대로 유지하여 천천히 스크롤해도 바운스 0% */}
+      <div
+        ref={fullCardRef}
+        className={`w-full select-none bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs p-3 sm:p-3.5 space-y-2.5 transition-opacity duration-150 ${
+          isDocked ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+      >
         <div className="flex items-center justify-between flex-wrap gap-2 px-0.5">
           <div className="flex items-center gap-1.5">
             <Clock className="w-4 h-4 text-slate-500 shrink-0" />
@@ -125,51 +113,7 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
           </div>
           {badge}
         </div>
-      )}
 
-      {/* 탭 목록: 스티키 시 초슬림 1줄 그리드, 기본 상태 시 넉넉한 4개 카드 그리드 */}
-      {isSticky ? (
-        /* ================= [스티키 뷰: 완벽한 1줄 초슬림 인라인 탭 바 (h-[34px])] ================= */
-        <div
-          className={`grid gap-1 sm:gap-1.5 h-[34px] items-center ${
-            slots.length === 3 ? 'grid-cols-3' : 'grid-cols-4'
-          }`}
-        >
-          {slots.map((slot) => {
-            const item = timeSlots[slot];
-            if (!item) return null;
-            const isSelected = selectedSlot === slot;
-            const meta = slotMeta[slot];
-
-            const hasApparent = typeof item.apparentTemperature === 'number' && !isNaN(item.apparentTemperature);
-            const displayApparent = hasApparent ? item.apparentTemperature : item.temperature;
-
-            return (
-              <button
-                key={slot}
-                type="button"
-                onClick={() => onSelectSlot(slot)}
-                className={`flex items-center justify-center gap-1 sm:gap-1.5 h-[32px] px-1 rounded-xl text-xs font-bold transition-all active:scale-95 touch-manipulation cursor-pointer truncate ${
-                  isSelected
-                    ? 'bg-slate-900 text-white shadow-xs dark:bg-blue-600 ring-2 ring-slate-900/10 dark:ring-blue-500/20'
-                    : 'bg-slate-100/90 text-slate-600 hover:text-slate-900 hover:bg-slate-200/80 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-700/80'
-                }`}
-                title={`${meta.label} (${meta.sub}): 체감 ${displayApparent}°C (기온 ${item.temperature}°C)`}
-              >
-                <WeatherIcon
-                  weatherCode={item.weatherCode}
-                  isDay={slot === '19:00' ? false : slot === '08:00' || slot === '13:00' ? true : undefined}
-                  size={14}
-                  className="shrink-0"
-                />
-                <span className="text-[11px] sm:text-xs font-semibold">{meta.label}</span>
-                <span className="text-xs sm:text-sm font-extrabold tracking-tight">{displayApparent}°</span>
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        /* ================= [기본 상태 뷰: 정보가 한눈에 다 보이는 넉넉한 카드 그리드] ================= */
         <div
           className={`grid gap-2 sm:gap-2.5 ${
             slots.length === 3 ? 'grid-cols-3' : 'grid-cols-2 xs:grid-cols-4 sm:grid-cols-4'
@@ -228,7 +172,68 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
             );
           })}
         </div>
-      )}
-    </div>
+      </div>
+
+      {/* 2. 상단 고정 슬림 1줄 바 (Out-of-Flow Fixed: 문서 높이에 영향을 주지 않아 바운스 원천 차단) */}
+      <div
+        className={`fixed top-0 left-0 right-0 z-50 pointer-events-none transition-all duration-150 ${
+          isDocked
+            ? 'opacity-100 translate-y-0'
+            : 'opacity-0 -translate-y-2 pointer-events-none'
+        }`}
+        aria-hidden={!isDocked}
+      >
+        <div className="max-w-2xl w-full mx-auto px-4">
+          <div
+            className={`w-full select-none bg-white/95 dark:bg-slate-900/95 backdrop-blur-md h-[44px] px-2.5 py-1 flex flex-col justify-center border-slate-200/90 dark:border-slate-800 ${
+              isDocked ? 'pointer-events-auto' : 'pointer-events-none'
+            } ${
+              isGaugeDocked
+                ? 'rounded-t-2xl rounded-b-none border-t border-x border-b-0 shadow-none'
+                : 'rounded-b-2xl border-x border-b shadow-sm'
+            }`}
+          >
+            <div
+              className={`grid gap-1 sm:gap-1.5 h-[34px] items-center ${
+                slots.length === 3 ? 'grid-cols-3' : 'grid-cols-4'
+              }`}
+            >
+              {slots.map((slot) => {
+                const item = timeSlots[slot];
+                if (!item) return null;
+                const isSelected = selectedSlot === slot;
+                const meta = slotMeta[slot];
+
+                const hasApparent = typeof item.apparentTemperature === 'number' && !isNaN(item.apparentTemperature);
+                const displayApparent = hasApparent ? item.apparentTemperature : item.temperature;
+
+                return (
+                  <button
+                    key={slot}
+                    type="button"
+                    onClick={() => onSelectSlot(slot)}
+                    className={`flex items-center justify-center gap-1 sm:gap-1.5 h-[32px] px-1 rounded-xl text-xs font-bold transition-all active:scale-95 touch-manipulation cursor-pointer truncate ${
+                      isSelected
+                        ? 'bg-slate-900 text-white shadow-xs dark:bg-blue-600 ring-2 ring-slate-900/10 dark:ring-blue-500/20'
+                        : 'bg-slate-100/90 text-slate-600 hover:text-slate-900 hover:bg-slate-200/80 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-700/80'
+                    }`}
+                    title={`${meta.label} (${meta.sub}): 체감 ${displayApparent}°C (기온 ${item.temperature}°C)`}
+                  >
+                    <WeatherIcon
+                      weatherCode={item.weatherCode}
+                      isDay={slot === '19:00' ? false : slot === '08:00' || slot === '13:00' ? true : undefined}
+                      size={14}
+                      className="shrink-0"
+                    />
+                    <span className="text-[11px] sm:text-xs font-semibold">{meta.label}</span>
+                    <span className="text-xs sm:text-sm font-extrabold tracking-tight">{displayApparent}°</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 };

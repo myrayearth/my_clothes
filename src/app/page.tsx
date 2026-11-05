@@ -569,7 +569,7 @@ export default function HomePage() {
                     Ondo Fit
                   </h1>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
-                    v0.37.5
+                    v0.37.6
                   </span>
                 </div>
                 {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
@@ -745,7 +745,7 @@ export default function HomePage() {
           )
         )}
 
-        {/* 5. 적정 체감 복장 분석 게이지 카드 (기본 넉넉한 상세 뷰 / 스크롤 시 컴팩트 sticky top-[44px] z-30 도킹) */}
+        {/* 5. 적정 체감 복장 분석 게이지 카드 (기본 넉넉한 상세 뷰 / 스크롤 시 컴팩트 상단 도킹) */}
         {weather && (
           <OutfitGaugeCard
             temperature={effectiveData.targetTemp}
@@ -756,6 +756,7 @@ export default function HomePage() {
             currentUser={activeUser}
             isLoggedIn={isAuthenticated}
             gender={selectedGender}
+            isManual={recommendationMode === 'MANUAL_MODE'}
           />
         )}
 
@@ -814,7 +815,7 @@ export default function HomePage() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.37.5</strong></p>
+        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.37.6</strong></p>
       </footer>
     </div>
   );
