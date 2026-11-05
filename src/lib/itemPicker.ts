@@ -74,11 +74,12 @@ export function isPinnedInnerItem(
 }
 
 /**
- * 아이템 이름 기반 이너/발열내의/방한내의/타이즈 판별 함수
+ * 아이템 이름 기반 이너/발열내의/방한내의/타이즈/스타킹 판별 함수
  */
 export function isInnerClothingItem(item: string): boolean {
   if (!item) return false;
   return (
+    item === '스타킹' ||
     item === '얇은 이너' ||
     item === '기모 이너' ||
     item === '하의 얇은 이너' ||
@@ -169,9 +170,14 @@ export function getCategorySpectrumItems(
   const endIndex = Math.min(L - 1, centerIndex + upCount);
   const slicedMain = mainItems.slice(startIndex, endIndex + 1);
 
-  // 6. 5도 미만 / 0도 미만 이너 순차 전면 배치
+  // 6. 상의/하의 이너 배치 (여성 하의 0°C ~ 24°C 구간 스타킹 레이어드 전면 노출)
   if (isTopOrBottom) {
     const pinnedInners = getPinnedInnerItems(category, temperature);
+    if (gender === 'female' && category === 'bottom' && temperature >= 0 && temperature <= 24) {
+      if (!pinnedInners.includes('스타킹')) {
+        pinnedInners.unshift('스타킹');
+      }
+    }
     return [...pinnedInners, ...slicedMain];
   }
 

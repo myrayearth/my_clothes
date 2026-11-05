@@ -9,10 +9,10 @@ export interface StandardItem {
 }
 
 /**
- * 전면 압축 개편된 신규 표준 의류 및 소품 데이터셋 (총 50종)
+ * 전면 압축 개편된 신규 표준 의류 및 소품 데이터셋 (총 59종)
  * - 외투(Outer): 12종
- * - 상의(Top): 14종
- * - 하의(Bottom): 12종
+ * - 상의(Top): 18종 (여성 전용 블라우스/원피스 포함)
+ * - 하의(Bottom): 17종 (여성 전용 스커트/원피스/스타킹 포함)
  * - 소품(Item): 12종
  */
 export const STANDARD_ITEMS: StandardItem[] = [
@@ -33,13 +33,17 @@ export const STANDARD_ITEMS: StandardItem[] = [
   { name: '헤비 다운 패딩', category: 'outer', season: 'winter', score: 95 },
 
   // =========================================================================
-  // 2. 상의 (Top - 14종)
+  // 2. 상의 (Top - 18종)
   // =========================================================================
   { name: '민소매', category: 'top', season: 'summer', score: 2 },
   { name: '기본 반팔', category: 'top', season: 'summer', score: 5 },
+  { name: '반팔 블라우스', category: 'top', season: 'summer', score: 6 },
+  { name: '반팔 원피스', category: 'top', season: 'summer', score: 5 },
   { name: '7부/니트반팔', category: 'top', season: 'summer', score: 7 },
   { name: '얇은 긴팔', category: 'top', season: 'summer', score: 8 },
   { name: '기본 긴팔', category: 'top', season: 'spring_autumn', score: 11 },
+  { name: '긴팔 원피스', category: 'top', season: 'spring_autumn', score: 11 },
+  { name: '긴팔 블라우스', category: 'top', season: 'spring_autumn', score: 12 },
   { name: '얇은 이너', category: 'top', season: 'winter', score: 12 },
   { name: '얇은 셔츠/가디건', category: 'top', season: 'spring_autumn', score: 13 },
   { name: '가벼운 스웨터/조끼', category: 'top', season: 'spring_autumn', score: 15 },
@@ -51,12 +55,17 @@ export const STANDARD_ITEMS: StandardItem[] = [
   { name: '헤비 울 스웨터', category: 'top', season: 'winter', score: 35 },
 
   // =========================================================================
-  // 3. 하의 (Bottom - 12종)
+  // 3. 하의 (Bottom - 17종)
   // =========================================================================
   { name: '반바지', category: 'bottom', season: 'summer', score: 3 },
+  { name: '숏 스커트', category: 'bottom', season: 'summer', score: 4 },
+  { name: '반팔 원피스', category: 'bottom', season: 'summer', score: 4 },
+  { name: '스타킹', category: 'bottom', season: 'spring_autumn', score: 4 },
   { name: '7부 바지', category: 'bottom', season: 'summer', score: 5 },
   { name: '얇은 긴바지', category: 'bottom', season: 'summer', score: 7 },
+  { name: '긴팔 원피스', category: 'bottom', season: 'spring_autumn', score: 11 },
   { name: '간절기 얇은 바지', category: 'bottom', season: 'spring_autumn', score: 13 },
+  { name: '롱스커트', category: 'bottom', season: 'spring_autumn', score: 14 },
   { name: '하의 얇은 이너', category: 'bottom', season: 'winter', score: 14 },
   { name: '기본 긴바지', category: 'bottom', season: 'spring_autumn', score: 18 },
   { name: '하의 기모 이너', category: 'bottom', season: 'winter', score: 22 },
@@ -67,13 +76,12 @@ export const STANDARD_ITEMS: StandardItem[] = [
   { name: '헤비 방한바지', category: 'bottom', season: 'winter', score: 45 },
 
   // =========================================================================
-  // 4. 소품 (Item - 12종, 합산 -10~+30점 캡 적용)
+  // 4. 소품 (Item - 11종, 합산 -10~+30점 캡 적용)
   // =========================================================================
   { name: '손풍기', category: 'items', season: 'summer', score: -3 },
   { name: '모자/썬캡', category: 'items', season: 'summer', score: -3 },
   { name: '양산', category: 'items', season: 'summer', score: -3 },
   { name: '자외선 차단', category: 'items', season: 'summer', score: -2 },
-  { name: '스타킹', category: 'items', season: 'spring_autumn', score: 3 },
   { name: '가벼운 스카프/숄', category: 'items', season: 'spring_autumn', score: 4 },
   { name: '보온 양말', category: 'items', season: 'winter', score: 7 },
   { name: '비니/가벼운 장갑', category: 'items', season: 'winter', score: 7 },
@@ -177,6 +185,12 @@ export const ITEM_SCORES: Record<string, number> = {
   '반팔 니트': 7,
   '얇은 7부 티': 7,
   '7부 티셔츠': 7,
+  '반팔 블라우스': 6,
+  블라우스: 12,
+  '긴팔 블라우스': 12,
+  '반팔 원피스': 5,
+  '긴팔 원피스': 11,
+  원피스: 11,
   '긴팔 티셔츠 (롱슬리브)': 11,
   '옥스포드 셔츠': 11,
   '긴팔 티셔츠': 11,
@@ -218,7 +232,11 @@ export const ITEM_SCORES: Record<string, number> = {
 
   // Bottom
   '린넨 밴딩 쇼츠': 3,
-  숏스커트: 3,
+  '숏 스커트': 4,
+  숏스커트: 4,
+  미니스커트: 4,
+  스커트: 4,
+  치마: 4,
   '얇은 반바지': 3,
   '5부 반바지': 3,
   '7부 팬츠': 5,
@@ -227,7 +245,10 @@ export const ITEM_SCORES: Record<string, number> = {
   '얇은 코튼 팬츠': 13,
   '린넨 혼방 바지': 13,
   '얇은 슬랙스': 13,
-  롱스커트: 13,
+  '롱 스커트': 14,
+  롱스커트: 14,
+  '롱 치마': 14,
+  스타킹: 4,
   '기본 데님': 18,
   '기본 슬랙스': 18,
   '면바지 / 치노 팬츠': 18,
@@ -283,7 +304,7 @@ export const ITEM_SCORES: Record<string, number> = {
   '도톰한 양말': 7,
   '보온 양말': 7,
   '발열 양말': 7,
-  스타킹: 3,
+  팬티스타킹: 4,
   '울 머플러': 7,
   '가죽 / 니트 장갑': 7,
   '니트 비니': 7,

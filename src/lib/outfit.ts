@@ -2,8 +2,104 @@ import outfitRulesData from '@/data/outfitRules.json';
 import { STANDARD_ITEMS_BY_CATEGORY } from '@/data/itemScores';
 import { OutfitRuleStep, OutfitSelection } from '@/types/outfit';
 import { isInnerClothingItem } from '@/lib/itemPicker';
+import { filterItemsByGender } from '@/lib/gender';
+import { UserGender } from '@/types/database';
 
 const outfitRules: OutfitRuleStep[] = outfitRulesData as OutfitRuleStep[];
+
+/**
+ * 원피스 의류 아이템 여부 판별
+ */
+export function isOnePieceItem(item: string): boolean {
+  if (!item) return false;
+  return item.includes('원피스');
+}
+
+/**
+ * 상의가 원피스일 때 하의도 동일한 원피스로 강제 동기화하는 함수
+ * - 상의에 원피스 선택 시: 하의 본의류도 동일한 원피스로 자동 변경 (스타킹/하의 이너는 레이어드 유지)
+ * - 상의에서 원피스 해제 시: 하의의 원피스도 기온에 맞는 기본 하의(스커트/바지)로 자동 복원
+ * - 하의에서 원피스 선택 시: 상의도 동일한 원피스로 자동 동기화
+ * - 남성인 경우: 원피스 및 여성 전용 아이템 완전 필터링
+ */
+export function syncOnePieceSelection(
+  nextSelection: OutfitSelection,
+  prevSelection?: OutfitSelection,
+  targetTemp: number = 15,
+  gender: UserGender = 'female'
+): OutfitSelection {
+  if (gender !== 'female') {
+    const cleanedTop = filterItemsByGender(nextSelection.top, 'male');
+    const cleanedBottom = filterItemsByGender(nextSelection.bottom, 'male');
+    return {
+      outer: filterItemsByGender(nextSelection.outer, 'male'),
+      top: cleanedTop.length > 0 ? cleanedTop : ['기본 긴팔'],
+      bottom: cleanedBottom.length > 0 ? cleanedBottom : ['기본 긴바지'],
+      items: filterItemsByGender(nextSelection.items, 'male'),
+    };
+  }
+
+  const prevTopOnePiece = prevSelection?.top.find(isOnePieceItem);
+  const nextTopOnePiece = nextSelection.top.find(isOnePieceItem);
+  const prevBottomOnePiece = prevSelection?.bottom.find(isOnePieceItem);
+  const nextBottomOnePiece = nextSelection.bottom.find(isOnePieceItem);
+
+  const defaultBottom = targetTemp >= 25 ? '숏 스커트' : targetTemp >= 15 ? '롱스커트' : '기본 긴바지';
+
+  // 1. 상의에서 원피스가 새로 선택되었거나 변경된 경우
+  if (nextTopOnePiece && nextTopOnePiece !== prevTopOnePiece) {
+    const bottomInners = nextSelection.bottom.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
+    const topInners = nextSelection.top.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
+    return {
+      ...nextSelection,
+      top: [...topInners, nextTopOnePiece],
+      bottom: [...bottomInners, nextTopOnePiece],
+    };
+  }
+
+  // 2. 상의에 원피스가 유지되고 있는 경우 -> 무조건 하의도 동일한 원피스로 강제 보장
+  if (nextTopOnePiece) {
+    const bottomInners = nextSelection.bottom.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
+    const currentBottomMain = nextSelection.bottom.find((i) => !isInnerClothingItem(i) || isOnePieceItem(i));
+    if (currentBottomMain !== nextTopOnePiece) {
+      return {
+        ...nextSelection,
+        bottom: [...bottomInners, nextTopOnePiece],
+      };
+    }
+    return nextSelection;
+  }
+
+  // 3. 상의에 원피스가 있었는데 일반 상의로 변경되어 해제된 경우
+  if (prevTopOnePiece && !nextTopOnePiece) {
+    const bottomInners = nextSelection.bottom.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
+    return {
+      ...nextSelection,
+      bottom: bottomInners.length > 0 ? [...bottomInners, defaultBottom] : [defaultBottom],
+    };
+  }
+
+  // 4. 하의에서 새로 원피스가 선택된 경우 -> 상의도 동일한 원피스로 동기화
+  if (nextBottomOnePiece && nextBottomOnePiece !== prevBottomOnePiece) {
+    const topInners = nextSelection.top.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
+    return {
+      ...nextSelection,
+      top: [...topInners, nextBottomOnePiece],
+      bottom: nextSelection.bottom,
+    };
+  }
+
+  // 5. 상의에 원피스가 없는데 하의에만 남아있는 경우 (예외 정리)
+  if (!nextTopOnePiece && nextBottomOnePiece) {
+    const bottomInners = nextSelection.bottom.filter((i) => isInnerClothingItem(i) && !isOnePieceItem(i));
+    return {
+      ...nextSelection,
+      bottom: bottomInners.length > 0 ? [...bottomInners, defaultBottom] : [defaultBottom],
+    };
+  }
+
+  return nextSelection;
+}
 
 /**
  * 기온(섭씨)에 따라 11단계 5°C 단위 기온 룰셋 중 일치하는 단계를 반환합니다.

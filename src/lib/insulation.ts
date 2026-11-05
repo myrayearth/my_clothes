@@ -1,4 +1,4 @@
-import { ITEM_SCORES as RAW_ITEM_SCORES } from '@/data/itemScores';
+import { ITEM_SCORES as RAW_ITEM_SCORES, STANDARD_ITEMS } from '@/data/itemScores';
 import { migrateItem } from '@/lib/dataMigration';
 
 /**
@@ -8,11 +8,20 @@ import { migrateItem } from '@/lib/dataMigration';
 export const ITEM_SCORES: Record<string, number> = RAW_ITEM_SCORES;
 
 /**
- * 단일 아이템의 보온 수치 점수 조회
+ * 단일 아이템의 보온 수치 점수 조회 (카테고리별 차등 점수 지원)
  */
-export function getItemInsulationScore(item: string): number {
+export function getItemInsulationScore(item: string, category?: string): number {
   if (!item || item === '없음' || item === '미착용' || item.trim() === '') return 0;
   const trimmed = item.trim();
+
+  // 카테고리가 지정된 경우 해당 카테고리 표준 점수 우선 조회 (예: 원피스 상의 5점, 하의 4점)
+  if (category) {
+    const matched = STANDARD_ITEMS.find((i) => i.category === category && i.name === trimmed);
+    if (matched) {
+      return matched.score;
+    }
+  }
+
   if (ITEM_SCORES[trimmed] !== undefined) {
     return ITEM_SCORES[trimmed];
   }
@@ -31,6 +40,10 @@ export function getItemInsulationScore(item: string): number {
   if (trimmed.includes('얇은 이너')) return 12;
   if (trimmed.includes('기모')) return 30;
   if (trimmed.includes('발열내의') || trimmed.includes('히트텍') || trimmed.includes('타이즈') || trimmed.includes('이너')) return 14;
+  if (trimmed.includes('스타킹')) return 4;
+  if (trimmed.includes('블라우스')) return 12;
+  if (trimmed.includes('원피스')) return category === 'bottom' ? 4 : 5;
+  if (trimmed.includes('스커트') || trimmed.includes('치마')) return trimmed.includes('롱') ? 14 : 4;
   if (
     trimmed.includes('니트') ||
     trimmed.includes('맨투맨') ||
@@ -39,7 +52,6 @@ export function getItemInsulationScore(item: string): number {
   )
     return 20;
   if (trimmed.includes('보온 양말') || trimmed.includes('보온양말') || trimmed.includes('양말')) return 7;
-  if (trimmed.includes('스타킹')) return 3;
   if (
     trimmed.includes('핫팩') ||
     trimmed.includes('목도리') ||
@@ -82,19 +94,19 @@ export function calculateTotalInsulation(selected: {
 }): number {
   let outerScore = 0;
   if (Array.isArray(selected.outer)) {
-    outerScore = selected.outer.reduce((sum, item) => sum + getItemInsulationScore(item), 0);
+    outerScore = selected.outer.reduce((sum, item) => sum + getItemInsulationScore(item, 'outer'), 0);
   } else if (selected.outer) {
-    outerScore = getItemInsulationScore(selected.outer);
+    outerScore = getItemInsulationScore(selected.outer, 'outer');
   }
 
   const topArr = selected.top || [];
-  const topScore = topArr.reduce((sum, item) => sum + getItemInsulationScore(item), 0);
+  const topScore = topArr.reduce((sum, item) => sum + getItemInsulationScore(item, 'top'), 0);
 
   const btmArr = selected.bottom || [];
-  const bottomScore = btmArr.reduce((sum, item) => sum + getItemInsulationScore(item), 0);
+  const bottomScore = btmArr.reduce((sum, item) => sum + getItemInsulationScore(item, 'bottom'), 0);
 
   const itemsArr = selected.items || selected.item || [];
-  const rawItemScore = itemsArr.reduce((sum, item) => sum + getItemInsulationScore(item), 0);
+  const rawItemScore = itemsArr.reduce((sum, item) => sum + getItemInsulationScore(item, 'items'), 0);
 
   // [안전장치 1] 소품 점수 합산 캡(Cap) 적용: 최대 +30점, 최소 -10점 제한
   const cappedItemScore = Math.max(-10, Math.min(30, rawItemScore));

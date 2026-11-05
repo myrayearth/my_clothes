@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { OutfitRuleStep, OutfitSelection, OutfitCategory } from '@/types/outfit';
 import { OutfitLog, UserGender } from '@/types/database';
-import { getOutfitRuleByTemperature, getDefaultOutfitSelection } from '@/lib/outfit';
+import { getOutfitRuleByTemperature, getDefaultOutfitSelection, syncOnePieceSelection, isOnePieceItem } from '@/lib/outfit';
 import {
   calculateWeightedRecommendations,
 } from '@/lib/recommendation';
@@ -85,7 +85,23 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     );
   }, [currentRule, allLogs, temperature, currentUser, isLoggedIn, gender, includeGuestData]);
 
-  // 1. 기본 추천순 100% 반영 리셋: 룰셋의 순수 기본 추천값으로 복원 (10°C 미만은 이너 포함, 10°C 이상은 이너 제외)
+  // 원피스 상하의 동기화 및 안전장치가 적용된 selection 업데이트 래퍼
+  const updateSelection = (newSelection: OutfitSelection) => {
+    const synced = syncOnePieceSelection(newSelection, selection, temperature, gender);
+    onChangeSelection(synced);
+  };
+
+  // 상의 원피스 설정 시 하의 무조건 동일 원피스 강제 동기화 (마운트 및 변경 시 보장)
+  useEffect(() => {
+    const synced = syncOnePieceSelection(selection, undefined, temperature, gender);
+    const isTopDiff = JSON.stringify(synced.top) !== JSON.stringify(selection.top);
+    const isBottomDiff = JSON.stringify(synced.bottom) !== JSON.stringify(selection.bottom);
+    if (isTopDiff || isBottomDiff) {
+      onChangeSelection(synced);
+    }
+  }, [gender, selection.top, selection.bottom, temperature]);
+
+  // 1. 기본 추천순 100% 반영 리셋: 룰셋의 순수 기본 추천값으로 복원 (5°C 미만은 이너 포함, 5°C 이상은 이너 제외)
   const handleResetToRuleDefault = () => {
     const rawDefaults = getDefaultOutfitSelection(currentRule, temperature);
 
@@ -95,17 +111,17 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
       bottom: filterItemsByGender(rawDefaults.bottom, gender),
       items: filterItemsByGender(rawDefaults.items, gender),
     };
-    onChangeSelection(genderFilteredDefaults);
+    updateSelection(genderFilteredDefaults);
   };
 
-  // 2. 평가 반영: 산출된 최적 추천 복장 적용 (10°C 미만은 이너 포함, 10°C 이상은 이너 제외가 dynamicDefaults에 이미 반영됨)
+  // 2. 평가 반영: 산출된 최적 추천 복장 적용
   const handleApplyAggregatedRecommendations = () => {
-    onChangeSelection(dynamicDefaults);
+    updateSelection(dynamicDefaults);
   };
 
   // 3. 항목별(외투, 상의, 하의, 소품) 개별 리셋 핸들러: 해당 카테고리만 추천 기본값으로 복원
   const handleResetCategory = (category: 'outer' | 'top' | 'bottom' | 'items') => {
-    onChangeSelection({
+    updateSelection({
       ...selection,
       [category]: dynamicDefaults[category] || [],
     });
@@ -169,7 +185,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
    * 다중 선택 카드의 이름(텍스트) 영역 클릭 핸들러
    * - 외투: 0개 선택 가능, 1개 선택 상태에서 다른 외투 클릭 시 단일 교체, 선택된 외투 클릭 시 해제
    * - 일반 옷: 1개 선택 상태에서 다른 일반 옷 클릭 시 단일 교체
-   * - [예외 규칙] 이너(히트텍/발열내의 등):
+   * - [예외 규칙] 이너(히트텍/발열내의/스타킹 등):
    *   1) 일반 옷 1개 상태에서 이너 클릭 시 기존 옷 유지 + 이너 추가 (레이어드)
    *   2) 이너 1개 상태에서 일반 옷 클릭 시 이너 유지 + 일반 옷 추가
    *   3) 이미 선택된 이너 클릭 시 토글 해제 (선택 취소)
@@ -187,7 +203,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     if (isSelected) {
       // 외투(outer)는 0개 선택(미착용)이 자유롭게 가능하므로 클릭 시 토글 해제
       if (category === 'outer') {
-        onChangeSelection({
+        updateSelection({
           ...selection,
           outer: currentList.filter((x) => x !== item),
         });
@@ -197,7 +213,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
       // 이너 아이템이면 토글 해제 (선택 취소)
       if (isTargetInner) {
         if (currentList.length > 1) {
-          onChangeSelection({
+          updateSelection({
             ...selection,
             [category]: currentList.filter((x) => x !== item),
           });
@@ -208,7 +224,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
       // 일반 옷이고 2개 이상 선택되어 있는 경우 해제 가능
       if (currentList.length > 1) {
-        onChangeSelection({
+        updateSelection({
           ...selection,
           [category]: currentList.filter((x) => x !== item),
         });
@@ -221,7 +237,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
     // 2. 선택되지 않은 아이템을 클릭한 경우
     if (currentList.length === 0) {
-      onChangeSelection({
+      updateSelection({
         ...selection,
         [category]: [item],
       });
@@ -235,7 +251,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
       // 외투(outer): 1개 선택 상태에서 텍스트 클릭 시 해당 외투로 단일 교체
       if (category === 'outer') {
-        onChangeSelection({
+        updateSelection({
           ...selection,
           outer: [item],
         });
@@ -244,7 +260,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
       // [예외 규칙 1]: 현재 일반 옷 1개인데 '이너' 클릭 -> 기존 옷 유지 + 이너 추가 (레이어드)
       if (!isCurrentInner && isTargetInner) {
-        onChangeSelection({
+        updateSelection({
           ...selection,
           [category]: [...currentList, item],
         });
@@ -253,7 +269,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
       // [예외 규칙 2]: 현재 이너 1개인데 일반 겉옷 클릭 -> 이너 유지 + 겉옷 추가 (레이어드)
       if (isCurrentInner && !isTargetInner) {
-        onChangeSelection({
+        updateSelection({
           ...selection,
           [category]: [...currentList, item],
         });
@@ -261,7 +277,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
       }
 
       // 일반 옷 -> 다른 일반 옷, 또는 이너 -> 다른 이너: 단일 교체
-      onChangeSelection({
+      updateSelection({
         ...selection,
         [category]: [item],
       });
@@ -270,7 +286,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
     // 현재 2개 이상 선택되어 있는 상태
     if (category === 'outer') {
-      onChangeSelection({
+      updateSelection({
         ...selection,
         outer: [...currentList, item],
       });
@@ -283,7 +299,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     if (isTargetInner) {
       // 새 이너 클릭: 기존 이너 교체 또는 추가
       const nextList = [...nonInnerItems, item];
-      onChangeSelection({
+      updateSelection({
         ...selection,
         [category]: nextList,
       });
@@ -291,14 +307,14 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     } else {
       // 새 일반 옷 클릭: 기존 일반 옷이 1개였으면 일반 옷만 교체하고 이너 유지!
       if (nonInnerItems.length === 1 && innerItems.length > 0) {
-        onChangeSelection({
+        updateSelection({
           ...selection,
           [category]: [item, ...innerItems],
         });
         return;
       }
 
-      onChangeSelection({
+      updateSelection({
         ...selection,
         [category]: [...currentList, item],
       });
@@ -316,7 +332,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     const isSelected = currentList.includes(item);
 
     if (currentList.length === 0) {
-      onChangeSelection({
+      updateSelection({
         ...selection,
         [category]: [item],
       });
@@ -325,7 +341,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
     if (isSelected) {
       if (category === 'outer' || currentList.length > 1) {
-        onChangeSelection({
+        updateSelection({
           ...selection,
           [category]: currentList.filter((x) => x !== item),
         });
@@ -334,7 +350,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     }
 
     // '+' 클릭 시 기존 선택 유지한 채 추가 (다중 선택/레이어드)
-    onChangeSelection({
+    updateSelection({
       ...selection,
       [category]: [...currentList, item],
     });
@@ -346,12 +362,12 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     const isSelected = currentList.includes(item);
     if (isSelected) {
       if (category !== 'outer' && currentList.length <= 1) return;
-      onChangeSelection({
+      updateSelection({
         ...selection,
         [category]: currentList.filter((x) => x !== item),
       });
     } else {
-      onChangeSelection({
+      updateSelection({
         ...selection,
         [category]: [...currentList, item],
       });
@@ -364,7 +380,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
     const newItems = isSelected
       ? selection.items.filter((i) => i !== item)
       : [...selection.items, item];
-    onChangeSelection({
+    updateSelection({
       ...selection,
       items: newItems,
     });
