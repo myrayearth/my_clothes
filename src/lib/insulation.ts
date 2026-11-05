@@ -114,17 +114,17 @@ export interface InsulationTargetRange {
 
 /**
  * 기온별 권장 보온 지수 합계 범위 반환
- * - 30°C 이상: 0 ~ 8점
- * - 25°C ~ 29°C: 10 ~ 20점
- * - 20°C ~ 24°C: 40 ~ 55점
- * - 15°C ~ 19°C: 55 ~ 75점
- * - 10°C ~ 14°C: 80 ~ 105점
- * - 5°C ~ 9°C: 110 ~ 135점
- * - 0°C ~ 4°C: 145 ~ 185점
- * - -5°C ~ -1°C: 180 ~ 215점
- * - -10°C ~ -6°C: 215 ~ 255점
- * - -15°C ~ -11°C: 255 ~ 295점
- * - -15°C 이하: 295점 이상 (상한선 없음)
+ * - 30°C 이상: 0 ~ 9점 (기준 5점)
+ * - 25°C ~ 29°C: 8 ~ 24점 (기준 12점)
+ * - 20°C ~ 24°C: 28 ~ 48점 (기준 38점)
+ * - 15°C ~ 19°C: 50 ~ 72점 (기준 61점)
+ * - 10°C ~ 14°C: 74 ~ 96점 (기준 85점)
+ * - 5°C ~ 9°C: 98 ~ 135점 (기준 110점)
+ * - 0°C ~ 4°C: 150 ~ 190점 (기준 174점)
+ * - -5°C ~ -1°C: 192 ~ 220점 (기준 207점)
+ * - -10°C ~ -6°C: 222 ~ 242점 (기준 236점)
+ * - -15°C ~ -11°C: 243 ~ 254점 (기준 247점)
+ * - -15°C 이하: 255점 이상 (기준 259점, 상한선 없음)
  */
 export function getInsulationTargetRange(temp: number, userOffset: number = 0): InsulationTargetRange {
   const roundedTemp = Math.round(temp);
@@ -136,43 +136,43 @@ export function getInsulationTargetRange(temp: number, userOffset: number = 0): 
 
   if (roundedTemp >= 30) {
     baseMin = 0;
-    baseMax = 8;
+    baseMax = 9;
   } else if (roundedTemp >= 25) {
-    baseMin = 10;
-    baseMax = 20;
+    baseMin = 8;
+    baseMax = 24;
   } else if (roundedTemp >= 20) {
-    baseMin = 40;
-    baseMax = 55;
+    baseMin = 28;
+    baseMax = 48;
   } else if (roundedTemp >= 15) {
-    baseMin = 55;
-    baseMax = 75;
+    baseMin = 50;
+    baseMax = 72;
   } else if (roundedTemp >= 10) {
-    baseMin = 80;
-    baseMax = 105;
+    baseMin = 74;
+    baseMax = 96;
   } else if (roundedTemp >= 5) {
-    baseMin = 110;
+    baseMin = 98;
     baseMax = 135;
   } else if (roundedTemp >= 0) {
-    baseMin = 145;
-    baseMax = 185;
+    baseMin = 150;
+    baseMax = 190;
   } else if (roundedTemp >= -5) {
-    baseMin = 180;
-    baseMax = 215;
+    baseMin = 192;
+    baseMax = 220;
   } else if (roundedTemp >= -10) {
-    baseMin = 215;
-    baseMax = 255;
+    baseMin = 222;
+    baseMax = 242;
   } else if (roundedTemp >= -15) {
-    baseMin = 255;
-    baseMax = 295;
+    baseMin = 243;
+    baseMax = 254;
   } else {
-    baseMin = 295;
-    baseMax = 350;
+    baseMin = 255;
+    baseMax = 300;
     hasNoUpperBound = true;
   }
 
   const finalMin = Math.max(0, baseMin + clampedOffset);
   const finalMax = hasNoUpperBound
-    ? Math.max(finalMin + 55, baseMax + clampedOffset)
+    ? Math.max(finalMin + 45, baseMax + clampedOffset)
     : Math.max(finalMin, baseMax + clampedOffset);
 
   const label = hasNoUpperBound ? `${finalMin}점 이상` : `${finalMin} ~ ${finalMax}점`;
@@ -184,20 +184,22 @@ export type InsulationStatus = 'COLD' | 'OPTIMAL' | 'HOT';
 
 /**
  * 룰셋 기준 점수-기온 매핑 테이블 (점수 오름차순, 구간 선형 보간용)
- * 한국 기상청 및 체감 표준 11단계 기온 구간의 대표 추천 복장 점수를 기준 온도로 정확히 매핑
+ * 한국 기상청 및 한국인 표준 11단계 기온 구간의 대표 추천 복장 점수를 각 구간 중간 온도와 1:1 정밀 매핑
  */
 export const ANCHOR_POINTS = [
   { score: 0, temp: 35 },
-  { score: 15, temp: 27 },
-  { score: 50, temp: 22 },
-  { score: 67, temp: 17 },
-  { score: 86, temp: 12 },    // 86점일 때 정확히 12°C 매핑 (환절기 오판정 해결)
-  { score: 120, temp: 7 },
-  { score: 170, temp: 2 },
-  { score: 195, temp: -3 },
-  { score: 235, temp: -8 },
-  { score: 275, temp: -13 },
-  { score: 320, temp: -20 },
+  { score: 5, temp: 32 },     // 30°C 이상 기본 추천 (반팔 5 + 반바지 3 + 손풍기 -3 = 5점)
+  { score: 12, temp: 27 },    // 25~29°C 기본 추천 (반팔 5 + 얇은 긴바지 7 = 12점)
+  { score: 37, temp: 22 },    // 20~24°C 기본 추천 (얇은 가디건 13 + 기본 긴팔 11 + 간절기 바지 13 = 37점)
+  { score: 61, temp: 17 },    // 15~19°C 기본 추천 (간절기 자켓 25 + 맨투맨 18 + 기본 긴바지 18 = 61점)
+  { score: 85, temp: 12 },    // 10~14°C 기본 추천 (트렌치/자켓 35 + 도톰 셔츠 24 + 두꺼운 바지 26 = 85점)
+  { score: 110, temp: 7 },    // 5~9°C 기본 추천 (경량 패딩 48 + 기모 맨투맨 30 + 기모 바지 32 = 110점)
+  { score: 174, temp: 2 },    // 0~4°C 기본 추천 (숏패딩 70 + 얇은이너 12 + 기모터틀넥 35 + 하의이너 14 + 기모바지 32 + 목도리 11 = 174점)
+  { score: 207, temp: -3 },   // -5~-1°C 기본 추천 (롱패딩 82 + 기모이너 20 + 기모터틀넥 35 + 하의기모이너 22 + 융기모바지 36 + 핫팩 12 = 207점)
+  { score: 236, temp: -8 },   // -10~-6°C 기본 추천 (헤비다운 95 + 기모이너 20 + 울스웨터 35 + 하의기모이너 22 + 패딩바지 41 + 목도리 11 + 핫팩 12 = 236점)
+  { score: 247, temp: -13 },  // -15~-11°C 기본 추천 (헤비다운 95 + 기모이너 20 + 울스웨터 35 + 하의기모이너 22 + 헤비방한바지 45 + 방한소품캡 30 = 247점)
+  { score: 259, temp: -18 },  // -15°C 이하 기본 추천 (헤비다운 95 + 얇은이너 12 + 기모이너 20 + 울스웨터 35 + 하의기모이너 22 + 헤비방한바지 45 + 방한소품캡 30 = 259점)
+  { score: 280, temp: -20 },
 ];
 
 /**

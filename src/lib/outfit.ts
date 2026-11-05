@@ -25,18 +25,18 @@ export function getOutfitRuleByTemperature(temp: number): OutfitRuleStep {
 
 /**
  * 룰셋 단계의 대표 추천 의류 선택 객체를 복제하여 반환합니다.
- * - 10°C 미만 (초겨울/겨울 추위/한파): 상/하의 보온 확보를 위해 이너 + 본의류 중복 기본 선택
- * - 10°C 이상: 이너는 기본 선택에서 제외하고 본의류만 단독 선택
+ * - 5°C 미만 (겨울 추위/한파): 상/하의 보온 확보를 위해 이너 + 본의류 중복 기본 선택
+ * - 5°C 이상 (초겨울/환절기/여름): 이너는 기본 선택에서 제외하고 본의류만 단독 선택
  */
 export function getDefaultOutfitSelection(rule: OutfitRuleStep, targetTemp?: number): OutfitSelection {
   const effectiveTemp = typeof targetTemp === 'number' ? targetTemp : (rule.min_temp + rule.max_temp) / 2;
-  const isColdWeather = effectiveTemp < 10;
+  const isColdWeather = effectiveTemp < 5;
 
   let selectedTop: string[];
   let selectedBottom: string[];
 
   if (isColdWeather) {
-    // 10°C 미만: 룰셋의 대표 추천(이너 + 본의류)을 그대로 복수 선택
+    // 5°C 미만: 룰셋의 대표 추천(이너 + 본의류)을 그대로 복수 선택
     selectedTop = [...rule.recommend.top];
     selectedBottom = [...rule.recommend.bottom];
 
@@ -52,7 +52,7 @@ export function getDefaultOutfitSelection(rule: OutfitRuleStep, targetTemp?: num
       selectedBottom = [defaultInnerBottom, ...selectedBottom];
     }
   } else {
-    // 10°C 이상: 이너는 기본 선택에서 제외하고 본의류만 단독 선택
+    // 5°C 이상: 이너는 기본 선택에서 제외하고 본의류만 단독 선택
     const nonInnerTop = rule.recommend.top.filter((i) => !isInnerClothingItem(i));
     const nonInnerBottom = rule.recommend.bottom.filter((i) => !isInnerClothingItem(i));
     selectedTop = nonInnerTop.length > 0 ? nonInnerTop : [rule.recommend.top[rule.recommend.top.length - 1] || '기본 반팔'];

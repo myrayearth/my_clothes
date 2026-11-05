@@ -97,26 +97,26 @@ export function calculateWeightedRecommendations(
   const filteredRecBottom = filterItemsByGender(rule.recommend.bottom, gender);
   const filteredRecItems = filterItemsByGender(rule.recommend.item, gender);
 
-  const isColdWeather = targetTemp < 10;
+  const isColdWeather = targetTemp < 5;
 
   let fallbackTop: string[];
   let fallbackBottom: string[];
 
   if (isColdWeather) {
-    // 10°C 미만: 보온성 확보를 위해 이너 + 본의류 중복 기본 추천
+    // 5°C 미만: 보온성 확보를 위해 이너 + 본의류 중복 기본 추천 (-15°C 이하 이중 이너 포함)
     const innerTop = filteredRecTop.filter(isInnerClothingItem);
     const nonInnerTop = filteredRecTop.filter((i) => !isInnerClothingItem(i));
-    const topInnerItem = innerTop[0] || (targetTemp < 0 ? '기모 이너' : '얇은 이너');
+    const topInnerItems = innerTop.length > 0 ? innerTop : [targetTemp < 0 ? '기모 이너' : '얇은 이너'];
     const mainTopItem = nonInnerTop[0] || (filteredRecTop[0] || rawTop[0] || '기본 긴팔');
-    fallbackTop = [topInnerItem, mainTopItem];
+    fallbackTop = [...topInnerItems, mainTopItem];
 
     const innerBottom = filteredRecBottom.filter(isInnerClothingItem);
     const nonInnerBottom = filteredRecBottom.filter((i) => !isInnerClothingItem(i));
-    const btmInnerItem = innerBottom[0] || (targetTemp < 0 ? '하의 기모 이너' : '하의 얇은 이너');
+    const btmInnerItems = innerBottom.length > 0 ? innerBottom : [targetTemp < 0 ? '하의 기모 이너' : '하의 얇은 이너'];
     const mainBtmItem = nonInnerBottom[0] || (filteredRecBottom[0] || rawBottom[0] || '기본 긴바지');
-    fallbackBottom = [btmInnerItem, mainBtmItem];
+    fallbackBottom = [...btmInnerItems, mainBtmItem];
   } else {
-    // 10°C 이상: 이너 제외, 본의류만 단독 선택
+    // 5°C 이상: 이너 제외, 본의류만 단독 선택
     const nonInnerRecTop = filteredRecTop.filter((i) => !isInnerClothingItem(i));
     const nonInnerRecBottom = filteredRecBottom.filter((i) => !isInnerClothingItem(i));
     fallbackTop = nonInnerRecTop.length > 0 ? nonInnerRecTop : (filteredRecTop.length > 0 ? filteredRecTop : [rawTop[0] || '기본 반팔']);
@@ -253,22 +253,22 @@ export function calculateWeightedRecommendations(
     const items = Array.from(allCandidateSet);
 
     const scoredItems = items.map((item) => {
-      // 1) 룰셋 사전 베이스라인 점수 (대표 추천: 3.0, 일반 후보: 2.8, 그 외: 2.3)
-      const ruleScore = recommendList.includes(item) ? 3.0 : candidateList.includes(item) ? 2.8 : 2.3;
+      // 1) 룰셋 사전 베이스라인 점수 (대표 추천: 3.1, 일반 후보: 2.8, 그 외: 2.3)
+      const ruleScore = recommendList.includes(item) ? 3.1 : candidateList.includes(item) ? 2.8 : 2.3;
 
       // 2) 개인 평가 점수
-      // - 착용 기록이 있는 경우: avgScore(0~5점) + 만족(3.5점 이상) 시 실측 우대 보너스(+0.5)
-      // - 착용 기록이 없는 경우: 기본 중립 점수(3.0점) 부여
+      // - 착용 기록이 있는 경우: avgScore(0~5점) + 만족(3.5점 이상) 시 실측 우대 보너스
+      // - 착용 기록이 없는 경우: ruleScore를 중립 기본값으로 사용하여 미검증 일반 후보가 검증된 아이템을 역전하지 않도록 방어
       const pStat = calculateGroupItemScore(item, category, personalLogs);
       const personalScore = pStat.count > 0
-        ? pStat.avgScore + (pStat.avgScore >= 3.5 ? Math.min(0.8, 0.5 + pStat.count * 0.1) : 0)
-        : 3.0;
+        ? pStat.avgScore + (pStat.avgScore >= 3.5 ? Math.min(0.9, 0.5 + pStat.count * 0.1) : 0)
+        : ruleScore;
 
       // 3) 게스트/누적 평가 점수
       const gStat = calculateGroupItemScore(item, category, guestLogs);
       const guestScore = gStat.count > 0
-        ? gStat.avgScore + (gStat.avgScore >= 3.5 ? Math.min(0.8, 0.5 + gStat.count * 0.1) : 0)
-        : 3.0;
+        ? gStat.avgScore + (gStat.avgScore >= 3.5 ? Math.min(0.9, 0.5 + gStat.count * 0.1) : 0)
+        : ruleScore;
 
       // 4) 가중 종합 점수
       const finalScore =
@@ -300,16 +300,38 @@ export function calculateWeightedRecommendations(
   const bestMainTop = topResult.rankedOptions.find((i) => !isInnerClothingItem(i)) || topResult.topItem;
   const bestMainBottom = bottomResult.rankedOptions.find((i) => !isInnerClothingItem(i)) || bottomResult.topItem;
 
+  // 특정 이너 아이템이 실제 평가 기록에서 높은 만족도(avgScore >= 3.5)를 받았는지 확인
+  const hasHighRatedInner = (item: string, category: 'top' | 'bottom') => {
+    const pStat = calculateGroupItemScore(item, category, personalLogs);
+    const gStat = calculateGroupItemScore(item, category, guestLogs);
+    const total = pStat.count + gStat.count;
+    if (total === 0) return false;
+    const avg = (pStat.count * pStat.avgScore + gStat.count * gStat.avgScore) / total;
+    return avg >= 3.5;
+  };
+
   let finalTop: string[];
   let finalBottom: string[];
 
   if (isColdWeather) {
-    // 10°C 미만: 평가 순위가 가장 높은 이너 아이템을 찾아 본의류와 함께 중복 선택
+    // 5°C 미만: 평가 순위가 가장 높은 이너 아이템을 찾아 본의류와 함께 중복 선택
+    const recInnerTops = filteredRecTop.filter(isInnerClothingItem);
     const bestInnerTop = topResult.rankedOptions.find(isInnerClothingItem) || (targetTemp < 0 ? '기모 이너' : '얇은 이너');
-    finalTop = [bestInnerTop, bestMainTop];
+    if (recInnerTops.length >= 2) {
+      finalTop = [...recInnerTops, bestMainTop];
+    } else {
+      finalTop = [bestInnerTop, bestMainTop];
+    }
 
     const bestInnerBottom = bottomResult.rankedOptions.find(isInnerClothingItem) || (targetTemp < 0 ? '하의 기모 이너' : '하의 얇은 이너');
     finalBottom = [bestInnerBottom, bestMainBottom];
+  } else if (targetTemp < 10) {
+    // 5°C ~ 9°C (초겨울): 기본은 본의류 단독 선택하되, 사용자가 직접 이너를 착용하고 높은 만족도(>= 3.5)를 기록한 경우에만 이너 병행 추천
+    const verifiedInnerTop = topResult.rankedOptions.find((i) => isInnerClothingItem(i) && hasHighRatedInner(i, 'top'));
+    finalTop = verifiedInnerTop ? [verifiedInnerTop, bestMainTop] : [bestMainTop];
+
+    const verifiedInnerBottom = bottomResult.rankedOptions.find((i) => isInnerClothingItem(i) && hasHighRatedInner(i, 'bottom'));
+    finalBottom = verifiedInnerBottom ? [verifiedInnerBottom, bestMainBottom] : [bestMainBottom];
   } else {
     finalTop = [bestMainTop];
     finalBottom = [bestMainBottom];
