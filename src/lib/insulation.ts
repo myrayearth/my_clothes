@@ -398,9 +398,9 @@ export function getItemChipWarmthClasses(
   isSelected: boolean,
   isRecommended: boolean = false
 ): string {
-  // 1. 선택된 항목: 옅은 노란색(amber-100) 배경 + 진한 텍스트(amber-950) + 동일한 1px 테두리(border-amber-300)로 크기 변화 없이 강조
+  // 1. 선택된 항목: 옅은 노란색(amber-100) 배경 + 진한 텍스트(amber-950) 볼드 + 내부 3px 외곽선(ring-inset ring-[3px] ring-amber-400)으로 크기 변화 없이 강력한 선택 강조
   if (isSelected) {
-    return 'bg-amber-100 text-amber-950 border-amber-300 font-bold shadow-xs';
+    return 'bg-amber-100 text-amber-950 border-amber-400 ring-inset ring-[3px] ring-amber-400 font-bold';
   }
 
   // 2. 추천 항목 (미선택 상태, 이너 추천 포함): 그래프 '적정' 영역과 일관된 연두색(emerald-50 / border-emerald-300) 적용

@@ -688,7 +688,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }}
                     className={`min-h-[38px] px-2.5 py-1.5 flex items-center justify-center border-l transition-colors active:scale-90 touch-manipulation cursor-pointer ${
                       isSelected
-                        ? 'border-amber-300 bg-amber-200/90 hover:bg-amber-300 text-amber-950'
+                        ? 'border-amber-400 bg-amber-200/90 hover:bg-amber-300 text-amber-950'
                         : 'border-inherit hover:bg-black/5 text-[#0b192c]/70 hover:text-[#0b192c]'
                     }`}
                     title={isSelected ? '선택 해제' : `${opt} 레이어드 추가`}
@@ -820,7 +820,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }}
                     className={`min-h-[38px] px-2.5 py-1.5 flex items-center justify-center border-l transition-colors active:scale-90 touch-manipulation cursor-pointer ${
                       isSelected
-                        ? 'border-amber-300 bg-amber-200/90 hover:bg-amber-300 text-amber-950'
+                        ? 'border-amber-400 bg-amber-200/90 hover:bg-amber-300 text-amber-950'
                         : 'border-inherit hover:bg-black/5 text-[#0b192c]/70 hover:text-[#0b192c]'
                     }`}
                     title={
@@ -958,7 +958,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }}
                     className={`min-h-[38px] px-2.5 py-1.5 flex items-center justify-center border-l transition-colors active:scale-90 touch-manipulation cursor-pointer ${
                       isSelected
-                        ? 'border-amber-300 bg-amber-200/90 hover:bg-amber-300 text-amber-950'
+                        ? 'border-amber-400 bg-amber-200/90 hover:bg-amber-300 text-amber-950'
                         : 'border-inherit hover:bg-black/5 text-[#0b192c]/70 hover:text-[#0b192c]'
                     }`}
                     title={
