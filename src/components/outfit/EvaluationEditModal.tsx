@@ -391,10 +391,7 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                       isRecommended
                     )}`}
                   >
-                    {isSelected && (
-                      <Check className="w-3.5 h-3.5 text-[#fdfbf7] stroke-[2.5] shrink-0" />
-                    )}
-                    <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] font-semibold'}>
+                    <span className={isSelected ? 'text-amber-950 font-bold' : 'text-[#0b192c] font-semibold'}>
                       {opt}
                     </span>
                     {isRecommended && (
@@ -469,10 +466,7 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                       isRecommended
                     )}`}
                   >
-                    {isSelected && (
-                      <Check className="w-3.5 h-3.5 text-[#fdfbf7] stroke-[2.5] shrink-0" />
-                    )}
-                    <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] font-semibold'}>
+                    <span className={isSelected ? 'text-amber-950 font-bold' : 'text-[#0b192c] font-semibold'}>
                       {opt}
                     </span>
                     {isRecommended && (
@@ -547,10 +541,7 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                       isRecommended
                     )}`}
                   >
-                    {isSelected && (
-                      <Check className="w-3.5 h-3.5 text-[#fdfbf7] stroke-[2.5] shrink-0" />
-                    )}
-                    <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] font-semibold'}>
+                    <span className={isSelected ? 'text-amber-950 font-bold' : 'text-[#0b192c] font-semibold'}>
                       {opt}
                     </span>
                     {isRecommended && (
@@ -627,10 +618,7 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                       isRecommended
                     )}`}
                   >
-                    {isSelected && (
-                      <Check className="w-3.5 h-3.5 text-[#fdfbf7] stroke-[2.5] shrink-0" />
-                    )}
-                    <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] font-semibold'}>
+                    <span className={isSelected ? 'text-amber-950 font-bold' : 'text-[#0b192c] font-semibold'}>
                       {opt}
                     </span>
                     {isRecommended && (

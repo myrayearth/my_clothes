@@ -385,12 +385,12 @@ export function getInsulationStatusMeta(status: InsulationStatus): {
 /**
  * 복장 아이템 보온 점수 기반 칩 배경 틴트 및 텍스트 스타일 산출
  * - 규칙:
- *   1) 선택된 항목: 브랜드 메인 블루(bg-brand-600, ring-2, text-[#fdfbf7](아이보리), font-bold)로 명확한 시각적 구별 제공
+ *   1) 선택된 항목: 옅은 노란색(bg-amber-100, border-amber-300, text-amber-950, font-bold)으로 카드 크기 변화 없이 명확한 시각적 구별 제공
  *   2) 외투/상의/하의: 보온 점수가 높을수록 빨간색(진한 빨강), 낮을수록 파란색(진한 파랑)으로 점진적 그라데이션
  *   3) 소품(items): 보온 점수 색상을 적용하지 않고 깔끔한 뉴트럴 톤 유지
  *   4) 텍스트 색상:
  *      - 선택 가능한 항목 (미선택): '검은색에 가까운 네이비색' (text-[#0b192c])
- *      - 선택된 항목: '흰색에 가까운 아이보리색' (text-[#fdfbf7])
+ *      - 선택된 항목: 옅은 노란색 배경에 시인성이 뛰어난 '진한 브라운 네이비' (text-amber-950)
  */
 export function getItemChipWarmthClasses(
   item: string,
@@ -398,9 +398,9 @@ export function getItemChipWarmthClasses(
   isSelected: boolean,
   isRecommended: boolean = false
 ): string {
-  // 1. 선택된 항목: 최우선 브랜드 하이라이트 + '흰색에 가까운 아이보리색' 글자 적용
+  // 1. 선택된 항목: 옅은 노란색(amber-100) 배경 + 진한 텍스트(amber-950) + 동일한 1px 테두리(border-amber-300)로 크기 변화 없이 강조
   if (isSelected) {
-    return 'bg-brand-600 text-[#fdfbf7] border-brand-600 shadow-md ring-2 ring-brand-400 ring-offset-1 ring-offset-white font-bold';
+    return 'bg-amber-100 text-amber-950 border-amber-300 font-bold shadow-xs';
   }
 
   // 2. 소품(items) 카테고리: 보온 색상 적용 제외 (뉴트럴/추천 스타일 유지, 글자색: 검은색에 가까운 네이비)

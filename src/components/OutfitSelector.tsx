@@ -648,22 +648,17 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   <button
                     type="button"
                     onClick={() => handleMultiSelectCardClick('outer', opt)}
-                    className={`min-h-[38px] py-1.5 flex items-center justify-center active:opacity-80 touch-manipulation cursor-pointer flex-1 ${
-                      isSelected ? 'pl-2.5 pr-2.5 gap-1.5' : 'px-3.5'
-                    }`}
+                    className="min-h-[38px] py-1.5 px-3.5 flex items-center justify-center gap-1.5 active:opacity-80 touch-manipulation cursor-pointer flex-1"
                     title={isSelected ? '클릭하여 선택 해제' : `${opt} 선택`}
                   >
-                    {isSelected && (
-                      <Check className="w-3.5 h-3.5 text-[#fdfbf7] stroke-[2.5] shrink-0" />
-                    )}
-                    <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] font-semibold'}>
+                    <span className={isSelected ? 'text-amber-950 font-bold' : 'text-[#0b192c] font-semibold'}>
                       {opt}
                     </span>
                     {isRecommended && (
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                           isSelected
-                            ? 'text-amber-100 bg-amber-900/60 border-amber-300/40'
+                            ? 'text-amber-900 bg-amber-200/80 border-amber-400'
                             : 'text-amber-700 bg-amber-100/80 border-amber-300'
                         }`}
                       >
@@ -675,7 +670,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                       <span
                         className={`text-[9px] font-semibold px-1 py-0.2 rounded border shrink-0 ${
                           isSelected
-                            ? 'text-brand-100 bg-brand-700/60 border-brand-400/40'
+                            ? 'text-amber-900 bg-amber-200/80 border-amber-400'
                             : 'text-brand-700 bg-brand-50 border-brand-200'
                         }`}
                       >
@@ -693,7 +688,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }}
                     className={`min-h-[38px] px-2.5 py-1.5 flex items-center justify-center border-l transition-colors active:scale-90 touch-manipulation cursor-pointer ${
                       isSelected
-                        ? 'border-brand-500/80 bg-brand-700/80 hover:bg-brand-700 text-[#fdfbf7]'
+                        ? 'border-amber-300 bg-amber-200/90 hover:bg-amber-300 text-amber-950'
                         : 'border-inherit hover:bg-black/5 text-[#0b192c]/70 hover:text-[#0b192c]'
                     }`}
                     title={isSelected ? '선택 해제' : `${opt} 레이어드 추가`}
@@ -767,9 +762,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   <button
                     type="button"
                     onClick={() => handleMultiSelectCardClick('top', opt)}
-                    className={`min-h-[38px] py-1.5 flex items-center justify-center active:opacity-80 touch-manipulation cursor-pointer flex-1 ${
-                      isSelected ? 'pl-2.5 pr-2.5 gap-1.5' : 'px-3.5'
-                    }`}
+                    className="min-h-[38px] py-1.5 px-3.5 flex items-center justify-center gap-1.5 active:opacity-80 touch-manipulation cursor-pointer flex-1"
                     title={
                       isSelected
                         ? selection.top.length === 1 && !isInnerClothingItem(opt)
@@ -778,17 +771,14 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                         : `${opt} 선택`
                     }
                   >
-                    {isSelected && (
-                      <Check className="w-3.5 h-3.5 text-[#fdfbf7] stroke-[2.5] shrink-0" />
-                    )}
-                    <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] font-semibold'}>
+                    <span className={isSelected ? 'text-amber-950 font-bold' : 'text-[#0b192c] font-semibold'}>
                       {opt}
                     </span>
                     {isInner && (
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                           isSelected
-                            ? 'text-sky-100 bg-sky-900/60 border-sky-300/40'
+                            ? 'text-sky-900 bg-sky-100 border-sky-300'
                             : 'text-sky-700 bg-sky-100/80 border-sky-300'
                         }`}
                       >
@@ -800,7 +790,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                           isSelected
-                            ? 'text-amber-100 bg-amber-900/60 border-amber-300/40'
+                            ? 'text-amber-900 bg-amber-200/80 border-amber-400'
                             : 'text-amber-700 bg-amber-100/80 border-amber-300'
                         }`}
                       >
@@ -812,7 +802,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                       <span
                         className={`text-[9px] font-semibold px-1 py-0.2 rounded border shrink-0 ${
                           isSelected
-                            ? 'text-brand-100 bg-brand-700/60 border-brand-400/40'
+                            ? 'text-amber-900 bg-amber-200/80 border-amber-400'
                             : 'text-brand-700 bg-brand-50 border-brand-200'
                         }`}
                       >
@@ -830,7 +820,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }}
                     className={`min-h-[38px] px-2.5 py-1.5 flex items-center justify-center border-l transition-colors active:scale-90 touch-manipulation cursor-pointer ${
                       isSelected
-                        ? 'border-brand-500/80 bg-brand-700/80 hover:bg-brand-700 text-[#fdfbf7]'
+                        ? 'border-amber-300 bg-amber-200/90 hover:bg-amber-300 text-amber-950'
                         : 'border-inherit hover:bg-black/5 text-[#0b192c]/70 hover:text-[#0b192c]'
                     }`}
                     title={
@@ -910,9 +900,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   <button
                     type="button"
                     onClick={() => handleMultiSelectCardClick('bottom', opt)}
-                    className={`min-h-[38px] py-1.5 flex items-center justify-center active:opacity-80 touch-manipulation cursor-pointer flex-1 ${
-                      isSelected ? 'pl-2.5 pr-2.5 gap-1.5' : 'px-3.5'
-                    }`}
+                    className="min-h-[38px] py-1.5 px-3.5 flex items-center justify-center gap-1.5 active:opacity-80 touch-manipulation cursor-pointer flex-1"
                     title={
                       isSelected
                         ? selection.bottom.length === 1 && !isInnerClothingItem(opt)
@@ -921,17 +909,14 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                         : `${opt} 선택`
                     }
                   >
-                    {isSelected && (
-                      <Check className="w-3.5 h-3.5 text-[#fdfbf7] stroke-[2.5] shrink-0" />
-                    )}
-                    <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] font-semibold'}>
+                    <span className={isSelected ? 'text-amber-950 font-bold' : 'text-[#0b192c] font-semibold'}>
                       {opt}
                     </span>
                     {isInner && (
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                           isSelected
-                            ? 'text-sky-100 bg-sky-900/60 border-sky-300/40'
+                            ? 'text-sky-900 bg-sky-100 border-sky-300'
                             : 'text-sky-700 bg-sky-100/80 border-sky-300'
                         }`}
                       >
@@ -943,7 +928,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                           isSelected
-                            ? 'text-amber-100 bg-amber-900/60 border-amber-300/40'
+                            ? 'text-amber-900 bg-amber-200/80 border-amber-400'
                             : 'text-amber-700 bg-amber-100/80 border-amber-300'
                         }`}
                       >
@@ -955,7 +940,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                       <span
                         className={`text-[9px] font-semibold px-1 py-0.2 rounded border shrink-0 ${
                           isSelected
-                            ? 'text-brand-100 bg-brand-700/60 border-brand-400/40'
+                            ? 'text-amber-900 bg-amber-200/80 border-amber-400'
                             : 'text-brand-700 bg-brand-50 border-brand-200'
                         }`}
                       >
@@ -973,7 +958,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     }}
                     className={`min-h-[38px] px-2.5 py-1.5 flex items-center justify-center border-l transition-colors active:scale-90 touch-manipulation cursor-pointer ${
                       isSelected
-                        ? 'border-brand-500/80 bg-brand-700/80 hover:bg-brand-700 text-[#fdfbf7]'
+                        ? 'border-amber-300 bg-amber-200/90 hover:bg-amber-300 text-amber-950'
                         : 'border-inherit hover:bg-black/5 text-[#0b192c]/70 hover:text-[#0b192c]'
                     }`}
                     title={
@@ -1041,26 +1026,21 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                   key={opt}
                   type="button"
                   onClick={() => handleItemToggle(opt)}
-                  className={`min-h-[38px] py-1.5 text-xs rounded-xl border transition-all duration-150 flex items-center justify-center active:scale-95 touch-manipulation select-none cursor-pointer ${
-                    isSelected ? 'pl-2.5 pr-3 gap-1.5' : 'px-3.5'
-                  } ${getItemChipWarmthClasses(
+                  className={`min-h-[38px] py-1.5 px-3.5 text-xs rounded-xl border transition-all duration-150 flex items-center justify-center gap-1.5 active:scale-95 touch-manipulation select-none cursor-pointer ${getItemChipWarmthClasses(
                     opt,
                     'items',
                     isSelected,
                     isRecommended
                   )}`}
                 >
-                  {isSelected && (
-                    <Check className="w-3.5 h-3.5 text-[#fdfbf7] stroke-[2.5] shrink-0" />
-                  )}
-                  <span className={isSelected ? 'text-[#fdfbf7] font-bold' : 'text-[#0b192c] font-semibold'}>
+                  <span className={isSelected ? 'text-amber-950 font-bold' : 'text-[#0b192c] font-semibold'}>
                     {opt}
                   </span>
                   {isRecommended && (
                     <span
                       className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                         isSelected
-                          ? 'text-amber-100 bg-amber-900/60 border-amber-300/40'
+                          ? 'text-amber-900 bg-amber-200/80 border-amber-400'
                           : 'text-amber-700 bg-amber-100/80 border-amber-300'
                       }`}
                     >
@@ -1072,7 +1052,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     <span
                       className={`text-[9px] font-semibold px-1 py-0.2 rounded border shrink-0 ${
                         isSelected
-                          ? 'text-brand-100 bg-brand-700/60 border-brand-400/40'
+                          ? 'text-amber-900 bg-amber-200/80 border-amber-400'
                           : 'text-brand-700 bg-brand-50 border-brand-200'
                       }`}
                     >
