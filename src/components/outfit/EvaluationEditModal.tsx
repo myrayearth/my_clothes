@@ -397,7 +397,7 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                     {isRecommended && (
                       <span
                         className={`text-[9px] font-bold px-1 rounded ${
-                          isSelected ? 'bg-amber-900/60 text-amber-200' : 'bg-amber-100 text-amber-800'
+                          isSelected ? 'bg-emerald-200/90 text-emerald-900 border border-emerald-400' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                         }`}
                       >
                         추천
@@ -472,7 +472,7 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                     {isRecommended && (
                       <span
                         className={`text-[9px] font-bold px-1 rounded ${
-                          isSelected ? 'bg-amber-900/60 text-amber-200' : 'bg-amber-100 text-amber-800'
+                          isSelected ? 'bg-emerald-200/90 text-emerald-900 border border-emerald-400' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                         }`}
                       >
                         추천
@@ -547,7 +547,7 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                     {isRecommended && (
                       <span
                         className={`text-[9px] font-bold px-1 rounded ${
-                          isSelected ? 'bg-amber-900/60 text-amber-200' : 'bg-amber-100 text-amber-800'
+                          isSelected ? 'bg-emerald-200/90 text-emerald-900 border border-emerald-400' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                         }`}
                       >
                         추천
@@ -624,7 +624,7 @@ export const EvaluationEditModal: React.FC<EvaluationEditModalProps> = ({
                     {isRecommended && (
                       <span
                         className={`text-[9px] font-bold px-1 rounded ${
-                          isSelected ? 'bg-amber-900/60 text-amber-200' : 'bg-amber-100 text-amber-800'
+                          isSelected ? 'bg-emerald-200/90 text-emerald-900 border border-emerald-400' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                         }`}
                       >
                         추천

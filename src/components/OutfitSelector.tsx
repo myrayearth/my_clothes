@@ -658,11 +658,11 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                           isSelected
-                            ? 'text-amber-900 bg-amber-200/80 border-amber-400'
-                            : 'text-amber-700 bg-amber-100/80 border-amber-300'
+                            ? 'text-emerald-900 bg-emerald-100 border-emerald-400'
+                            : 'text-emerald-800 bg-emerald-100/90 border-emerald-300'
                         }`}
                       >
-                        <Sparkles className="w-2.5 h-2.5 text-amber-500 shrink-0" />
+                        <Sparkles className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
                         <span>추천</span>
                       </span>
                     )}
@@ -786,15 +786,15 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                         <span>이너</span>
                       </span>
                     )}
-                    {isRecommended && !isInner && (
+                    {isRecommended && (
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                           isSelected
-                            ? 'text-amber-900 bg-amber-200/80 border-amber-400'
-                            : 'text-amber-700 bg-amber-100/80 border-amber-300'
+                            ? 'text-emerald-900 bg-emerald-100 border-emerald-400'
+                            : 'text-emerald-800 bg-emerald-100/90 border-emerald-300'
                         }`}
                       >
-                        <Sparkles className="w-2.5 h-2.5 text-amber-500 shrink-0" />
+                        <Sparkles className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
                         <span>추천</span>
                       </span>
                     )}
@@ -924,15 +924,15 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                         <span>이너</span>
                       </span>
                     )}
-                    {isRecommended && !isInner && (
+                    {isRecommended && (
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                           isSelected
-                            ? 'text-amber-900 bg-amber-200/80 border-amber-400'
-                            : 'text-amber-700 bg-amber-100/80 border-amber-300'
+                            ? 'text-emerald-900 bg-emerald-100 border-emerald-400'
+                            : 'text-emerald-800 bg-emerald-100/90 border-emerald-300'
                         }`}
                       >
-                        <Sparkles className="w-2.5 h-2.5 text-amber-500 shrink-0" />
+                        <Sparkles className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
                         <span>추천</span>
                       </span>
                     )}
@@ -1040,11 +1040,11 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                     <span
                       className={`text-[9px] font-bold px-1.5 py-0.2 rounded border flex items-center gap-0.5 shrink-0 ${
                         isSelected
-                          ? 'text-amber-900 bg-amber-200/80 border-amber-400'
-                          : 'text-amber-700 bg-amber-100/80 border-amber-300'
+                          ? 'text-emerald-900 bg-emerald-100 border-emerald-400'
+                          : 'text-emerald-800 bg-emerald-100/90 border-emerald-300'
                       }`}
                     >
-                      <Sparkles className="w-2.5 h-2.5 text-amber-500 shrink-0" />
+                      <Sparkles className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
                       <span>추천</span>
                     </span>
                   )}

@@ -403,11 +403,13 @@ export function getItemChipWarmthClasses(
     return 'bg-amber-100 text-amber-950 border-amber-300 font-bold shadow-xs';
   }
 
-  // 2. 소품(items) 카테고리: 보온 색상 적용 제외 (뉴트럴/추천 스타일 유지, 글자색: 검은색에 가까운 네이비)
+  // 2. 추천 항목 (미선택 상태, 이너 추천 포함): 그래프 '적정' 영역과 일관된 연두색(emerald-50 / border-emerald-300) 적용
+  if (isRecommended) {
+    return 'bg-emerald-50 hover:bg-emerald-100/80 text-[#0b192c] border-emerald-300 font-semibold';
+  }
+
+  // 3. 소품(items) 카테고리: 보온 색상 적용 제외 (뉴트럴 스타일 유지, 글자색: 검은색에 가까운 네이비)
   if (category === 'items') {
-    if (isRecommended) {
-      return 'bg-amber-50 hover:bg-amber-100/80 text-[#0b192c] border-amber-300 font-semibold';
-    }
     return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold';
   }
 
@@ -429,9 +431,6 @@ export function getItemChipWarmthClasses(
     }
     if (score >= 30) {
       // 경량 패딩 조끼(32), 트렌치/야상/자켓(35) - 환절기 기준 뉴트럴
-      if (isRecommended) {
-        return 'bg-amber-50 hover:bg-amber-100/80 text-[#0b192c] border-amber-300 font-semibold';
-      }
       return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold';
     }
     if (score >= 20) {
@@ -462,9 +461,6 @@ export function getItemChipWarmthClasses(
     }
     if (score >= 10) {
       // 기본 긴팔(11), 얇은 이너(12), 얇은 셔츠/가디건(13) - 기준 뉴트럴
-      if (isRecommended) {
-        return 'bg-amber-50 hover:bg-amber-100/80 text-[#0b192c] border-amber-300 font-semibold';
-      }
       return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold';
     }
     if (score >= 7) {
@@ -495,9 +491,6 @@ export function getItemChipWarmthClasses(
     }
     if (score >= 16) {
       // 기본 긴바지(18) - 기준 뉴트럴
-      if (isRecommended) {
-        return 'bg-amber-50 hover:bg-amber-100/80 text-[#0b192c] border-amber-300 font-semibold';
-      }
       return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold';
     }
     if (score >= 10) {
