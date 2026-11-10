@@ -42,7 +42,7 @@ export function getItemInsulationScore(item: string, category?: string): number 
   if (trimmed.includes('발열내의') || trimmed.includes('히트텍') || trimmed.includes('타이즈') || trimmed.includes('이너')) return 14;
   if (trimmed.includes('스타킹')) return 4;
   if (trimmed.includes('블라우스')) return 12;
-  if (trimmed.includes('원피스')) return category === 'bottom' ? 4 : 5;
+  if (trimmed.includes('원피스')) return 4.5;
   if (trimmed.includes('스커트') || trimmed.includes('치마')) return trimmed.includes('롱') ? 14 : 4;
   if (
     trimmed.includes('니트') ||
@@ -51,7 +51,7 @@ export function getItemInsulationScore(item: string, category?: string): number 
     trimmed.includes('스웨터')
   )
     return 20;
-  if (trimmed.includes('보온 양말') || trimmed.includes('보온양말') || trimmed.includes('양말')) return 7;
+  if (trimmed.includes('보온 양말') || trimmed.includes('보온양말') || trimmed.includes('양말')) return 8;
   if (
     trimmed.includes('핫팩') ||
     trimmed.includes('목도리') ||
@@ -429,11 +429,11 @@ export function getItemChipWarmthClasses(
       return 'bg-rose-50 hover:bg-rose-100 text-[#0b192c] border-rose-200 font-semibold';
     }
     if (score >= 36) {
-      // 패딩 조끼(40), 가죽/플리스 자켓(42)
+      // 패딩 조끼(36), 가죽/플리스 자켓(42)
       return 'bg-rose-50/60 hover:bg-rose-100/80 text-[#0b192c] border-rose-200/80 font-semibold';
     }
     if (score >= 30) {
-      // 경량 패딩 조끼(32), 트렌치/야상/자켓(35) - 환절기 기준 뉴트럴
+      // 트렌치/야상/자켓(35) - 환절기 기준 뉴트럴
       return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold';
     }
     if (score >= 20) {
@@ -444,14 +444,14 @@ export function getItemChipWarmthClasses(
       // 얇은 바람막이/자켓(18)
       return 'bg-blue-50 hover:bg-blue-100 text-[#0b192c] border-blue-200 font-semibold';
     }
-    // 얇은 셔츠/가디건(14)
+    // 얇은 가디건(14)
     return 'bg-blue-100 hover:bg-blue-200/80 text-[#0b192c] border-blue-300 font-semibold shadow-2xs';
   }
 
   // 4. 상의(Top) 보온 스펙트럼 (2 ~ 35점, 글자색: 검은색에 가까운 네이비)
   if (category === 'top') {
     if (score >= 30) {
-      // 기모 맨투맨/후드(30), 기모 터틀넥(35), 두꺼운 울 니트(35)
+      // 기모 맨투맨/후드(30), 두꺼운 니트/기모 폴라(35)
       return 'bg-rose-100 hover:bg-rose-200/80 text-[#0b192c] border-rose-300 font-semibold shadow-2xs';
     }
     if (score >= 20) {
@@ -459,11 +459,11 @@ export function getItemChipWarmthClasses(
       return 'bg-rose-50 hover:bg-rose-100 text-[#0b192c] border-rose-200 font-semibold';
     }
     if (score >= 15) {
-      // 가벼운 스웨터/조끼(15), 맨투맨/후드티(18)
+      // 맨투맨/후드/니트(17)
       return 'bg-rose-50/60 hover:bg-rose-100/80 text-[#0b192c] border-rose-200/80 font-semibold';
     }
     if (score >= 10) {
-      // 기본 긴팔(11), 얇은 내의/히트텍(12), 얇은 셔츠/가디건(13) - 기준 뉴트럴
+      // 기본 긴팔(11), 얇은 내의/히트텍(12), 얇은 셔츠(13) - 기준 뉴트럴
       return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold';
     }
     if (score >= 7) {
@@ -480,12 +480,12 @@ export function getItemChipWarmthClasses(
 
   // 5. 하의(Bottom) 보온 스펙트럼 (3 ~ 45점, 글자색: 검은색에 가까운 네이비)
   if (category === 'bottom') {
-    if (score >= 36) {
-      // 두꺼운 기모 방한바지(36), 패딩/방풍 바지(41), 두꺼운 방한바지(45)
+    if (score >= 34) {
+      // 기모 바지(34), 패딩/방한 바지(43)
       return 'bg-rose-100 hover:bg-rose-200/80 text-[#0b192c] border-rose-300 font-semibold shadow-2xs';
     }
     if (score >= 26) {
-      // 두꺼운 긴바지(26), 기모 긴바지(32)
+      // 두꺼운 긴바지(26)
       return 'bg-rose-50 hover:bg-rose-100 text-[#0b192c] border-rose-200 font-semibold';
     }
     if (score >= 20) {

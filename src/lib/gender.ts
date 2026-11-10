@@ -14,7 +14,6 @@ export const FEMALE_ONLY_KEYWORDS = [
  */
 export function isFemaleOnlyItem(item: string): boolean {
   if (!item) return false;
-  if (item === '보온 양말') return false;
   return FEMALE_ONLY_KEYWORDS.some((kw) => item.includes(kw));
 }
 

@@ -1,5 +1,5 @@
 import outfitRulesData from '@/data/outfitRules.json';
-import { STANDARD_ITEMS_BY_CATEGORY } from '@/data/itemScores';
+import { STANDARD_ITEMS_BY_CATEGORY, STANDARD_ITEM_SET } from '@/data/itemScores';
 import { OutfitRuleStep, OutfitSelection } from '@/types/outfit';
 import { isInnerClothingItem } from '@/lib/itemPicker';
 import { filterItemsByGender } from '@/lib/gender';
@@ -209,7 +209,8 @@ export function getDefaultOutfitSelection(rule: OutfitRuleStep, targetTemp?: num
 }
 
 /**
- * 11단계 전체 기온 룰셋 및 표준 카탈로그에 존재하는 모든 카테고리별 의류 아이템 목록을 중복 없이 추출합니다.
+ * 표준 카탈로그(52종)에 존재하는 모든 카테고리별 의류 아이템 목록을 중복 없이 추출합니다.
+ * (outfitRules.json에 레거시 명칭이 남아있더라도 UI 목록이 오염되지 않도록 방어)
  */
 export function getAllUniqueCategoryItems(): {
   outer: string[];
@@ -224,18 +225,17 @@ export function getAllUniqueCategoryItems(): {
 
   outfitRules.forEach((rule) => {
     rule.outer.forEach((i) => {
-      if (i && i !== '없음') outerSet.add(i);
+      if (i && i !== '없음' && STANDARD_ITEM_SET.has(i)) outerSet.add(i);
     });
-    rule.top.forEach((i) => topSet.add(i));
-    rule.bottom.forEach((i) => bottomSet.add(i));
-    rule.item.forEach((i) => itemsSet.add(i));
-
-    if (rule.recommend.outer && rule.recommend.outer !== '없음') {
-      outerSet.add(rule.recommend.outer);
-    }
-    rule.recommend.top.forEach((i) => topSet.add(i));
-    rule.recommend.bottom.forEach((i) => bottomSet.add(i));
-    rule.recommend.item.forEach((i) => itemsSet.add(i));
+    rule.top.forEach((i) => {
+      if (STANDARD_ITEM_SET.has(i)) topSet.add(i);
+    });
+    rule.bottom.forEach((i) => {
+      if (STANDARD_ITEM_SET.has(i)) bottomSet.add(i);
+    });
+    rule.item.forEach((i) => {
+      if (STANDARD_ITEM_SET.has(i)) itemsSet.add(i);
+    });
   });
 
   return {
