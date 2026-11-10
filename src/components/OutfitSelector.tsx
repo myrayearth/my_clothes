@@ -1064,13 +1064,18 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
       {/* 실시간 선택 조합 요약 카드 ('현재 코디' 요약: ITEM 소품 항목 통과 시 게이지 고정이 해제되며 노출) */}
       <div className="p-4 bg-white rounded-2xl shadow-xs border border-slate-200/90 text-xs text-slate-700 space-y-2">
-        {/* 첫 번째 줄: 현재 옷차림: 적정 기온 약 XX.X°C (상태 라벨) */}
+        {/* 첫 번째 줄: 현재 옷차림 상태 (직관적 보온 상태 및 편차 수치 노출) */}
         <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-slate-200/60">
           <div className="flex items-center gap-1.5 font-bold text-slate-800">
             <Shirt className="w-4 h-4 text-brand-600 shrink-0" />
-            <span>현재 옷차림: 적정 기온 약 {coverTemp}°C ({relativeStatus.diff > 0 ? `+${relativeStatus.diff}` : relativeStatus.diff}°C)</span>
-            <span className={relativeStatus.badgeStyle}>
+            <span>현재 옷차림 보온 상태:</span>
+            <span className={`${relativeStatus.badgeStyle} px-2 py-0.5 rounded-md text-xs`}>
               {relativeStatus.badgeText}
+              {relativeStatus.diff !== 0 && (
+                <span className="ml-1 font-extrabold opacity-95">
+                  ({relativeStatus.diff > 0 ? `+${relativeStatus.diff}` : relativeStatus.diff}°C)
+                </span>
+              )}
             </span>
           </div>
         </div>

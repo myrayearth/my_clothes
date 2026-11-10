@@ -113,26 +113,26 @@ export const OutfitGaugeCard: React.FC<OutfitGaugeCardProps> = ({
   // 공통 게이지 트랙 렌더러
   const renderGaugeTrack = () => (
     <div className="relative h-4 sm:h-5 w-full select-none">
-      {/* 1. 두꺼움 구간 */}
+      {/* 1. 두꺼움 구간 (+ 수치로 더움 강조) */}
       <div
         className="absolute top-0 bottom-0 left-0 w-1/4 h-full flex items-center justify-center font-bold text-[9px] sm:text-[10px] tracking-tight bg-rose-100/90 border-y border-l border-rose-500/80 rounded-l-full dark:bg-rose-500/25 dark:border-rose-400/80"
-        title={`두꺼움 (${gaugeMinTemp}°C ~ ${temperature - 2.5}°C)`}
+        title="두꺼움 (+2.5°C 이상 더움)"
       >
         <span className="text-rose-950 font-bold dark:text-rose-200 truncate px-0.5">두꺼움</span>
       </div>
 
-      {/* 2. 적당함 구간 */}
+      {/* 2. 적당함 구간 (±2.5°C 이내 쾌적) */}
       <div
         className="absolute top-0 bottom-0 left-1/4 w-1/2 h-full flex items-center justify-center font-bold text-[9px] sm:text-[10px] tracking-tight bg-emerald-100/90 border border-emerald-500/80 dark:bg-emerald-500/25 dark:border-emerald-400/80"
-        title={`적당함 (${temperature - 2.5}°C ~ ${temperature + 2.5}°C)`}
+        title="적당함 (±2.5°C 이내 쾌적)"
       >
         <span className="text-emerald-950 font-bold dark:text-emerald-200 truncate px-0.5">적당함</span>
       </div>
 
-      {/* 3. 얇음 구간 */}
+      {/* 3. 얇음 구간 (- 수치로 추움 강조) */}
       <div
         className="absolute top-0 bottom-0 right-0 w-1/4 h-full flex items-center justify-center font-bold text-[9px] sm:text-[10px] tracking-tight bg-sky-100/90 border-y border-r border-sky-500/80 rounded-r-full dark:bg-sky-500/25 dark:border-sky-400/80"
-        title={`얇음 (${temperature + 2.5}°C ~ ${gaugeMaxTemp}°C)`}
+        title="얇음 (-2.5°C 이하 쌀쌀함)"
       >
         <span className="text-sky-950 font-bold dark:text-sky-200 truncate px-0.5">얇음</span>
       </div>
@@ -167,27 +167,23 @@ export const OutfitGaugeCard: React.FC<OutfitGaugeCardProps> = ({
     </div>
   );
 
-  // 공통 1행 요약 렌더러
+  // 공통 1행 요약 렌더러 (계산된 절대 적정온도 수치 대신 사용자 관점의 체감/기온 및 직관적 뱃지 노출)
   const renderSummaryRow = () => (
     <div className="flex items-center justify-between gap-1.5 flex-wrap">
       <div className="flex items-center gap-1.5 min-w-0">
         <span className="text-xs text-slate-700 dark:text-slate-300 font-semibold truncate">
-          옷차림 적정 기온: <strong className="text-slate-900 dark:text-white font-extrabold text-sm">약 {coverTemp}°C</strong>
+          현재 날씨: 체감 <strong className="text-brand-700 dark:text-brand-400 font-bold">{temperature}°C</strong>
+          {actualTemperature !== undefined && actualTemperature !== temperature && (
+            <span className="ml-1 text-[11px] text-slate-400 font-normal">(기온 {actualTemperature}°C)</span>
+          )}
         </span>
       </div>
 
       <div className="flex items-center gap-1.5 shrink-0">
-        <span className="text-[11px] text-slate-500 dark:text-slate-400">
-          (체감 <strong className="text-brand-700 dark:text-brand-400 font-bold">{temperature}°C</strong>
-          {actualTemperature !== undefined && actualTemperature !== temperature && (
-            <span className="ml-1 text-[10px] text-slate-400">/ 기온 {actualTemperature}°C</span>
-          )}
-          )
-        </span>
-        <span className={`text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${relativeStatus.badgeStyle}`}>
+        <span className={`text-[11px] sm:text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 ${relativeStatus.badgeStyle}`}>
           <span>{relativeStatus.badgeText}</span>
           {relativeStatus.diff !== 0 && (
-            <span className="font-semibold opacity-90">
+            <span className="font-extrabold opacity-95">
               ({relativeStatus.diff > 0 ? `+${relativeStatus.diff}` : relativeStatus.diff}°C)
             </span>
           )}
@@ -219,13 +215,13 @@ export const OutfitGaugeCard: React.FC<OutfitGaugeCardProps> = ({
 
         <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-semibold px-0.5 pt-0.5">
           <span className={isLeftOverflow ? 'text-rose-600 font-bold' : ''}>
-            ◀ {gaugeMinTemp}°C (더 따뜻함)
+            ◀ 더 따뜻함 (+더움)
           </span>
           <div className="flex items-center gap-1 font-bold text-slate-700 dark:text-slate-200">
             <span>🎯 체감 {temperature}°C</span>
           </div>
           <span className={isRightOverflow ? 'text-sky-600 font-bold' : ''}>
-            {gaugeMaxTemp}°C (더 시원함) ▶
+            더 시원함 (-추움) ▶
           </span>
         </div>
       </div>

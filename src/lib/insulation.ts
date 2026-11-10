@@ -262,9 +262,10 @@ export type RelativeCoverStatus = 'OPTIMAL' | 'OVERHEATED' | 'COLD_NEED_WARMTH';
 
 /**
  * 현재 기준 기온(targetTemp) 대비 복장 적정 기온(coverTemp)의 상대적 상태 산출
- * - 적당함 (초록색): |coverTemp - targetTemp| <= 2.5°C
- * - 두꺼움 (빨간색 - 방향): coverTemp < targetTemp - 2.5°C (옷이 너무 두꺼워 더 낮은 온도를 가리킴)
- * - 얇음 (파란색 + 방향): coverTemp > targetTemp + 2.5°C (옷이 너무 얇아 더 높은 온도를 가리킴)
+ * - 사용자 직관적 편차: warmthDiff = targetTemp - coverTemp
+ *   - 두꺼움 (빨간색, + 방향): warmthDiff > 2.5°C (더 추운 날씨용 옷을 입어 더움, + 수치로 더움 강조)
+ *   - 얇음 (파란색, - 방향): warmthDiff < -2.5°C (더 따뜻한 날씨용 옷을 입어 쌀쌀함, - 수치로 추움 강조)
+ *   - 적당함 (초록색): |warmthDiff| <= 2.5°C
  */
 export function getRelativeCoverStatus(
   coverTemp: number,
@@ -279,7 +280,9 @@ export function getRelativeCoverStatus(
   markerPinClass: string;
   diff: number;
 } {
-  const diff = Math.round((coverTemp - targetTemp) * 10) / 10;
+  // 사용자 관점 체감 보온 편차 (targetTemp - coverTemp):
+  // 얇을수록 음수(-)로 추움 강조, 두꺼울수록 양수(+)로 더움 강조
+  const diff = Math.round((targetTemp - coverTemp) * 10) / 10;
 
   // 1. 적당함 (초록색)
   if (Math.abs(diff) <= 2.5) {
@@ -297,8 +300,8 @@ export function getRelativeCoverStatus(
     };
   }
 
-  // 2. 두꺼움 상태 (빨간색) - 옷이 너무 두꺼움
-  if (diff < -2.5) {
+  // 2. 두꺼움 상태 (빨간색, + 수치로 더움 강조)
+  if (diff > 2.5) {
     return {
       status: 'OVERHEATED',
       badgeText: '두꺼움',
@@ -313,7 +316,7 @@ export function getRelativeCoverStatus(
     };
   }
 
-  // 3. 얇음 상태 (파란색) - 옷이 너무 얇음
+  // 3. 얇음 상태 (파란색, - 수치로 추움 강조)
   return {
     status: 'COLD_NEED_WARMTH',
     badgeText: '얇음',
