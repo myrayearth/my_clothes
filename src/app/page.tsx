@@ -573,7 +573,7 @@ export default function HomePage() {
                     Ondo Fit
                   </h1>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
-                    v0.39.2
+                    v0.40.0
                   </span>
                 </div>
                 {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
