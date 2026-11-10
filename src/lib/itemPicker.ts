@@ -29,9 +29,9 @@ export function getOutfitRuleIndexByTemperature(temp: number): number {
 }
 
 /**
- * 5도 미만 및 0도 미만 시 상의/하의 맨 앞에 고정(Pinning)할 이너 아이템 목록 반환
- * - 0°C 미만: 얇은 이너, 기모 이너 순으로 2종류 전면 배치
- * - 5°C 미만: 얇은 이너 1종류 전면 배치
+ * 5도 미만 및 0도 미만 시 상의/하의 맨 앞에 고정(Pinning)할 이너(내의) 아이템 목록 반환
+ * - 0°C 미만: 얇은 내의/히트텍, 기모 내의/히트텍 순으로 2종류 전면 배치
+ * - 5°C 미만: 얇은 내의/히트텍 1종류 전면 배치
  */
 export function getPinnedInnerItems(
   category: 'outer' | 'top' | 'bottom' | 'items',
@@ -39,11 +39,11 @@ export function getPinnedInnerItems(
 ): string[] {
   if (category !== 'top' && category !== 'bottom') return [];
   if (temperature < 0) {
-    if (category === 'top') return ['얇은 이너', '기모 이너'];
-    if (category === 'bottom') return ['하의 얇은 이너', '하의 기모 이너'];
+    if (category === 'top') return ['얇은 내의/히트텍', '기모 내의/히트텍'];
+    if (category === 'bottom') return ['얇은 하의 내의', '기모 하의 내의'];
   } else if (temperature < 5) {
-    if (category === 'top') return ['얇은 이너'];
-    if (category === 'bottom') return ['하의 얇은 이너'];
+    if (category === 'top') return ['얇은 내의/히트텍'];
+    if (category === 'bottom') return ['얇은 하의 내의'];
   }
   return [];
 }
@@ -80,6 +80,10 @@ export function isInnerClothingItem(item: string): boolean {
   if (!item) return false;
   return (
     item === '스타킹' ||
+    item === '얇은 내의/히트텍' ||
+    item === '기모 내의/히트텍' ||
+    item === '얇은 하의 내의' ||
+    item === '기모 하의 내의' ||
     item === '얇은 이너' ||
     item === '기모 이너' ||
     item === '하의 얇은 이너' ||

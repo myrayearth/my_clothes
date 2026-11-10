@@ -184,12 +184,12 @@ export function getDefaultOutfitSelection(rule: OutfitRuleStep, targetTemp?: num
     // 만약 룰셋에 이너가 누락되어 있다면 자동 보강
     const hasInnerTop = selectedTop.some(isInnerClothingItem);
     if (!hasInnerTop) {
-      const defaultInnerTop = effectiveTemp < 0 ? '기모 이너' : '얇은 이너';
+      const defaultInnerTop = effectiveTemp < 0 ? '기모 내의/히트텍' : '얇은 내의/히트텍';
       selectedTop = [defaultInnerTop, ...selectedTop];
     }
     const hasInnerBottom = selectedBottom.some(isInnerClothingItem);
     if (!hasInnerBottom) {
-      const defaultInnerBottom = effectiveTemp < 0 ? '하의 기모 이너' : '하의 얇은 이너';
+      const defaultInnerBottom = effectiveTemp < 0 ? '기모 하의 내의' : '얇은 하의 내의';
       selectedBottom = [defaultInnerBottom, ...selectedBottom];
     }
   } else {

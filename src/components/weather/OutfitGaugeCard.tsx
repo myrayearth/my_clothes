@@ -113,28 +113,28 @@ export const OutfitGaugeCard: React.FC<OutfitGaugeCardProps> = ({
   // 공통 게이지 트랙 렌더러
   const renderGaugeTrack = () => (
     <div className="relative h-4 sm:h-5 w-full select-none">
-      {/* 1. 과보온 구간 */}
+      {/* 1. 두꺼움 구간 */}
       <div
         className="absolute top-0 bottom-0 left-0 w-1/4 h-full flex items-center justify-center font-bold text-[9px] sm:text-[10px] tracking-tight bg-rose-100/90 border-y border-l border-rose-500/80 rounded-l-full dark:bg-rose-500/25 dark:border-rose-400/80"
-        title={`과보온 (${gaugeMinTemp}°C ~ ${temperature - 2.5}°C)`}
+        title={`두꺼움 (${gaugeMinTemp}°C ~ ${temperature - 2.5}°C)`}
       >
-        <span className="text-rose-950 font-bold dark:text-rose-200 truncate px-0.5">과보온</span>
+        <span className="text-rose-950 font-bold dark:text-rose-200 truncate px-0.5">두꺼움</span>
       </div>
 
-      {/* 2. 적정 구간 */}
+      {/* 2. 적당함 구간 */}
       <div
         className="absolute top-0 bottom-0 left-1/4 w-1/2 h-full flex items-center justify-center font-bold text-[9px] sm:text-[10px] tracking-tight bg-emerald-100/90 border border-emerald-500/80 dark:bg-emerald-500/25 dark:border-emerald-400/80"
-        title={`적정 (${temperature - 2.5}°C ~ ${temperature + 2.5}°C)`}
+        title={`적당함 (${temperature - 2.5}°C ~ ${temperature + 2.5}°C)`}
       >
-        <span className="text-emerald-950 font-bold dark:text-emerald-200 truncate px-0.5">적정 (±2.5°C)</span>
+        <span className="text-emerald-950 font-bold dark:text-emerald-200 truncate px-0.5">적당함</span>
       </div>
 
-      {/* 3. 보온 필요 구간 */}
+      {/* 3. 얇음 구간 */}
       <div
         className="absolute top-0 bottom-0 right-0 w-1/4 h-full flex items-center justify-center font-bold text-[9px] sm:text-[10px] tracking-tight bg-sky-100/90 border-y border-r border-sky-500/80 rounded-r-full dark:bg-sky-500/25 dark:border-sky-400/80"
-        title={`보온 필요 (${temperature + 2.5}°C ~ ${gaugeMaxTemp}°C)`}
+        title={`얇음 (${temperature + 2.5}°C ~ ${gaugeMaxTemp}°C)`}
       >
-        <span className="text-sky-950 font-bold dark:text-sky-200 truncate px-0.5">보온 필요</span>
+        <span className="text-sky-950 font-bold dark:text-sky-200 truncate px-0.5">얇음</span>
       </div>
 
       {/* 중앙 50% 기준 세로선 */}
@@ -172,7 +172,7 @@ export const OutfitGaugeCard: React.FC<OutfitGaugeCardProps> = ({
     <div className="flex items-center justify-between gap-1.5 flex-wrap">
       <div className="flex items-center gap-1.5 min-w-0">
         <span className="text-xs text-slate-700 dark:text-slate-300 font-semibold truncate">
-          체감 복장: <strong className="text-slate-900 dark:text-white font-extrabold text-sm">약 {coverTemp}°C</strong>
+          옷차림 적정 기온: <strong className="text-slate-900 dark:text-white font-extrabold text-sm">약 {coverTemp}°C</strong>
         </span>
       </div>
 
@@ -209,11 +209,8 @@ export const OutfitGaugeCard: React.FC<OutfitGaugeCardProps> = ({
           <div className="flex items-center gap-1.5">
             <Thermometer className="w-4 h-4 text-brand-600 dark:text-brand-400 shrink-0" />
             <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-              적정 체감 복장 분석
+              현재 옷차림 보온 분석
             </h4>
-            <span className="text-[11px] text-slate-400 font-normal">
-              (체감 기온 vs 현재 복장 보온도)
-            </span>
           </div>
         </div>
 
@@ -222,13 +219,13 @@ export const OutfitGaugeCard: React.FC<OutfitGaugeCardProps> = ({
 
         <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-semibold px-0.5 pt-0.5">
           <span className={isLeftOverflow ? 'text-rose-600 font-bold' : ''}>
-            ◀ {gaugeMinTemp}°C (두꺼움)
+            ◀ {gaugeMinTemp}°C (더 따뜻함)
           </span>
           <div className="flex items-center gap-1 font-bold text-slate-700 dark:text-slate-200">
             <span>🎯 기준 {temperature}°C</span>
           </div>
           <span className={isRightOverflow ? 'text-sky-600 font-bold' : ''}>
-            {gaugeMaxTemp}°C (얇음) ▶
+            {gaugeMaxTemp}°C (더 시원함) ▶
           </span>
         </div>
       </div>

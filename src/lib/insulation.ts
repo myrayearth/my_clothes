@@ -202,15 +202,15 @@ export const ANCHOR_POINTS = [
   { score: 0, temp: 35 },
   { score: 5, temp: 32 },     // 30°C 이상 기본 추천 (반팔 5 + 반바지 3 + 손풍기 -3 = 5점)
   { score: 12, temp: 27 },    // 25~29°C 기본 추천 (반팔 5 + 얇은 긴바지 7 = 12점)
-  { score: 37, temp: 22 },    // 20~24°C 기본 추천 (얇은 가디건 13 + 기본 긴팔 11 + 간절기 바지 13 = 37점)
+  { score: 37, temp: 22 },    // 20~24°C 기본 추천 (얇은 가디건 13 + 기본 긴팔 11 + 얇은 면바지/슬랙스 13 = 37점)
   { score: 61, temp: 17 },    // 15~19°C 기본 추천 (간절기 자켓 25 + 맨투맨 18 + 기본 긴바지 18 = 61점)
-  { score: 85, temp: 12 },    // 10~14°C 기본 추천 (트렌치/자켓 35 + 도톰 셔츠 24 + 두꺼운 바지 26 = 85점)
+  { score: 85, temp: 12 },    // 10~14°C 기본 추천 (트렌치/자켓 35 + 두꺼운 셔츠 24 + 두꺼운 바지 26 = 85점)
   { score: 110, temp: 7 },    // 5~9°C 기본 추천 (경량 패딩 48 + 기모 맨투맨 30 + 기모 바지 32 = 110점)
-  { score: 174, temp: 2 },    // 0~4°C 기본 추천 (숏패딩 70 + 얇은이너 12 + 기모터틀넥 35 + 하의이너 14 + 기모바지 32 + 목도리 11 = 174점)
-  { score: 207, temp: -3 },   // -5~-1°C 기본 추천 (롱패딩 82 + 기모이너 20 + 기모터틀넥 35 + 하의기모이너 22 + 융기모바지 36 + 핫팩 12 = 207점)
-  { score: 236, temp: -8 },   // -10~-6°C 기본 추천 (헤비다운 95 + 기모이너 20 + 울스웨터 35 + 하의기모이너 22 + 패딩바지 41 + 목도리 11 + 핫팩 12 = 236점)
-  { score: 247, temp: -13 },  // -15~-11°C 기본 추천 (헤비다운 95 + 기모이너 20 + 울스웨터 35 + 하의기모이너 22 + 헤비방한바지 45 + 방한소품캡 30 = 247점)
-  { score: 259, temp: -18 },  // -15°C 이하 기본 추천 (헤비다운 95 + 얇은이너 12 + 기모이너 20 + 울스웨터 35 + 하의기모이너 22 + 헤비방한바지 45 + 방한소품캡 30 = 259점)
+  { score: 174, temp: 2 },    // 0~4°C 기본 추천 (숏패딩 70 + 얇은내의 12 + 기모터틀넥 35 + 하의내의 14 + 기모바지 32 + 목도리 11 = 174점)
+  { score: 207, temp: -3 },   // -5~-1°C 기본 추천 (롱패딩 82 + 기모내의 20 + 기모터틀넥 35 + 하의기모내의 22 + 두꺼운기모바지 36 + 핫팩 12 = 207점)
+  { score: 236, temp: -8 },   // -10~-6°C 기본 추천 (두꺼운다운 95 + 기모내의 20 + 두꺼운울니트 35 + 하의기모내의 22 + 패딩바지 41 + 목도리 11 + 핫팩 12 = 236점)
+  { score: 247, temp: -13 },  // -15~-11°C 기본 추천 (두꺼운다운 95 + 기모내의 20 + 두꺼운울니트 35 + 하의기모내의 22 + 두꺼운방한바지 45 + 방한소품캡 30 = 247점)
+  { score: 259, temp: -18 },  // -15°C 이하 기본 추천 (두꺼운다운 95 + 얇은내의 12 + 기모내의 20 + 두꺼운울니트 35 + 하의기모내의 22 + 두꺼운방한바지 45 + 방한소품캡 30 = 259점)
   { score: 280, temp: -20 },
 ];
 
@@ -261,10 +261,10 @@ export function scoreToCoverTemperature(score: number): number {
 export type RelativeCoverStatus = 'OPTIMAL' | 'OVERHEATED' | 'COLD_NEED_WARMTH';
 
 /**
- * 현재 기준 기온(targetTemp) 대비 복장 커버 기온(coverTemp)의 상대적 상태 산출
- * - 적정 상태 (초록색): |coverTemp - targetTemp| <= 2.5°C
- * - 과보온 상태 (빨간색 - 방향): coverTemp < targetTemp - 2.5°C (옷이 너무 두꺼워 더 낮은 온도를 가리킴)
- * - 보온 필요 상태 (파란색 + 방향): coverTemp > targetTemp + 2.5°C (옷이 너무 얇아 더 높은 온도를 가리킴)
+ * 현재 기준 기온(targetTemp) 대비 복장 적정 기온(coverTemp)의 상대적 상태 산출
+ * - 적당함 (초록색): |coverTemp - targetTemp| <= 2.5°C
+ * - 두꺼움 (빨간색 - 방향): coverTemp < targetTemp - 2.5°C (옷이 너무 두꺼워 더 낮은 온도를 가리킴)
+ * - 얇음 (파란색 + 방향): coverTemp > targetTemp + 2.5°C (옷이 너무 얇아 더 높은 온도를 가리킴)
  */
 export function getRelativeCoverStatus(
   coverTemp: number,
@@ -281,14 +281,14 @@ export function getRelativeCoverStatus(
 } {
   const diff = Math.round((coverTemp - targetTemp) * 10) / 10;
 
-  // 1. 적정 상태 (초록색)
+  // 1. 적당함 (초록색)
   if (Math.abs(diff) <= 2.5) {
     return {
       status: 'OPTIMAL',
-      badgeText: '적정',
+      badgeText: '적당함',
       badgeStyle:
         'bg-emerald-50 text-emerald-800 border-emerald-500 dark:bg-emerald-950/80 dark:text-emerald-200 dark:border-emerald-400 px-3 py-1 rounded-full text-xs sm:text-sm font-bold border-2 shadow-sm',
-      description: `현재 체감 기온(약 ${targetTemp}°C)에 적합한 보온 수준입니다.`,
+      description: `현재 날씨(약 ${targetTemp}°C)에 잘 어울리는 알맞은 옷차림입니다.`,
       textColor: 'text-emerald-700 dark:text-emerald-300',
       markerColor: 'bg-emerald-600 dark:bg-emerald-500',
       markerPinClass:
@@ -297,14 +297,14 @@ export function getRelativeCoverStatus(
     };
   }
 
-  // 2. 과보온 상태 (빨간색) - 옷이 너무 두꺼움
+  // 2. 두꺼움 상태 (빨간색) - 옷이 너무 두꺼움
   if (diff < -2.5) {
     return {
       status: 'OVERHEATED',
-      badgeText: '과보온',
+      badgeText: '두꺼움',
       badgeStyle:
         'bg-rose-50 text-rose-800 border-rose-500 dark:bg-rose-950/80 dark:text-rose-200 dark:border-rose-400 px-3 py-1 rounded-full text-xs sm:text-sm font-bold border-2 shadow-sm',
-      description: '현재 체감 기온보다 두껍습니다. 땀이 나거나 더울 수 있어요. (외투나 이너를 가볍게 조절하세요)',
+      description: '현재 날씨보다 옷이 두껍습니다. 땀이 나거나 더울 수 있으니 겉옷을 가볍게 조절해 보세요.',
       textColor: 'text-rose-700 dark:text-rose-300',
       markerColor: 'bg-rose-500',
       markerPinClass:
@@ -313,13 +313,13 @@ export function getRelativeCoverStatus(
     };
   }
 
-  // 3. 보온 필요 상태 (파란색) - 옷이 너무 얇음
+  // 3. 얇음 상태 (파란색) - 옷이 너무 얇음
   return {
     status: 'COLD_NEED_WARMTH',
-    badgeText: '보온 필요',
+    badgeText: '얇음',
     badgeStyle:
       'bg-sky-50 text-sky-800 border-sky-500 dark:bg-sky-950/80 dark:text-sky-200 dark:border-sky-400 px-3 py-1 rounded-full text-xs sm:text-sm font-bold border-2 shadow-sm',
-    description: '현재 체감 기온보다 얇습니다. 쌀쌀할 수 있으니 겉옷이나 내의를 챙기세요.',
+    description: '현재 날씨보다 옷이 얇습니다. 쌀쌀할 수 있으니 겉옷이나 따뜻한 옷을 챙기세요.',
     textColor: 'text-sky-700 dark:text-sky-300',
     markerColor: 'bg-sky-600 dark:bg-sky-500',
     markerPinClass:
@@ -356,15 +356,15 @@ export function getInsulationStatusMeta(status: InsulationStatus): {
   switch (status) {
     case 'COLD':
       return {
-        badgeText: '보온 부족',
+        badgeText: '얇음',
         badgeStyle: 'bg-sky-100 text-sky-800 border-sky-300',
-        description: '춥거나 쌀쌀할 수 있어요. 겉옷이나 레이어드 이너를 챙기세요!',
+        description: '춥거나 쌀쌀할 수 있어요. 겉옷이나 따뜻한 옷을 챙기세요!',
         textColor: 'text-sky-700',
         progressColor: 'bg-sky-500',
       };
     case 'HOT':
       return {
-        badgeText: '과보온',
+        badgeText: '두꺼움',
         badgeStyle: 'bg-rose-100 text-rose-800 border-rose-300',
         description: '땀이 나거나 더울 수 있어요. 한 겹 가볍게 입는 것을 추천해요!',
         textColor: 'text-rose-700',
@@ -373,9 +373,9 @@ export function getInsulationStatusMeta(status: InsulationStatus): {
     case 'OPTIMAL':
     default:
       return {
-        badgeText: '적정',
+        badgeText: '적당함',
         badgeStyle: 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold',
-        description: '현재 기온에 딱 맞는 이상적인 보온 수준입니다!',
+        description: '현재 날씨에 딱 어울리는 이상적인 옷차림입니다!',
         textColor: 'text-emerald-700',
         progressColor: 'bg-emerald-500',
       };
@@ -418,7 +418,7 @@ export function getItemChipWarmthClasses(
   // 3. 외투(Outer) 보온 스펙트럼 (14 ~ 95점, 글자색: 검은색에 가까운 네이비)
   if (category === 'outer') {
     if (score >= 70) {
-      // 숏패딩(70), 롱패딩(82), 헤비 다운 패딩(95)
+      // 숏패딩(70), 롱패딩(82), 두꺼운 다운 패딩(95)
       return 'bg-rose-100 hover:bg-rose-200/80 text-[#0b192c] border-rose-300 font-semibold shadow-2xs';
     }
     if (score >= 45) {
@@ -438,7 +438,7 @@ export function getItemChipWarmthClasses(
       return 'bg-blue-50/60 hover:bg-blue-100/80 text-[#0b192c] border-blue-200/80 font-semibold';
     }
     if (score >= 16) {
-      // 홑겹 바람막이/자켓(18)
+      // 얇은 바람막이/자켓(18)
       return 'bg-blue-50 hover:bg-blue-100 text-[#0b192c] border-blue-200 font-semibold';
     }
     // 얇은 셔츠/가디건(14)
@@ -448,11 +448,11 @@ export function getItemChipWarmthClasses(
   // 4. 상의(Top) 보온 스펙트럼 (2 ~ 35점, 글자색: 검은색에 가까운 네이비)
   if (category === 'top') {
     if (score >= 30) {
-      // 기모 맨투맨/후드(30), 기모 터틀넥(35), 헤비 울 스웨터(35)
+      // 기모 맨투맨/후드(30), 기모 터틀넥(35), 두꺼운 울 니트(35)
       return 'bg-rose-100 hover:bg-rose-200/80 text-[#0b192c] border-rose-300 font-semibold shadow-2xs';
     }
     if (score >= 20) {
-      // 기모 이너(20), 목폴라/도톰 셔츠(24)
+      // 기모 내의(20), 목폴라/두꺼운 셔츠(24)
       return 'bg-rose-50 hover:bg-rose-100 text-[#0b192c] border-rose-200 font-semibold';
     }
     if (score >= 15) {
@@ -460,7 +460,7 @@ export function getItemChipWarmthClasses(
       return 'bg-rose-50/60 hover:bg-rose-100/80 text-[#0b192c] border-rose-200/80 font-semibold';
     }
     if (score >= 10) {
-      // 기본 긴팔(11), 얇은 이너(12), 얇은 셔츠/가디건(13) - 기준 뉴트럴
+      // 기본 긴팔(11), 얇은 내의/히트텍(12), 얇은 셔츠/가디건(13) - 기준 뉴트럴
       return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold';
     }
     if (score >= 7) {
@@ -478,7 +478,7 @@ export function getItemChipWarmthClasses(
   // 5. 하의(Bottom) 보온 스펙트럼 (3 ~ 45점, 글자색: 검은색에 가까운 네이비)
   if (category === 'bottom') {
     if (score >= 36) {
-      // 융기모 방한바지(36), 패딩/방풍 바지(41), 헤비 방한바지(45)
+      // 두꺼운 기모 방한바지(36), 패딩/방풍 바지(41), 두꺼운 방한바지(45)
       return 'bg-rose-100 hover:bg-rose-200/80 text-[#0b192c] border-rose-300 font-semibold shadow-2xs';
     }
     if (score >= 26) {
@@ -486,7 +486,7 @@ export function getItemChipWarmthClasses(
       return 'bg-rose-50 hover:bg-rose-100 text-[#0b192c] border-rose-200 font-semibold';
     }
     if (score >= 20) {
-      // 하의 기모 이너(22)
+      // 기모 하의 내의(22)
       return 'bg-rose-50/60 hover:bg-rose-100/80 text-[#0b192c] border-rose-200/80 font-semibold';
     }
     if (score >= 16) {
@@ -494,7 +494,7 @@ export function getItemChipWarmthClasses(
       return 'bg-slate-50 hover:bg-slate-100 text-[#0b192c] border-slate-200 font-semibold';
     }
     if (score >= 10) {
-      // 간절기 얇은 바지(13), 하의 얇은 이너(14)
+      // 얇은 면바지/슬랙스(13), 얇은 하의 내의(14)
       return 'bg-blue-50/60 hover:bg-blue-100/80 text-[#0b192c] border-blue-200/80 font-semibold';
     }
     if (score >= 5) {

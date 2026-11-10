@@ -540,7 +540,7 @@ export default function HomePage() {
     return authProfile.role === 'admin' || isUserAdmin(authProfile) || authProfile.email === ADMIN_EMAIL;
   }, [isAuthenticated, authProfile]);
 
-  // 지능형 리콜: 현재 모드의 체감 기준 기온을 바탕으로 매칭 계산
+  // 과거 착용 기록 매칭: 현재 체감 기온 기준 매칭 계산
   const matchedRecalls = useMemo(() => {
     return findMatchingRecallLogs(
       outfitLogs,
@@ -731,7 +731,7 @@ export default function HomePage() {
               }}
               selectedSlot={selectedSlot === 'current' ? '13:00' : selectedSlot}
               onSelectSlot={(slot) => setSelectedSlot(slot)}
-              title={`${selectedForecastItem.dayName} 예보 시간대별 복장 기준`}
+              title={`${selectedForecastItem.dayName} 시간대별 날씨 및 추천 옷차림`}
               visibleSlots={['08:00', '13:00', '19:00']}
             />
           ) : (
@@ -743,13 +743,13 @@ export default function HomePage() {
                 setRecommendationMode('LIVE_MODE');
                 setSelectedForecastItem(null);
               }}
-              title="시간대별 예보 및 복장 기준"
+              title="시간대별 날씨 및 추천 옷차림"
               visibleSlots={['current', '08:00', '13:00', '19:00']}
             />
           )
         )}
 
-        {/* 5. 적정 체감 복장 분석 게이지 카드 (기본 넉넉한 상세 뷰 / 스크롤 시 컴팩트 상단 도킹) */}
+        {/* 5. 현재 옷차림 보온 분석 게이지 카드 */}
         {weather && (
           <OutfitGaugeCard
             temperature={effectiveData.targetTemp}
@@ -764,7 +764,7 @@ export default function HomePage() {
           />
         )}
 
-        {/* 5. 지능형 리콜 카드 (현재 모드 기준 기온 기반) */}
+        {/* 6. 지난 날씨 착용 기록 카드 */}
         {matchedRecalls.length > 0 && (
           <HistoryRecallCard
             recalls={matchedRecalls}
@@ -819,7 +819,7 @@ export default function HomePage() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.39.2</strong></p>
+        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.40.0</strong></p>
       </footer>
     </div>
   );

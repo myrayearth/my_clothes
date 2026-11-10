@@ -508,17 +508,12 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                 {weights.mode === 'personal_weighted' ? (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200 flex items-center gap-1">
                     <Sparkles className="w-3 h-3 text-brand-600" />
-                    <span>
-                      개인화 {Math.round(weights.w_personal * 100)}%
-                      {weights.w_guest > 0 ? ` + 게스트 ${Math.round(weights.w_guest * 100)}%` : ''}
-                      {` + 기본 ${Math.round(weights.w_rule * 100)}%`}
-                      {` (내 기록 ${weights.personalCount}건)`}
-                    </span>
+                    <span>내 맞춤 추천 ({weights.personalCount}건 반영)</span>
                   </span>
                 ) : weights.mode === 'guest_weighted' ? (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
                     <Users className="w-3 h-3 text-emerald-600" />
-                    <span>게스트 반영 (게스트 {weights.guestCount}건 / {Math.round(weights.w_guest * 100)}% + 기본 {Math.round(weights.w_rule * 100)}%)</span>
+                    <span>전체 사용자 의견 반영 ({weights.guestCount}건)</span>
                   </span>
                 ) : (
                   <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200">
@@ -533,7 +528,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
             {/* 복장 추천 리셋 제어 버튼 세트 */}
             <div className="flex items-center gap-2 self-start sm:self-center flex-wrap">
-              {/* 0. 게스트 데이터 반영 체크 버튼 */}
+              {/* 0. 전체 사용자 의견 반영 체크 버튼 */}
               <button
                 type="button"
                 onClick={handleToggleGuestData}
@@ -544,12 +539,12 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                 }`}
                 title={
                   includeGuestData
-                    ? '게스트 누적 평가 데이터가 알고리즘에 반영 중입니다. (클릭 시 반영 해제)'
-                    : '게스트 누적 평가 데이터를 알고리즘에 반영합니다. (개인화 기록에 따라 40% ~ 20% 순차 배분)'
+                    ? '다른 사용자들의 체감 평가 데이터가 추천에 함께 반영 중입니다. (클릭 시 제외)'
+                    : '다른 사용자들의 체감 평가 데이터를 추천에 함께 반영합니다.'
                 }
               >
                 <Users className={`w-3.5 h-3.5 ${includeGuestData ? 'text-emerald-600' : 'text-slate-400'}`} />
-                <span>게스트 데이터 반영</span>
+                <span>전체 사용자 의견 포함</span>
                 <span
                   className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] font-bold transition-colors ${
                     includeGuestData
@@ -561,26 +556,26 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                 </span>
               </button>
 
-              {/* 1. 기본 추천 설정 */}
+              {/* 1. 기본 추천 */}
               <button
                 type="button"
                 onClick={handleResetToRuleDefault}
                 className="flex items-center gap-1.5 text-xs text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-lg font-semibold transition-all active:scale-95 touch-manipulation border border-slate-200 shadow-2xs cursor-pointer"
-                title="사용자 평가가 반영되지 않은 기온별 표준 룰셋 기본 추천으로 설정 (10°C 미만은 이너 포함)"
+                title="기온별 표준 기본 추천 복장으로 복원"
               >
                 <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-                <span>기본 추천 설정</span>
+                <span>기본 추천</span>
               </button>
 
-              {/* 2. 평가 반영 */}
+              {/* 2. 맞춤 추천 */}
               <button
                 type="button"
                 onClick={handleApplyAggregatedRecommendations}
                 className="flex items-center gap-1.5 text-xs text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100/80 px-2.5 py-1.5 rounded-lg font-semibold transition-all active:scale-95 touch-manipulation border border-blue-200 shadow-2xs cursor-pointer"
-                title="개인 및 게스트 누적 평가 피드백이 가중 반영된 맞춤 복장 적용 (10°C 미만은 이너 포함)"
+                title="체감 평가 데이터가 반영된 맞춤 복장 적용"
               >
                 <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                <span>평가 반영</span>
+                <span>맞춤 추천</span>
               </button>
             </div>
           </div>
@@ -593,9 +588,9 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <span>OUTER (외투)</span>
+                <span>외투 (겉옷)</span>
                 <span className="text-[10px] text-brand-700 bg-brand-50 border border-brand-200/60 font-medium px-1.5 py-0.2 rounded">
-                  + 로 레이어드
+                  + 겹쳐 입기
                 </span>
               </label>
               {isOuterCustomSelected && (
@@ -608,7 +603,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                 onClick={() => setModalCategory('outer')}
                 className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-0.5 underline underline-offset-2"
               >
-                <span>[모든 항목 보기]</span>
+                <span>[전체 보기]</span>
                 <ExternalLink className="w-3 h-3" />
               </button>
             </div>
@@ -701,14 +696,14 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
         </div>
 
-        {/* 2. TOP (상의 - 다중 선택 및 이너 예외) */}
+        {/* 2. 상의 (다중 선택 및 이너 예외) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <span>TOP (상의)</span>
+                <span>상의</span>
                 <span className="text-[10px] text-brand-700 bg-brand-50 border border-brand-200/60 font-medium px-1.5 py-0.2 rounded">
-                  + 로 레이어드
+                  + 겹쳐 입기
                 </span>
               </label>
               {isTopCustomSelected && (
@@ -721,7 +716,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                 onClick={() => setModalCategory('top')}
                 className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-0.5 underline underline-offset-2"
               >
-                <span>[모든 항목 보기]</span>
+                <span>[전체 보기]</span>
                 <ExternalLink className="w-3 h-3" />
               </button>
             </div>
@@ -783,7 +778,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                         }`}
                       >
                         <Zap className="w-2.5 h-2.5 text-sky-500 shrink-0 fill-sky-500" />
-                        <span>이너</span>
+                        <span>내의</span>
                       </span>
                     )}
                     {isRecommended && (
@@ -839,14 +834,14 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
         </div>
 
-        {/* 3. BOTTOM (하의 - 다중 선택 및 이너 예외) */}
+        {/* 3. 하의 (다중 선택 및 이너 예외) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <span>BOTTOM (하의)</span>
+                <span>하의</span>
                 <span className="text-[10px] text-brand-700 bg-brand-50 border border-brand-200/60 font-medium px-1.5 py-0.2 rounded">
-                  + 로 레이어드
+                  + 겹쳐 입기
                 </span>
               </label>
               {isBottomCustomSelected && (
@@ -859,7 +854,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                 onClick={() => setModalCategory('bottom')}
                 className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-0.5 underline underline-offset-2"
               >
-                <span>[모든 항목 보기]</span>
+                <span>[전체 보기]</span>
                 <ExternalLink className="w-3 h-3" />
               </button>
             </div>
@@ -921,7 +916,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                         }`}
                       >
                         <Zap className="w-2.5 h-2.5 text-sky-500 shrink-0 fill-sky-500" />
-                        <span>이너</span>
+                        <span>내의</span>
                       </span>
                     )}
                     {isRecommended && (
@@ -977,12 +972,12 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
           </div>
         </div>
 
-        {/* 4. ITEM (소품 - 다중 선택) */}
+        {/* 4. 소품 / 액세서리 (다중 선택) */}
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <span>ITEM (소품)</span>
+                <span>소품 / 액세서리</span>
                 <span className="text-[10px] text-slate-400 font-normal">다중 선택</span>
               </label>
               {isItemCustomSelected && (
@@ -995,7 +990,7 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
                 onClick={() => setModalCategory('items')}
                 className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-0.5 underline underline-offset-2"
               >
-                <span>[모든 항목 보기]</span>
+                <span>[전체 보기]</span>
                 <ExternalLink className="w-3 h-3" />
               </button>
             </div>
@@ -1069,11 +1064,11 @@ export const OutfitSelector: React.FC<OutfitSelectorProps> = ({
 
       {/* 실시간 선택 조합 요약 카드 ('현재 코디' 요약: ITEM 소품 항목 통과 시 게이지 고정이 해제되며 노출) */}
       <div className="p-4 bg-white rounded-2xl shadow-xs border border-slate-200/90 text-xs text-slate-700 space-y-2">
-        {/* 첫 번째 줄: 현재 코디: 복장 커버 기온 약 XX.X°C (상태 라벨) */}
+        {/* 첫 번째 줄: 현재 옷차림: 적정 기온 약 XX.X°C (상태 라벨) */}
         <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-slate-200/60">
           <div className="flex items-center gap-1.5 font-bold text-slate-800">
             <Shirt className="w-4 h-4 text-brand-600 shrink-0" />
-            <span>현재 코디: 복장 커버 기온 약 {coverTemp}°C ({relativeStatus.diff > 0 ? `+${relativeStatus.diff}` : relativeStatus.diff}°C)</span>
+            <span>현재 옷차림: 적정 기온 약 {coverTemp}°C ({relativeStatus.diff > 0 ? `+${relativeStatus.diff}` : relativeStatus.diff}°C)</span>
             <span className={relativeStatus.badgeStyle}>
               {relativeStatus.badgeText}
             </span>

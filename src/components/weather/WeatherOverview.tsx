@@ -120,28 +120,28 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
             {isManual ? (
               <span className="text-xs font-bold text-brand-700 bg-brand-100/90 px-2.5 py-0.5 rounded-md border border-brand-200 flex items-center gap-1 shadow-2xs">
                 <Thermometer className="w-3.5 h-3.5 text-brand-600 animate-pulse" />
-                <span>수동 복장 점검</span>
+                <span>기온 직접 설정</span>
               </span>
             ) : (
               <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 flex items-center gap-1">
-                <span>실시간 체감</span>
+                <span>실시간 날씨</span>
               </span>
             )}
 
             {!isManual && isCurrentActive ? (
               <span className="text-[11px] font-bold text-white bg-blue-600 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs animate-in fade-in">
                 <CheckCircle2 className="w-3 h-3" />
-                <span>실시간 추천 활성</span>
+                <span>현재 날씨 추천</span>
               </span>
             ) : !isManual && shouldShowReturnGuide ? (
               <span className="text-[11px] font-bold text-blue-700 bg-blue-100/80 group-hover:bg-blue-600 group-hover:text-white px-2 py-0.5 rounded-full border border-blue-200 transition-colors flex items-center gap-1 shadow-2xs">
                 <RotateCcw className="w-3 h-3" />
-                <span>클릭 시 오늘 날씨로 복귀</span>
+                <span>실시간 날씨로 돌아가기</span>
               </span>
             ) : null}
           </div>
 
-          {/* 1. 토글 버튼: [실시간 / 수동설정] 세그먼트 컨트롤 */}
+          {/* 1. 토글 버튼: [실시간 / 직접 설정] 세그먼트 컨트롤 */}
           {onToggleMode && (
             <div
               className="flex items-center bg-slate-200/70 p-0.5 rounded-xl border border-slate-300/80 shadow-2xs shrink-0"
@@ -155,7 +155,7 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
-                title="Open-Meteo 실시간 관측 날씨 기준으로 추천"
+                title="현재 관측된 실시간 날씨를 기준으로 옷차림 추천"
               >
                 실시간
               </button>
@@ -167,9 +167,9 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
                     ? 'bg-brand-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
-                title="임의의 체감 기온(-20°C ~ +35°C)을 직접 설정하여 복장 점검"
+                title="원하는 기온(-20°C ~ +35°C)을 직접 지정하여 옷차림 확인"
               >
-                수동설정
+                직접 설정
               </button>
             </div>
           )}
@@ -264,9 +264,9 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
             {/* 인라인 온도 슬라이더 (-20°C ~ +35°C) */}
             <div className="space-y-1 pt-1">
               <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold px-0.5">
-                <span className="text-blue-600">-20°C (혹한)</span>
-                <span className="text-slate-400">직접 슬라이더로 조절</span>
-                <span className="text-rose-600">+35°C (폭염)</span>
+                <span className="text-blue-600">-20°C</span>
+                <span className="text-slate-400">원하는 기온으로 조절</span>
+                <span className="text-rose-600">+35°C</span>
               </div>
               <input
                 type="range"
@@ -322,7 +322,7 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
         ) : (
           <div className="flex items-center justify-between w-full text-[11px] text-slate-500">
             <span>
-              현재 실제 관측 체감: <strong className="text-slate-700 font-semibold">{displayApparent}°C</strong>
+              현재 관측 체감: <strong className="text-slate-700 font-semibold">{displayApparent}°C</strong>
               {displayApparent !== manualTemp && (
                 <span className="text-brand-600 font-bold ml-1">
                   ({manualTemp - displayApparent > 0 ? `+${manualTemp - displayApparent}` : manualTemp - displayApparent}°C 차이)
@@ -334,7 +334,7 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
               onClick={() => onToggleMode && onToggleMode('live')}
               className="text-blue-600 hover:text-blue-800 underline font-semibold cursor-pointer"
             >
-              실시간 날씨로 복귀
+              실시간 날씨로 돌아가기
             </button>
           </div>
         )}

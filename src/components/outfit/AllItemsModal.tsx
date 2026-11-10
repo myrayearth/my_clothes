@@ -46,7 +46,7 @@ export function getItemSeason(category: OutfitCategory, item: string): SeasonTab
   if (category === 'top') {
     const summerTopKeywords = ['반팔', '민소매', '쿨맥스', '카라 티셔츠', '피케', '7부'];
     const winterTopKeywords = [
-      '기모', '히트텍', '발열', '터틀넥', '스웨터', '헤비', '방한', '이너', '경량'
+      '기모', '히트텍', '발열', '터틀넥', '스웨터', '헤비', '방한', '이너', '경량', '두꺼운', '내의'
     ];
     if (summerTopKeywords.some((kw) => item.includes(kw))) return 'summer';
     if (winterTopKeywords.some((kw) => item.includes(kw))) return 'winter';
@@ -155,7 +155,7 @@ export const AllItemsModal: React.FC<AllItemsModalProps> = ({
             </span>
             <div>
               <h3 className="text-sm sm:text-base font-bold text-slate-900">
-                {categoryTitle} 전체 카탈로그
+                {categoryTitle} 전체 목록
               </h3>
               <p className="text-[11px] text-slate-500">
                 계절별 탭에서 원하는 복장을 선택하세요 ({isSingleSelect ? '단일 선택' : '다중 선택'})

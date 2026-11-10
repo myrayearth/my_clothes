@@ -20,7 +20,7 @@ export const STANDARD_ITEMS: StandardItem[] = [
   // 1. 외투 (Outer - 12종)
   // =========================================================================
   { name: '얇은 셔츠/가디건', category: 'outer', season: 'spring_autumn', score: 14 },
-  { name: '홑겹 바람막이/자켓', category: 'outer', season: 'spring_autumn', score: 18 },
+  { name: '얇은 바람막이/자켓', category: 'outer', season: 'spring_autumn', score: 18 },
   { name: '간절기 자켓/점퍼', category: 'outer', season: 'spring_autumn', score: 25 },
   { name: '경량 패딩 조끼', category: 'outer', season: 'spring_autumn', score: 32 },
   { name: '트렌치/야상/자켓', category: 'outer', season: 'spring_autumn', score: 35 },
@@ -30,7 +30,7 @@ export const STANDARD_ITEMS: StandardItem[] = [
   { name: '겨울 코트', category: 'outer', season: 'winter', score: 58 },
   { name: '숏패딩', category: 'outer', season: 'winter', score: 70 },
   { name: '롱패딩', category: 'outer', season: 'winter', score: 82 },
-  { name: '헤비 다운 패딩', category: 'outer', season: 'winter', score: 95 },
+  { name: '두꺼운 다운 패딩', category: 'outer', season: 'winter', score: 95 },
 
   // =========================================================================
   // 2. 상의 (Top - 18종)
@@ -44,15 +44,15 @@ export const STANDARD_ITEMS: StandardItem[] = [
   { name: '기본 긴팔', category: 'top', season: 'spring_autumn', score: 11 },
   { name: '긴팔 원피스', category: 'top', season: 'spring_autumn', score: 11 },
   { name: '긴팔 블라우스', category: 'top', season: 'spring_autumn', score: 12 },
-  { name: '얇은 이너', category: 'top', season: 'winter', score: 12 },
+  { name: '얇은 내의/히트텍', category: 'top', season: 'winter', score: 12 },
   { name: '얇은 셔츠/가디건', category: 'top', season: 'spring_autumn', score: 13 },
   { name: '가벼운 스웨터/조끼', category: 'top', season: 'spring_autumn', score: 15 },
   { name: '맨투맨/후드티', category: 'top', season: 'spring_autumn', score: 18 },
-  { name: '기모 이너', category: 'top', season: 'winter', score: 20 },
-  { name: '목폴라/도톰 셔츠', category: 'top', season: 'spring_autumn', score: 24 },
+  { name: '기모 내의/히트텍', category: 'top', season: 'winter', score: 20 },
+  { name: '목폴라/두꺼운 셔츠', category: 'top', season: 'spring_autumn', score: 24 },
   { name: '기모 맨투맨/후드', category: 'top', season: 'winter', score: 30 },
   { name: '기모 터틀넥/기모티', category: 'top', season: 'winter', score: 35 },
-  { name: '헤비 울 스웨터', category: 'top', season: 'winter', score: 35 },
+  { name: '두꺼운 울 니트', category: 'top', season: 'winter', score: 35 },
 
   // =========================================================================
   // 3. 하의 (Bottom - 17종)
@@ -64,16 +64,16 @@ export const STANDARD_ITEMS: StandardItem[] = [
   { name: '7부 바지', category: 'bottom', season: 'summer', score: 5 },
   { name: '얇은 긴바지', category: 'bottom', season: 'summer', score: 7 },
   { name: '긴팔 원피스', category: 'bottom', season: 'spring_autumn', score: 11 },
-  { name: '간절기 얇은 바지', category: 'bottom', season: 'spring_autumn', score: 13 },
+  { name: '얇은 면바지/슬랙스', category: 'bottom', season: 'spring_autumn', score: 13 },
   { name: '롱스커트', category: 'bottom', season: 'spring_autumn', score: 14 },
-  { name: '하의 얇은 이너', category: 'bottom', season: 'winter', score: 14 },
+  { name: '얇은 하의 내의', category: 'bottom', season: 'winter', score: 14 },
   { name: '기본 긴바지', category: 'bottom', season: 'spring_autumn', score: 18 },
-  { name: '하의 기모 이너', category: 'bottom', season: 'winter', score: 22 },
+  { name: '기모 하의 내의', category: 'bottom', season: 'winter', score: 22 },
   { name: '두꺼운 긴바지', category: 'bottom', season: 'spring_autumn', score: 26 },
   { name: '기모 긴바지', category: 'bottom', season: 'winter', score: 32 },
-  { name: '융기모 방한바지', category: 'bottom', season: 'winter', score: 36 },
+  { name: '두꺼운 기모 방한바지', category: 'bottom', season: 'winter', score: 36 },
   { name: '패딩/방풍 바지', category: 'bottom', season: 'winter', score: 41 },
-  { name: '헤비 방한바지', category: 'bottom', season: 'winter', score: 45 },
+  { name: '두꺼운 방한바지', category: 'bottom', season: 'winter', score: 45 },
 
   // =========================================================================
   // 4. 소품 (Item - 11종, 합산 -10~+30점 캡 적용)
@@ -81,13 +81,13 @@ export const STANDARD_ITEMS: StandardItem[] = [
   { name: '손풍기', category: 'items', season: 'summer', score: -3 },
   { name: '모자/썬캡', category: 'items', season: 'summer', score: -3 },
   { name: '양산', category: 'items', season: 'summer', score: -3 },
-  { name: '자외선 차단', category: 'items', season: 'summer', score: -2 },
+  { name: '선글라스', category: 'items', season: 'summer', score: -2 },
   { name: '가벼운 스카프/숄', category: 'items', season: 'spring_autumn', score: 4 },
   { name: '보온 양말', category: 'items', season: 'winter', score: 7 },
   { name: '비니/가벼운 장갑', category: 'items', season: 'winter', score: 7 },
   { name: '방한 신발/귀마개', category: 'items', season: 'winter', score: 9 },
   { name: '두꺼운 목도리/넥워머', category: 'items', season: 'winter', score: 11 },
-  { name: '핫팩류', category: 'items', season: 'winter', score: 12 },
+  { name: '핫팩', category: 'items', season: 'winter', score: 12 },
   { name: '방풍 마스크/바라클라바', category: 'items', season: 'winter', score: 14 },
 ];
 
@@ -130,6 +130,20 @@ export const ITEM_SCORES: Record<string, number> = {
   }, {} as Record<string, number>),
 
   // 2. 레거시 및 동의어 fallback 매핑 (조회 안전장치)
+  // 이전 버전 표준명칭 역호환
+  '홑겹 바람막이/자켓': 18,
+  '헤비 다운 패딩': 95,
+  '얇은 이너': 12,
+  '기모 이너': 20,
+  '목폴라/도톰 셔츠': 24,
+  '헤비 울 스웨터': 35,
+  '간절기 얇은 바지': 13,
+  '하의 얇은 이너': 14,
+  '하의 기모 이너': 22,
+  '융기모 방한바지': 36,
+  '헤비 방한바지': 45,
+  '핫팩류': 12,
+
   // Outer
   '나일론 바람막이': 18,
   홑겹바람막이: 18,

@@ -219,10 +219,10 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
                 <Sparkles className="w-3.5 h-3.5" />
               </div>
               <h3 className="text-xs sm:text-sm font-bold text-slate-900">
-                {currentUserName} 님의 체감 기반 리콜 요약
+                {currentUserName} 님의 지난 날씨 착용 기록
               </h3>
               <span className="text-[11px] font-semibold bg-white text-brand-700 px-2 py-0.5 rounded-full border border-brand-200">
-                총 {recalls.length}건 매칭 (±2°C)
+                비슷한 기온 기록 {recalls.length}건 (±2°C)
               </span>
               <span className="text-[11px] font-semibold bg-brand-100/80 text-brand-800 px-2 py-0.5 rounded-full">
                 평균 체감 {avgScoreFormatted}
@@ -232,7 +232,7 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
             {/* 대표 1위 코디 요약 표시 */}
             <div className="flex items-center gap-1.5 text-xs text-slate-700 flex-wrap pt-0.5">
               <span className="font-bold text-emerald-700 bg-emerald-100/80 px-1.5 py-0.5 rounded text-[11px]">
-                최고만족 (체감 {formatScoreTemp(bestRecall.log.score)})
+                가장 만족스러웠던 옷차림 (체감 {formatScoreTemp(bestRecall.log.score)})
               </span>
               <span className="text-slate-400 font-normal">|</span>
               <span className="font-medium text-slate-800 truncate max-w-full flex items-center gap-1 flex-wrap">
@@ -254,10 +254,10 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
               type="button"
               onClick={() => handleApply(bestOutfit, '대표 추천 코디가 적용되었습니다.')}
               className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-700 text-white transition-all shadow-xs active:scale-95 touch-manipulation flex items-center gap-1"
-              title="가장 만족도 높았던 대표 코디 바로 적용"
+              title="가장 만족도 높았던 옷차림 바로 적용"
             >
               <CornerDownRight className="w-3.5 h-3.5" />
-              <span>대표 코디 적용</span>
+              <span>이 옷차림 적용</span>
             </button>
 
             <button
@@ -266,7 +266,7 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
               className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-all active:scale-95 touch-manipulation flex items-center gap-1 shadow-2xs"
             >
               <History className="w-3.5 h-3.5 text-slate-500" />
-              <span>전체 이력 ({recalls.length}건)</span>
+              <span>전체 기록 보기 ({recalls.length}건)</span>
               <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
             </button>
           </div>
@@ -320,10 +320,10 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
                 <History className="w-4 h-4 text-brand-600" />
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">
-                    {currentUserName} 님의 과거 착용 및 체감 이력
+                    {currentUserName} 님의 지난 옷차림 체감 기록
                   </h3>
                   <p className="text-xs text-slate-500">
-                    현재 기온(±2°C)과 매칭된 총 {recalls.length}개의 기록 (평균 체감 {avgScoreFormatted})
+                    현재 기온과 비슷한 지난 기록 {recalls.length}개 (평균 체감 {avgScoreFormatted})
                   </p>
                 </div>
               </div>
@@ -521,7 +521,7 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
                         className={`flex items-center justify-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all shadow-2xs active:scale-95 touch-manipulation cursor-pointer ${themeStyles.button}`}
                       >
                         <CornerDownRight className="w-3.5 h-3.5 shrink-0" />
-                        <span>이 조합 그대로 선택기에 적용</span>
+                        <span>이 옷차림 적용하기</span>
                       </button>
                     </div>
                   </div>
@@ -532,7 +532,7 @@ export const HistoryRecallCard: React.FC<HistoryRecallCardProps> = ({
             {/* 모달 푸터 */}
             <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
               <span className="text-xs text-slate-500">
-                선택기에 적용 후 창을 닫거나 다른 조합을 비교해보세요.
+                원하는 옷차림을 적용하거나 지난 기록을 비교해보세요.
               </span>
               <button
                 type="button"

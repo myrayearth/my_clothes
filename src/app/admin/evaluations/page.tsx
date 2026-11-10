@@ -312,7 +312,7 @@ function EvaluationsDashboardContent() {
     try {
       const res = await deleteTemperatureEvaluation(deletingItem);
       if (res.success) {
-        setActionSuccessMsg('평가 데이터가 성공적으로 삭제되었습니다 (과거 리콜 및 캐시 동기화 완료).');
+        setActionSuccessMsg('평가 데이터가 성공적으로 삭제되었습니다 (과거 착용 기록 및 캐시 동기화 완료).');
         setDeletingItem(null);
         await loadData();
       } else {
@@ -827,7 +827,7 @@ function EvaluationsDashboardContent() {
             <div>
               <h3 className="text-base font-bold text-slate-900">평가 데이터 삭제</h3>
               <p className="text-xs text-slate-500 mt-1">
-                정말 이 평가 기록을 삭제하시겠습니까? 데이터베이스 및 사용자 과거 리콜 화면에서 즉시 영구 제거됩니다.
+                정말 이 평가 기록을 삭제하시겠습니까? 데이터베이스 및 사용자의 지난 기록 화면에서 즉시 영구 제거됩니다.
               </p>
               <div className="mt-2.5 p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-left text-[11px] text-slate-600 space-y-0.5">
                 <div><strong>사용자:</strong> {deletingItem.user_name}</div>

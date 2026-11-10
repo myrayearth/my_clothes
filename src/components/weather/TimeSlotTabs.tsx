@@ -44,7 +44,7 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
   timeSlots,
   selectedSlot,
   onSelectSlot,
-  title = '시간대별 예보 및 복장 기준',
+  title = '시간대별 날씨 및 추천 옷차림',
   badge,
   visibleSlots = ['current', '08:00', '13:00', '19:00'],
 }) => {

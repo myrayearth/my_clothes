@@ -44,26 +44,26 @@ const conditionOptions: {
 }[] = [
   {
     value: '정상',
-    label: '정상',
-    desc: '평소 컨디션 (0°C)',
+    label: '보통',
+    desc: '평소 컨디션',
     icon: <Smile className="w-3.5 h-3.5 text-emerald-500 shrink-0" />,
   },
   {
     value: '피곤',
-    label: '피곤',
-    desc: '체감온도 -1.0°C',
+    label: '피곤함',
+    desc: '추위를 더 탐',
     icon: <Coffee className="w-3.5 h-3.5 text-amber-500 shrink-0" />,
   },
   {
     value: '감기',
-    label: '감기',
-    desc: '오한 주의 (-2.5°C)',
+    label: '감기 기운',
+    desc: '오한 주의',
     icon: <ThermometerSnowflake className="w-3.5 h-3.5 text-blue-500 shrink-0" />,
   },
   {
     value: '활동량많음',
-    label: '활동량많음',
-    desc: '체감온도 +1.5°C',
+    label: '활동량 많음',
+    desc: '열이 많이 남',
     icon: <Activity className="w-3.5 h-3.5 text-rose-500 shrink-0" />,
   },
 ];
@@ -123,7 +123,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
       };
     } else if (offset === 0) {
       return {
-        label: `0°C (적정 / 딱 맞음)`,
+        label: `0°C (딱 적당함)`,
         emoji: '✨',
         color: 'text-emerald-700 bg-emerald-50 border-emerald-300 font-bold',
       };
@@ -153,10 +153,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
   // [새벽 02:00 롤오버 기준 D-day 일자 반영] 체감 기온 기준 우선 표기
   const effectiveDay = getEffectiveDayNumber();
   const effectiveTemp = typeof apparentTemp === 'number' && !isNaN(apparentTemp) ? apparentTemp : currentTemp;
-  const isDiff = typeof apparentTemp === 'number' && !isNaN(apparentTemp) && apparentTemp !== currentTemp;
-  const titleText = isDiff
-    ? `오늘(${effectiveDay}일) 체감 ${effectiveTemp}°C (기온 ${currentTemp}°C) 복장 체감 평가`
-    : `오늘(${effectiveDay}일) 체감 ${effectiveTemp}°C 복장 체감 평가`;
+  const titleText = `오늘(${effectiveDay}일) 옷차림 체감 후기 (체감 ${effectiveTemp}°C)`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,8 +188,8 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
 
       setFeedbackSuccess({
         message: isGuest || res.isFallback
-          ? '체감 피드백이 브라우저 로컬에 안전하게 기록되었습니다.'
-          : '내 체감 피드백이 Supabase DB에 성공적으로 저장되었습니다!',
+          ? '체감 후기가 브라우저에 안전하게 저장되었습니다.'
+          : '내 옷차림 체감 후기가 안전하게 저장되었습니다!',
         isFallback: isGuest || res.isFallback,
       });
 
@@ -235,7 +232,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
             type="button"
             onClick={onKakaoLogin}
             className="flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-[#FEE500] hover:bg-[#FDD835] px-2.5 py-1 rounded-lg shadow-2xs transition-all active:scale-95"
-            title="카카오 로그인 시 나만의 과거 기록 맞춤 리콜 제공"
+            title="카카오 로그인 시 나만의 과거 착용 기록 맞춤 추천 제공"
           >
             <span>💬 카카오 로그인 연동</span>
           </button>
@@ -247,9 +244,9 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between flex-wrap gap-1">
             <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-              <span>착용 체감 평가 점수 (-5 ~ +5)</span>
+              <span>오늘 옷차림 어떠셨나요? (-5 ~ +5)</span>
               <span className="text-[11px] text-slate-400 font-normal">
-                (기온 {currentTemp}°C 기준)
+                (기온 {currentTemp}°C)
               </span>
             </label>
             <span
@@ -274,7 +271,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
               <span className="text-blue-600 font-bold">-5°C (매우 추움)</span>
               <span className="text-slate-400 hidden xs:inline">-2.5°C</span>
               <span className="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                0°C (적정)
+                0°C (딱 적당함)
               </span>
               <span className="text-slate-400 hidden xs:inline">+2.5°C</span>
               <span className="text-rose-600 font-bold">+5°C (매우 더움)</span>
@@ -285,10 +282,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
         {/* 2. 오늘 내 몸 컨디션 선택 */}
         <div className="space-y-2 pt-1 border-t border-slate-100">
           <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-            <span>나의 현재 신체 컨디션</span>
-            <span className="text-[10px] text-slate-400 font-normal">
-              (체감 온도 보정 계수)
-            </span>
+            <span>오늘 나의 몸 상태</span>
           </label>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -325,14 +319,14 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
             className="text-xs font-bold text-slate-700 flex items-center gap-1"
           >
             <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
-            <span>오늘의 코디 한줄 메모 (선택)</span>
+            <span>오늘 옷차림 한줄 메모 (선택)</span>
           </label>
           <input
             id="feedback-memo"
             type="text"
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
-            placeholder="예: 바람이 불어서 목도리 하길 잘했음, 지하철에서는 다소 더웠음"
+            placeholder="예: 바람이 불어서 목도리 하길 잘했음, 실내에서는 다소 더웠음"
             className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
             maxLength={100}
           />
@@ -347,12 +341,12 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
           {isSubmitting ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>피드백 저장 중...</span>
+              <span>체감 후기 저장 중...</span>
             </>
           ) : (
             <>
               <Send className="w-4 h-4" />
-              <span>{titleText} 저장하기</span>
+              <span>체감 기록 저장하기</span>
             </>
           )}
         </button>
