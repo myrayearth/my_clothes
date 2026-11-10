@@ -146,21 +146,24 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
                 </div>
 
                 {/* 날씨 아이콘 & 체감 기온 (크게 표시) */}
-                <div className="flex items-center justify-center gap-1.5 my-1">
+                <div className="flex items-center justify-center gap-1 my-1">
                   <WeatherIcon
                     weatherCode={item.weatherCode}
                     isDay={slot === '19:00' ? false : slot === '08:00' || slot === '13:00' ? true : undefined}
-                    size={24}
+                    size={22}
                     className="shrink-0"
                   />
-                  <span className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white" title={`체감 ${displayApparent}°C`}>
-                    {displayApparent}°
-                  </span>
+                  <div className="flex items-baseline gap-0.5">
+                    <span className="text-[10px] sm:text-[11px] font-bold text-blue-600 dark:text-blue-400">체감</span>
+                    <span className="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white" title={`체감 ${displayApparent}°C`}>
+                      {displayApparent}°
+                    </span>
+                  </div>
                 </div>
 
-                {/* 실제 기온 (작게 표시) 및 날씨 요약 */}
+                {/* 기온 (작게 표시) 및 날씨 요약 */}
                 <div className="text-[10px] sm:text-[11px] font-medium opacity-80 leading-tight text-slate-600 dark:text-slate-300">
-                  <span>{isDiff ? `실제 ${item.temperature}°` : `기온 ${item.temperature}°`}</span>
+                  <span>기온 {item.temperature}°</span>
                   <span className="hidden xs:inline mx-0.5">•</span>
                   <span className="hidden xs:inline">{item.weatherLabel}</span>
                 </div>
@@ -226,6 +229,7 @@ export const TimeSlotTabs: React.FC<TimeSlotTabsProps> = ({
                       className="shrink-0"
                     />
                     <span className="text-[11px] sm:text-xs font-semibold">{meta.label}</span>
+                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">체감</span>
                     <span className="text-xs sm:text-sm font-extrabold tracking-tight">{displayApparent}°</span>
                   </button>
                 );

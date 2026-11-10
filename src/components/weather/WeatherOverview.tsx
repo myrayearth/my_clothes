@@ -124,7 +124,7 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
               </span>
             ) : (
               <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 flex items-center gap-1">
-                <span>실시간 날씨</span>
+                <span>현재 날씨</span>
               </span>
             )}
 
@@ -136,12 +136,12 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
             ) : !isManual && shouldShowReturnGuide ? (
               <span className="text-[11px] font-bold text-blue-700 bg-blue-100/80 group-hover:bg-blue-600 group-hover:text-white px-2 py-0.5 rounded-full border border-blue-200 transition-colors flex items-center gap-1 shadow-2xs">
                 <RotateCcw className="w-3 h-3" />
-                <span>실시간 날씨로 돌아가기</span>
+                <span>현재 날씨로 돌아가기</span>
               </span>
             ) : null}
           </div>
 
-          {/* 1. 토글 버튼: [실시간 / 직접 설정] 세그먼트 컨트롤 */}
+          {/* 1. 토글 버튼: [현재 기온 / 직접 설정] 세그먼트 컨트롤 */}
           {onToggleMode && (
             <div
               className="flex items-center bg-slate-200/70 p-0.5 rounded-xl border border-slate-300/80 shadow-2xs shrink-0"
@@ -155,9 +155,9 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
-                title="현재 관측된 실시간 날씨를 기준으로 옷차림 추천"
+                title="현재 관측된 날씨를 기준으로 옷차림 추천"
               >
-                실시간
+                현재 기온
               </button>
               <button
                 type="button"
@@ -175,20 +175,23 @@ export const WeatherOverview: React.FC<WeatherOverviewProps> = ({
           )}
         </div>
 
-        {/* 메인 기온 인터페이스: [실시간] vs [수동설정] 분기 */}
+        {/* 메인 기온 인터페이스: [현재 날씨] vs [수동설정] 분기 */}
         {!isManual ? (
-          /* ================= [실시간 모드 뷰] ================= */
+          /* ================= [현재 날씨 모드 뷰] ================= */
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-baseline gap-2 mt-1">
-                <span
-                  className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight"
-                  title={`체감 기온 ${displayApparent}°C`}
-                >
-                  {displayApparent}°
-                </span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm sm:text-base font-bold text-blue-600">체감</span>
+                  <span
+                    className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight"
+                    title={`체감 기온 ${displayApparent}°C`}
+                  >
+                    {displayApparent}°
+                  </span>
+                </div>
                 <span className="text-sm font-medium text-slate-500">
-                  {isDiff ? `실제 ${weather.currentTemp}°` : `기온 ${weather.currentTemp}°`}
+                  기온 {weather.currentTemp}°
                 </span>
               </div>
 

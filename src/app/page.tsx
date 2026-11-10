@@ -573,12 +573,12 @@ export default function HomePage() {
                     Ondo Fit
                   </h1>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200">
-                    v0.40.0
+                    v0.40.1
                   </span>
                 </div>
-                {/* 요구사항: 제목 부제 '온도 기반 복장 추천 및 피드백' */}
+                {/* 요구사항: 제목 부제 '체감 온도 기반 맞춤 복장 추천' */}
                 <p className="text-xs text-slate-500">
-                  온도 맞춤 복장 추천 및 피드백
+                  체감 온도 기반 맞춤 복장 추천
                 </p>
               </div>
             </div>
@@ -749,7 +749,7 @@ export default function HomePage() {
           )
         )}
 
-        {/* 5. 현재 옷차림 보온 분석 게이지 카드 */}
+        {/* 5. 옷차림 기준 온도 계산기 게이지 카드 */}
         {weather && (
           <OutfitGaugeCard
             temperature={effectiveData.targetTemp}
@@ -819,7 +819,7 @@ export default function HomePage() {
       {/* 푸터 */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-10">
         <p>Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline hover:text-slate-600">Open-Meteo</a> (Free & Keyless)</p>
-        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.40.0</strong></p>
+        <p className="mt-1">Ondo Fit • Next.js 14 App Router • Tailwind CSS • Supabase PostgreSQL • <strong>v0.40.1</strong></p>
       </footer>
     </div>
   );

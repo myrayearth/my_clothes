@@ -178,9 +178,9 @@ export const OutfitGaugeCard: React.FC<OutfitGaugeCardProps> = ({
 
       <div className="flex items-center gap-1.5 shrink-0">
         <span className="text-[11px] text-slate-500 dark:text-slate-400">
-          (기준 <strong className="text-brand-700 dark:text-brand-400 font-bold">{temperature}°C</strong>
+          (체감 <strong className="text-brand-700 dark:text-brand-400 font-bold">{temperature}°C</strong>
           {actualTemperature !== undefined && actualTemperature !== temperature && (
-            <span className="ml-1 text-[10px] text-slate-400">/ 실제 {actualTemperature}°C</span>
+            <span className="ml-1 text-[10px] text-slate-400">/ 기온 {actualTemperature}°C</span>
           )}
           )
         </span>
@@ -209,7 +209,7 @@ export const OutfitGaugeCard: React.FC<OutfitGaugeCardProps> = ({
           <div className="flex items-center gap-1.5">
             <Thermometer className="w-4 h-4 text-brand-600 dark:text-brand-400 shrink-0" />
             <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-              현재 옷차림 보온 분석
+              옷차림 기준 온도 계산기
             </h4>
           </div>
         </div>
@@ -222,7 +222,7 @@ export const OutfitGaugeCard: React.FC<OutfitGaugeCardProps> = ({
             ◀ {gaugeMinTemp}°C (더 따뜻함)
           </span>
           <div className="flex items-center gap-1 font-bold text-slate-700 dark:text-slate-200">
-            <span>🎯 기준 {temperature}°C</span>
+            <span>🎯 체감 {temperature}°C</span>
           </div>
           <span className={isRightOverflow ? 'text-sky-600 font-bold' : ''}>
             {gaugeMaxTemp}°C (더 시원함) ▶
